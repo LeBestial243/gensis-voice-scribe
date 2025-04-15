@@ -3,20 +3,18 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit, Search, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FolderDialog } from '@/components/FolderDialog';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
-import { FileList } from '@/components/FileList';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
+import { FolderCarousel } from '@/components/FolderCarousel';
+import { TranscriptionsList } from '@/components/TranscriptionsList';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
 
   const { data: profile } = useQuery({
@@ -47,10 +45,6 @@ export default function Profile() {
     },
   });
 
-  const filteredFolders = folders.filter(folder =>
-    folder.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="min-h-screen pb-24">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
@@ -66,13 +60,14 @@ export default function Profile() {
         </div>
       </header>
 
-      <main className="container py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="relative flex-1 max-w-sm">
+      <main className="container py-6 space-y-8">
+        {/* Search Bar */}
+        <div className="flex justify-between items-center gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher un dossier..."
+              placeholder="Rechercher dans les dossiers et transcriptions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -81,44 +76,20 @@ export default function Profile() {
           <FolderDialog profileId={id || ''} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => (
-            <Card 
-              key={folder.id} 
-              className={`hover:bg-accent/50 transition-colors cursor-pointer ${
-                selectedFolderId === folder.id ? 'bg-accent' : ''
-              }`}
-              onClick={() => setSelectedFolderId(folder.id)}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-medium">
-                  {folder.title}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {selectedFolderId === folder.id && (
-                    <FileUploadDialog folderId={folder.id} />
-                  )}
-                  <Badge variant="secondary">
-                    0 fichiers
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Dernière modification il y a 2 jours
-                </p>
-                {selectedFolderId === folder.id && (
-                  <div className="mt-4">
-                    <FileList folderId={folder.id} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Folders Carousel */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Dossiers</h2>
+          <FolderCarousel folders={folders} searchQuery={searchQuery} />
+        </section>
+
+        {/* Transcriptions List */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Transcriptions</h2>
+          <TranscriptionsList searchQuery={searchQuery} profileId={id || ''} />
+        </section>
       </main>
 
-      {/* Floating microphone button */}
+      {/* Recording Button */}
       <Button
         onClick={() => setIsRecorderOpen(true)}
         className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center gradient-bg"
