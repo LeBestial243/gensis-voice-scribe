@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { TranscriptionsList } from "@/components/TranscriptionsList";
+import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
@@ -15,20 +16,23 @@ const Index = () => {
         <AppSidebar />
         <div className="flex-1">
           {isMobile && <Header />}
-          <main className="container mx-auto py-6 px-4 md:px-6 max-w-4xl">
-            <h1 className="text-2xl md:text-3xl font-bold mb-6">
+          <main className="container mx-auto py-6 px-4 md:px-6 max-w-4xl pb-24">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 bg-gradient-to-r from-[#36D1DC] to-[#5B86E5] bg-clip-text text-transparent">
               Transformez votre voix en documents professionnels
             </h1>
             
             <section className="mb-8">
               <h2 className="text-xl font-bold mb-4">Enregistrer votre voix</h2>
-              <VoiceRecorder />
+              <div className="neumorphic rounded-2xl p-6">
+                <VoiceRecorder />
+              </div>
             </section>
             
-            <section>
+            <section className="neumorphic rounded-2xl p-6">
               <TranscriptionsList />
             </section>
           </main>
+          {isMobile && <MobileNav className="animate-slide-up" />}
         </div>
       </div>
     </SidebarProvider>
