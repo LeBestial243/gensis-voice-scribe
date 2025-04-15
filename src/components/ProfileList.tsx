@@ -1,14 +1,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-export function ProfileList() {
-  const navigate = useNavigate();
+interface ProfileListProps {
+  onSelectProfile: (profileId: string) => void;
+}
+
+export function ProfileList({ onSelectProfile }: ProfileListProps) {
   const { data: profiles } = useQuery({
     queryKey: ['young_profiles'],
     queryFn: async () => {
@@ -28,7 +29,7 @@ export function ProfileList() {
         <Card 
           key={profile.id} 
           className="cursor-pointer hover:bg-accent/50 transition-colors"
-          onClick={() => navigate(`/profile/${profile.id}`)}
+          onClick={() => onSelectProfile(profile.id)}
         >
           <CardHeader>
             <CardTitle>{profile.first_name} {profile.last_name}</CardTitle>
