@@ -48,15 +48,21 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   // Fetch folders for the profile
-  const { data: folders = [] } = useQuery({
+  const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
+      console.log('Fetching folders for profile ID:', profileId);
       const { data, error } = await supabase
         .from('folders')
-        .select('id')
+        .select('id, title')
         .eq('profile_id', profileId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching folders:', error);
+        throw error;
+      }
+      
+      console.log('Folders data:', data);
       return data;
     },
   });
@@ -68,6 +74,8 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
   const { data: files = [], isLoading } = useQuery<FileData[]>({
     queryKey: ['files', profileId, folderId, folderIds],
     queryFn: async () => {
+      console.log('Fetching files with folder IDs:', folderId || folderIds);
+      
       let query = supabase
         .from('files')
         .select('*');
@@ -83,17 +91,23 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
       
       const { data, error } = await query.order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching files:', error);
+        throw error;
+      }
+      
+      console.log('Files data:', data);
       return data as FileData[];
     },
-    enabled: folderIds.length > 0 || !!folderId,
+    enabled: (folderIds.length > 0 || !!folderId),
   });
 
   // Filter files based on search query
   const filteredFiles = files.filter(file => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
-    return file.name.toLowerCase().includes(searchLower);
+    return file.name.toLowerCase().includes(searchLower) || 
+           (file.content && file.content.toLowerCase().includes(searchLower));
   });
 
   const toggleExpand = (id: string) => {
@@ -139,11 +153,24 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
     return 'Document';
   };
 
-  if (isLoading) {
+  if (foldersLoading || isLoading) {
     return (
       <div className="flex justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
+    );
+  }
+
+  // Message when no folders exist yet
+  if (folderIds.length === 0) {
+    return (
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
+          <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground">Aucun dossier trouvé</p>
+          <p className="text-sm text-muted-foreground">Créez d'abord un dossier pour y ajouter des fichiers</p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -156,6 +183,9 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
           {searchQuery && (
             <p className="text-sm text-muted-foreground">Aucun résultat pour "{searchQuery}"</p>
           )}
+          <p className="text-sm text-muted-foreground mt-2">
+            Utilisez le bouton d'enregistrement pour créer votre première transcription
+          </p>
         </CardContent>
       </Card>
     );

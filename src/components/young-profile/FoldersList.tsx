@@ -26,13 +26,19 @@ export function FoldersList({
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
+      console.log('Fetching folders for profile ID:', profileId);
       const { data, error } = await supabase
         .from('folders')
         .select('*')
         .eq('profile_id', profileId)
         .order('title', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching folders:', error);
+        throw error;
+      }
+      
+      console.log('Folders data:', data);
       return data;
     },
   });
@@ -45,13 +51,17 @@ export function FoldersList({
       
       if (folderIds.length === 0) return {};
       
+      console.log('Fetching file counts for folders:', folderIds);
       // Get all files for these folders
       const { data, error } = await supabase
         .from('files')
         .select('folder_id')
         .in('folder_id', folderIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching file counts:', error);
+        throw error;
+      }
       
       // Organize counts by folder_id
       const counts: Record<string, number> = {};
@@ -62,6 +72,7 @@ export function FoldersList({
         counts[folder] = filesInFolder.length;
       }
       
+      console.log('Folder counts:', counts);
       return counts;
     },
     enabled: folders.length > 0,

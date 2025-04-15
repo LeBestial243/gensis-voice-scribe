@@ -16,6 +16,7 @@ import { TranscriptionsList } from '@/components/young-profile/TranscriptionsLis
 import { NotesList } from '@/components/young-profile/NotesList';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
 import { useToast } from '@/hooks/use-toast';
+import { GenerateNoteDialog } from '@/components/young-profile/GenerateNoteDialog';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function YoungProfilePage() {
   const [selectedTab, setSelectedTab] = useState('transcriptions');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
+  const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch young profile data with better error handling
@@ -194,12 +196,7 @@ export default function YoungProfilePage() {
       <Button
         className="fixed bottom-24 right-4 bg-purple-600 hover:bg-purple-700 animate-pulse hover:animate-none"
         size="lg"
-        onClick={() => {
-          toast({
-            title: "Génération en cours...",
-            description: "Nous préparons votre note basée sur les données du profil."
-          });
-        }}
+        onClick={() => setIsGenerateNoteOpen(true)}
       >
         Générer une note IA
       </Button>
@@ -208,6 +205,13 @@ export default function YoungProfilePage() {
       <RecordingDialog 
         open={isRecordingOpen} 
         onOpenChange={setIsRecordingOpen} 
+        profileId={id || ''}
+      />
+
+      {/* Generate Note Dialog */}
+      <GenerateNoteDialog
+        open={isGenerateNoteOpen}
+        onOpenChange={setIsGenerateNoteOpen}
         profileId={id || ''}
       />
     </div>
