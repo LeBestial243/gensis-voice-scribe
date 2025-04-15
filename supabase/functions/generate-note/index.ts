@@ -28,7 +28,7 @@ Voici les observations à synthétiser :
 ${transcriptions}
 
 Structure attendue :
-${templateSections.map(section => `${section.title}:\n${section.instructions || 'Pas d'instruction spécifique'}`).join('\n\n')}
+${templateSections.map(section => `${section.title}:\n${section.instructions || 'Pas d\'instruction spécifique'}`).join('\n\n')}
 
 Consignes :
 - Adopte un langage professionnel et neutre
