@@ -10,13 +10,15 @@ import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { AlertTriangle, LogOut } from "lucide-react";
+import { IncidentReportDialog } from "@/components/IncidentReportDialog";
 
 const Index = () => {
   const isMobile = useIsMobile();
   const { loading } = useRequireAuth();
   const { user } = useAuth();
   const [transcriptionInProgress, setTranscriptionInProgress] = useState(false);
+  const [isIncidentDialogOpen, setIsIncidentDialogOpen] = useState(false);
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Chargement...</div>;
@@ -69,6 +71,22 @@ const Index = () => {
           {isMobile && <MobileNav className="animate-slide-up" />}
         </div>
       </div>
+
+      {/* Floating Incident Report Button */}
+      <Button
+        onClick={() => setIsIncidentDialogOpen(true)}
+        className="fixed bottom-24 right-4 rounded-full h-14 w-14 shadow-lg flex items-center justify-center animate-pulse hover:animate-none"
+        size="icon"
+        variant="default"
+      >
+        <AlertTriangle className="h-6 w-6" />
+      </Button>
+
+      {/* Incident Report Dialog */}
+      <IncidentReportDialog 
+        open={isIncidentDialogOpen} 
+        onOpenChange={setIsIncidentDialogOpen}
+      />
     </SidebarProvider>
   );
 };

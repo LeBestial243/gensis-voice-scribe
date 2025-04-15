@@ -121,3 +121,12 @@
   animation: pulse-recording 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Custom dialog overlay colors */
+[data-overlay-class="bg-black/40"],
+[data-overlay-class="bg-black/60"] {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-overlay-class="bg-black/60"] {
+  background-color: rgba(0, 0, 0, 0.6);
+}
