@@ -24,6 +24,7 @@ interface File {
   type: string;
   created_at: string;
   updated_at: string;
+  path: string;
   content?: string;
 }
 
@@ -63,7 +64,7 @@ export function GenerateNoteDialog({
   });
 
   // Fetch selected files with content
-  const { data: selectedFilesData = [] } = useQuery({
+  const { data: selectedFilesData = [] } = useQuery<File[]>({
     queryKey: ['selected_files_content', selectedFiles],
     queryFn: async () => {
       if (selectedFiles.length === 0) return [];
@@ -84,7 +85,9 @@ export function GenerateNoteDialog({
       if (!filesData) return [];
 
       // For each file, try to get its content
-      const filesWithContent = await Promise.all(filesData.map(async (file) => {
+      const filesWithContent: File[] = [];
+      
+      for (const file of filesData) {
         try {
           // Attempt to download the file content
           const { data: fileContent, error: downloadError } = await supabase
@@ -94,17 +97,18 @@ export function GenerateNoteDialog({
           
           if (downloadError) {
             console.error('Error downloading file:', downloadError);
-            return { ...file, content: '' };
+            filesWithContent.push({ ...file, content: '' });
+            continue;
           }
 
           // Convert blob to text
           const content = await fileContent.text();
-          return { ...file, content };
+          filesWithContent.push({ ...file, content });
         } catch (error) {
           console.error('Error processing file content:', error);
-          return { ...file, content: '' };
+          filesWithContent.push({ ...file, content: '' });
         }
-      }));
+      }
       
       return filesWithContent;
     },

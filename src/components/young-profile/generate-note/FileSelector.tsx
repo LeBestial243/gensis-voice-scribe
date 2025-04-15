@@ -27,44 +27,46 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['files_for_generation', profileId],
     queryFn: async () => {
-      // First fetch folders
-      const { data: folders, error: foldersError } = await supabase
-        .from('folders')
-        .select('id')
-        .eq('profile_id', profileId);
-      
-      if (foldersError) {
-        console.error('Error fetching folders:', foldersError);
-        throw foldersError;
-      }
-      
-      if (!folders || folders.length === 0) return [];
-      
-      // Then fetch files
-      const { data: filesData, error: filesError } = await supabase
-        .from('files')
-        .select(`
-          id,
-          name,
-          type,
-          created_at,
-          updated_at,
-          path
-        `)
-        .in('folder_id', folders.map(f => f.id))
-        .eq('type', 'text/plain')
-        .order('created_at', { ascending: false });
-      
-      if (filesError) {
-        console.error('Error fetching files:', filesError);
-        throw filesError;
-      }
-      
-      if (!filesData) return [];
+      try {
+        // First fetch folders
+        const { data: folders, error: foldersError } = await supabase
+          .from('folders')
+          .select('id')
+          .eq('profile_id', profileId);
+        
+        if (foldersError) {
+          console.error('Error fetching folders:', foldersError);
+          throw foldersError;
+        }
+        
+        if (!folders || folders.length === 0) return [];
+        
+        // Then fetch files
+        const { data: filesData, error: filesError } = await supabase
+          .from('files')
+          .select(`
+            id,
+            name,
+            type,
+            created_at,
+            updated_at,
+            path
+          `)
+          .in('folder_id', folders.map(f => f.id))
+          .eq('type', 'text/plain')
+          .order('created_at', { ascending: false });
+        
+        if (filesError) {
+          console.error('Error fetching files:', filesError);
+          throw filesError;
+        }
+        
+        if (!filesData) return [];
 
-      // For each file, try to get its content
-      const filesWithContent: File[] = await Promise.all(
-        filesData.map(async (file) => {
+        // For each file, try to get its content
+        const filesWithContent: File[] = [];
+        
+        for (const file of filesData) {
           try {
             // Attempt to download the file content
             const { data: fileContent, error: downloadError } = await supabase
@@ -74,20 +76,24 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
             
             if (downloadError) {
               console.error('Error downloading file:', downloadError);
-              return { ...file, content: '' };
+              filesWithContent.push({ ...file, content: '' });
+              continue;
             }
 
             // Convert blob to text
             const content = await fileContent.text();
-            return { ...file, content };
+            filesWithContent.push({ ...file, content });
           } catch (error) {
             console.error('Error processing file content:', error);
-            return { ...file, content: '' };
+            filesWithContent.push({ ...file, content: '' });
           }
-        })
-      );
-      
-      return filesWithContent;
+        }
+        
+        return filesWithContent;
+      } catch (error) {
+        console.error('Error in files query:', error);
+        return [];
+      }
     },
   });
 
