@@ -1,19 +1,17 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { CreateProfileForm } from '@/components/CreateProfileForm';
-import { useAuth } from '@/lib/auth';
-import { useRequireAuth } from '@/lib/auth';
+import { ProfileList } from '@/components/ProfileList';
+import { MobileNav } from '@/components/MobileNav';
 
 export default function Profiles() {
-  useRequireAuth();
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    <div className="container mx-auto py-6 px-4 pb-24">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Mes profils</h1>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -31,6 +29,9 @@ export default function Profiles() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <ProfileList />
+      <MobileNav />
     </div>
   );
 }

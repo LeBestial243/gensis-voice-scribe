@@ -1,13 +1,12 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
-import { fr } from 'date-fns/locale';
-
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,15 +18,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
@@ -44,25 +42,15 @@ const formSchema = z.object({
 export function CreateProfileForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-      toast({
-        title: "Vous devez être connecté pour créer un profil",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { data: profile, error } = await supabase
+  const createProfile = useMutation({
+    mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const { data, error } = await supabase
         .from('young_profiles')
         .insert({
           first_name: values.firstName,
@@ -70,27 +58,28 @@ export function CreateProfileForm() {
           birth_date: format(values.birthDate, 'yyyy-MM-dd'),
           structure: values.structure,
           arrival_date: format(values.arrivalDate, 'yyyy-MM-dd'),
-          user_id: user.id
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      toast({
-        title: "Profil créé avec succès",
-      });
-
-      navigate(`/profile/${profile.id}?record=true`);
-    } catch (error) {
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['young_profiles'] });
+      toast({ title: "Profil créé avec succès" });
+      navigate(`/profile/${data.id}?record=true`);
+    },
+    onError: () => {
       toast({
         title: "Erreur lors de la création du profil",
         variant: "destructive",
       });
-      console.error("Error creating profile:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    createProfile.mutate(values);
   }
 
   return (
@@ -143,7 +132,7 @@ export function CreateProfileForm() {
                       {field.value ? (
                         format(field.value, "PPP", { locale: fr })
                       ) : (
-                        <span>Sélectionnez une date</span>
+                        <span>Sélectionner une date</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -201,7 +190,7 @@ export function CreateProfileForm() {
                       {field.value ? (
                         format(field.value, "PPP", { locale: fr })
                       ) : (
-                        <span>Sélectionnez une date</span>
+                        <span>Sélectionner une date</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -226,8 +215,8 @@ export function CreateProfileForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Création..." : "Créer le profil"}
+        <Button type="submit" className="w-full" disabled={createProfile.isPending}>
+          {createProfile.isPending ? "Création..." : "Créer le profil"}
         </Button>
       </form>
     </Form>
