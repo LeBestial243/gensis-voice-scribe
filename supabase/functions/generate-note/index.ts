@@ -19,20 +19,25 @@ serve(async (req) => {
     
 Données du jeune :
 - Prénom : ${profileData.first_name}
+- Nom : ${profileData.last_name || ''}
 - Structure : ${profileData.structure || 'Non spécifiée'}
-- Date d'arrivée : ${profileData.arrival_date}
+- Date d'arrivée : ${profileData.arrival_date || ''}
+- Date de naissance : ${profileData.birth_date || ''}
 
 Voici les observations à synthétiser :
 ${transcriptions}
 
 Structure attendue :
-${templateSections.map(section => `${section.title}:\n${section.instructions || ''}`).join('\n\n')}
+${templateSections.map(section => `${section.title}:\n${section.instructions || 'Pas d'instruction spécifique'}`).join('\n\n')}
 
 Consignes :
 - Adopte un langage professionnel et neutre
 - Structure le texte selon les sections indiquées
 - Reformule de manière intelligente les observations
-- Reste factuel et objectif`;
+- Reste factuel et objectif
+- Ne pas copier les phrases brutes des transcriptions`;
+
+    console.log("System prompt:", systemPrompt);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -51,7 +56,9 @@ Consignes :
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`)
+      const responseText = await response.text();
+      console.error(`OpenAI API error (${response.status}): ${responseText}`);
+      throw new Error(`OpenAI API error: ${responseText}`);
     }
 
     const data = await response.json()

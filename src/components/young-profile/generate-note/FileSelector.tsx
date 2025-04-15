@@ -13,7 +13,8 @@ interface File {
   type: string;
   created_at: string;
   updated_at: string;
-  content?: string; // Making content optional
+  path: string;
+  content?: string;
 }
 
 interface FileSelectorProps {
@@ -27,15 +28,20 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
     queryKey: ['files_for_generation', profileId],
     queryFn: async () => {
       // First fetch folders
-      const { data: folders } = await supabase
+      const { data: folders, error: foldersError } = await supabase
         .from('folders')
         .select('id')
         .eq('profile_id', profileId);
       
+      if (foldersError) {
+        console.error('Error fetching folders:', foldersError);
+        throw foldersError;
+      }
+      
       if (!folders || folders.length === 0) return [];
       
       // Then fetch files
-      const { data: filesData, error } = await supabase
+      const { data: filesData, error: filesError } = await supabase
         .from('files')
         .select(`
           id,
@@ -49,31 +55,37 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
         .eq('type', 'text/plain')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (filesError) {
+        console.error('Error fetching files:', filesError);
+        throw filesError;
+      }
+      
       if (!filesData) return [];
 
       // For each file, try to get its content
-      const filesWithContent = await Promise.all(filesData.map(async (file) => {
-        try {
-          // Attempt to download the file content
-          const { data: fileContent, error: downloadError } = await supabase
-            .storage
-            .from('files')
-            .download(file.path);
-          
-          if (downloadError) {
-            console.error('Error downloading file:', downloadError);
+      const filesWithContent: File[] = await Promise.all(
+        filesData.map(async (file) => {
+          try {
+            // Attempt to download the file content
+            const { data: fileContent, error: downloadError } = await supabase
+              .storage
+              .from('files')
+              .download(file.path);
+            
+            if (downloadError) {
+              console.error('Error downloading file:', downloadError);
+              return { ...file, content: '' };
+            }
+
+            // Convert blob to text
+            const content = await fileContent.text();
+            return { ...file, content };
+          } catch (error) {
+            console.error('Error processing file content:', error);
             return { ...file, content: '' };
           }
-
-          // Convert blob to text
-          const content = await fileContent.text();
-          return { ...file, content };
-        } catch (error) {
-          console.error('Error processing file content:', error);
-          return { ...file, content: '' };
-        }
-      }));
+        })
+      );
       
       return filesWithContent;
     },
