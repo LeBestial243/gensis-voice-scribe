@@ -5,8 +5,11 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CreateProfileForm } from '@/components/CreateProfileForm';
+import { useAuth } from '@/lib/auth';
+import { useRequireAuth } from '@/lib/auth';
 
 export default function Profiles() {
+  useRequireAuth();
   const [open, setOpen] = useState(false);
 
   return (

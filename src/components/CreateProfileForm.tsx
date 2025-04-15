@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
@@ -44,12 +45,21 @@ export function CreateProfileForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      toast({
+        title: "Vous devez être connecté pour créer un profil",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { data: profile, error } = await supabase
@@ -60,7 +70,7 @@ export function CreateProfileForm() {
           birth_date: format(values.birthDate, 'yyyy-MM-dd'),
           structure: values.structure,
           arrival_date: format(values.arrivalDate, 'yyyy-MM-dd'),
-          user_id: '00000000-0000-0000-0000-000000000000' // Temporaire: à remplacer par l'ID de l'utilisateur authentifié
+          user_id: user.id
         })
         .select()
         .single();
