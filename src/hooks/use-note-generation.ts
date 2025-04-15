@@ -5,15 +5,11 @@ import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FileWithContent } from "@/components/young-profile/generate-note/FileSelector";
 
 interface UseNoteGenerationProps {
   profileId: string;
   onSuccess?: () => void;
-}
-
-// Extended File interface to include content
-interface FileWithContent extends File {
-  content?: string;
 }
 
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
@@ -43,12 +39,15 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   // Save note mutation
   const saveNote = useMutation({
     mutationFn: async ({ title, content }: { title: string; content: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non authentifié");
+      
       const { data, error } = await supabase
         .from('notes')
         .insert([{ 
           title, 
           content,
-          user_id: profileId,
+          user_id: user.id,
           template_id: selectedTemplateId || null
         }])
         .select()
@@ -88,7 +87,8 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
           type,
           created_at,
           updated_at,
-          path
+          path,
+          size
         `)
         .in('id', selectedFiles);
       

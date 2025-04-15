@@ -100,11 +100,16 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
 
         // If creating new template
         if (!editingTemplateId) {
+          // Get the current user ID
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Utilisateur non authentifié");
+          
           const { data: templateData, error: templateError } = await supabase
             .from('templates')
-            .insert([{
+            .insert({
               title: templateTitle,
-            }])
+              user_id: user.id
+            })
             .select()
             .single();
           

@@ -78,6 +78,32 @@ export function GenerateNoteDialog({
     });
   };
 
+  const handleFileSelect = (fileId: string) => {
+    if (selectedFiles.includes(fileId)) {
+      setSelectedFiles(selectedFiles.filter(id => id !== fileId));
+    } else {
+      setSelectedFiles([...selectedFiles, fileId]);
+    }
+  };
+
+  const handleCopyContent = () => {
+    navigator.clipboard.writeText(generatedContent);
+    toast({
+      title: "Copié !",
+      description: "Le contenu a été copié dans le presse-papier"
+    });
+  };
+
+  const handleExportContent = () => {
+    const element = document.createElement("a");
+    const file = new Blob([generatedContent], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${noteTitle}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -101,17 +127,17 @@ export function GenerateNoteDialog({
                 <FileSelector
                   profileId={profileId}
                   selectedFiles={selectedFiles}
-                  onFilesSelect={setSelectedFiles}
+                  onFileSelect={handleFileSelect}
                 />
               </div>
             </>
           ) : (
             <div className="md:col-span-2">
               <ResultEditor
-                content={generatedContent}
-                onContentChange={setGeneratedContent}
-                title={noteTitle}
+                noteTitle={noteTitle}
                 onTitleChange={setNoteTitle}
+                generatedContent={generatedContent}
+                onContentChange={setGeneratedContent}
               />
             </div>
           )}
@@ -142,24 +168,10 @@ export function GenerateNoteDialog({
               <Button variant="outline" onClick={() => setGeneratedContent("")}>
                 Retour
               </Button>
-              <Button variant="outline" onClick={() => {
-                navigator.clipboard.writeText(generatedContent);
-                toast({
-                  title: "Copié !",
-                  description: "Le contenu a été copié dans le presse-papier"
-                });
-              }}>
+              <Button variant="outline" onClick={handleCopyContent}>
                 Copier
               </Button>
-              <Button variant="outline" onClick={() => {
-                const element = document.createElement("a");
-                const file = new Blob([generatedContent], {type: 'text/plain'});
-                element.href = URL.createObjectURL(file);
-                element.download = `${noteTitle}.txt`;
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-              }}>
+              <Button variant="outline" onClick={handleExportContent}>
                 Exporter (.txt)
               </Button>
               <Button onClick={handleSaveNote} disabled={saveNote.isPending}>

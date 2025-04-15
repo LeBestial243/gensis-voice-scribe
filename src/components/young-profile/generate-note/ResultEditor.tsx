@@ -2,7 +2,6 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { Copy, Download, Save } from "lucide-react";
 
 interface ResultEditorProps {
@@ -10,9 +9,6 @@ interface ResultEditorProps {
   onTitleChange: (title: string) => void;
   generatedContent: string;
   onContentChange: (content: string) => void;
-  onSave: () => void;
-  onCopy: () => void;
-  onExport: () => void;
 }
 
 export function ResultEditor({
@@ -20,12 +16,7 @@ export function ResultEditor({
   onTitleChange,
   generatedContent,
   onContentChange,
-  onSave,
-  onCopy,
-  onExport,
 }: ResultEditorProps) {
-  const { toast } = useToast();
-
   return (
     <div className="space-y-4">
       <div className="grid gap-2">
@@ -46,23 +37,6 @@ export function ResultEditor({
           onChange={(e) => onContentChange(e.target.value)}
           className="min-h-[300px]"
         />
-      </div>
-
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onCopy}>
-            <Copy className="h-4 w-4 mr-2" />
-            Copier
-          </Button>
-          <Button variant="outline" onClick={onExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Exporter
-          </Button>
-        </div>
-        <Button onClick={onSave}>
-          <Save className="h-4 w-4 mr-2" />
-          Sauvegarder
-        </Button>
       </div>
     </div>
   );

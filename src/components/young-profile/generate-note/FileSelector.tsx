@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-interface File {
+// Define a custom File interface that includes content
+export interface FileWithContent {
   id: string;
   name: string;
   type: string;
@@ -15,6 +16,7 @@ interface File {
   updated_at: string;
   path: string;
   content?: string;
+  size?: number;
 }
 
 interface FileSelectorProps {
@@ -50,7 +52,8 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
             type,
             created_at,
             updated_at,
-            path
+            path,
+            size
           `)
           .in('folder_id', folders.map(f => f.id))
           .eq('type', 'text/plain')
@@ -64,7 +67,7 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
         if (!filesData) return [];
 
         // For each file, try to get its content
-        const filesWithContent: File[] = [];
+        const filesWithContent: FileWithContent[] = [];
         
         for (const file of filesData) {
           try {
