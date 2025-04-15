@@ -10,7 +10,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Flag, LogOut } from "lucide-react";
+import { AlertTriangle, LogOut } from "lucide-react";
 import { IncidentReportDialog } from "@/components/IncidentReportDialog";
 
 const Index = () => {
@@ -75,11 +75,11 @@ const Index = () => {
       {/* Floating Incident Report Button */}
       <Button
         onClick={() => setIsIncidentDialogOpen(true)}
-        className="fixed bottom-8 right-8 rounded-full h-14 w-14 shadow-lg flex items-center justify-center animate-pulse hover:animate-none z-50"
+        className="fixed bottom-24 right-4 rounded-full h-14 w-14 shadow-lg flex items-center justify-center animate-pulse hover:animate-none"
         size="icon"
         variant="default"
       >
-        <Flag className="h-6 w-6" />
+        <AlertTriangle className="h-6 w-6" />
       </Button>
 
       {/* Incident Report Dialog */}
