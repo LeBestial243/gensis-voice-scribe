@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -15,6 +16,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const { loading } = useRequireAuth();
   const { user } = useAuth();
+  const [transcriptionInProgress, setTranscriptionInProgress] = useState(false);
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Chargement...</div>;
@@ -22,6 +24,16 @@ const Index = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleTranscriptionComplete = (text: string, audioURL: string | null) => {
+    // For the Index page, we could update the transcriptions list or show a notification
+    console.log("Transcription completed:", text);
+    setTranscriptionInProgress(false);
+  };
+
+  const handleTranscriptionStart = () => {
+    setTranscriptionInProgress(true);
   };
 
   return (
@@ -43,7 +55,10 @@ const Index = () => {
             <section className="mb-8">
               <h2 className="text-xl font-bold mb-4">Enregistrer votre voix</h2>
               <div className="neumorphic rounded-2xl p-6">
-                <VoiceRecorder />
+                <VoiceRecorder 
+                  onTranscriptionComplete={handleTranscriptionComplete}
+                  onTranscriptionStart={handleTranscriptionStart}
+                />
               </div>
             </section>
             
