@@ -30,6 +30,19 @@ interface TranscriptionsListProps {
   searchQuery: string;
 }
 
+// Define a proper interface for our files
+interface FileData {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  path: string;
+  folder_id: string;
+  created_at: string | null;
+  updated_at: string | null;
+  content?: string; // Make content optional since it might not exist on all files
+}
+
 export function TranscriptionsList({ profileId, folderId, searchQuery }: TranscriptionsListProps) {
   const { toast } = useToast();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -52,7 +65,7 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
   const folderIds = folders.map(folder => folder.id);
 
   // Fetch files based on folders
-  const { data: files = [], isLoading } = useQuery({
+  const { data: files = [], isLoading } = useQuery<FileData[]>({
     queryKey: ['files', profileId, folderId, folderIds],
     queryFn: async () => {
       let query = supabase
@@ -71,7 +84,7 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as FileData[];
     },
     enabled: folderIds.length > 0 || !!folderId,
   });

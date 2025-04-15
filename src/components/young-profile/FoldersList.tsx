@@ -45,11 +45,11 @@ export function FoldersList({
       
       if (folderIds.length === 0) return {};
       
+      // Get all files for these folders
       const { data, error } = await supabase
         .from('files')
-        .select('folder_id, count')
-        .in('folder_id', folderIds)
-        .count();
+        .select('folder_id')
+        .in('folder_id', folderIds);
       
       if (error) throw error;
       
