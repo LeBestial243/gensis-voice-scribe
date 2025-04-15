@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit, Search } from 'lucide-react';
@@ -9,10 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FolderDialog } from '@/components/FolderDialog';
+import { FileUploadDialog } from '@/components/FileUploadDialog';
+import { FileList } from '@/components/FileList';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   const { data: profile } = useQuery({
     queryKey: ['profile', id],
@@ -48,7 +50,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
         <div className="container flex items-center justify-between h-16">
           {profile && (
@@ -77,29 +78,43 @@ export default function Profile() {
           <FolderDialog profileId={id || ''} />
         </div>
 
-        {/* Folders grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredFolders.map((folder) => (
-            <Card key={folder.id} className="hover:bg-accent/50 transition-colors cursor-pointer">
+            <Card 
+              key={folder.id} 
+              className={`hover:bg-accent/50 transition-colors cursor-pointer ${
+                selectedFolderId === folder.id ? 'bg-accent' : ''
+              }`}
+              onClick={() => setSelectedFolderId(folder.id)}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-medium">
                   {folder.title}
                 </CardTitle>
-                <Badge variant="secondary">
-                  0 fichiers
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {selectedFolderId === folder.id && (
+                    <FileUploadDialog folderId={folder.id} />
+                  )}
+                  <Badge variant="secondary">
+                    0 fichiers
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
                   Dernière modification il y a 2 jours
                 </p>
+                {selectedFolderId === folder.id && (
+                  <div className="mt-4">
+                    <FileList folderId={folder.id} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       </main>
 
-      {/* AI Note Button */}
       <Button
         className="fixed bottom-24 right-4 animate-pulse hover:animate-none"
         size="lg"
