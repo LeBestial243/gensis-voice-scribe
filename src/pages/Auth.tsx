@@ -45,11 +45,12 @@ export default function Auth() {
     setErrorMessage(null);
     
     try {
-      // Make sure we're using signUp method, not signInAnonymously
+      // Ensure we're using full signUp method with email confirmation
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
+          // Use the current origin as the redirect URL
           emailRedirectTo: window.location.origin
         }
       });
@@ -87,13 +88,14 @@ export default function Auth() {
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSignIn}>
             <div>
               <Input
                 type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div>
@@ -102,18 +104,20 @@ export default function Auth() {
                 placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
               />
             </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
+              Se connecter
+            </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <Button
-            className="w-full"
-            onClick={handleSignIn}
-            disabled={loading}
-          >
-            Se connecter
-          </Button>
+        <CardFooter>
           <Button
             variant="outline"
             className="w-full"
