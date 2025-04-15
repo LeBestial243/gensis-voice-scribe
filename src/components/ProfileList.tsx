@@ -1,27 +1,42 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
-interface ProfileListProps {
-  onSelectProfile: (profileId: string) => void;
-}
+export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string) => void }) {
+  const navigate = useNavigate();
 
-export function ProfileList({ onSelectProfile }: ProfileListProps) {
-  const { data: profiles } = useQuery({
-    queryKey: ['young_profiles'],
+  const { data: profiles, isLoading, error } = useQuery({
+    queryKey: ['profiles'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('young_profiles')
         .select('*')
         .order('created_at', { ascending: false });
-      
-      if (error) throw error;
+
+      if (error) {
+        throw error;
+      }
+
       return data;
-    }
+    },
   });
+
+  const handleProfileClick = (id: string) => {
+    if (onSelectProfile) {
+      onSelectProfile(id);
+    } else {
+      navigate(`/young_profiles/${id}`);
+    }
+  };
+
+  if (isLoading) {
+    return <p>Chargement des profils...</p>;
+  }
+
+  if (error) {
+    return <p>Erreur lors du chargement des profils.</p>;
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -29,20 +44,15 @@ export function ProfileList({ onSelectProfile }: ProfileListProps) {
         <Card 
           key={profile.id} 
           className="cursor-pointer hover:bg-accent/50 transition-colors"
-          onClick={() => onSelectProfile(profile.id)}
+          onClick={() => handleProfileClick(profile.id)}
         >
           <CardHeader>
             <CardTitle>{profile.first_name} {profile.last_name}</CardTitle>
+            <CardDescription>
+              {profile.structure || "Aucune structure"} • 
+              {new Date(profile.arrival_date).toLocaleDateString('fr-FR')}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Structure: {profile.structure}</p>
-            <p className="text-sm text-muted-foreground">
-              Date de naissance: {format(new Date(profile.birth_date), 'PP', { locale: fr })}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Arrivée: {format(new Date(profile.arrival_date), 'PP', { locale: fr })}
-            </p>
-          </CardContent>
         </Card>
       ))}
     </div>
