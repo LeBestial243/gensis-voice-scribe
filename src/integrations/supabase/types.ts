@@ -63,6 +63,53 @@ export type Database = {
         }
         Relationships: []
       }
+      young_profiles: {
+        Row: {
+          birth_date: string
+          created_at: string
+          family_environment: string | null
+          first_name: string
+          id: string
+          last_name: string
+          professional_project: string | null
+          situation: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date: string
+          created_at?: string
+          family_environment?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          professional_project?: string | null
+          situation?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string
+          created_at?: string
+          family_environment?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          professional_project?: string | null
+          situation?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "young_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
