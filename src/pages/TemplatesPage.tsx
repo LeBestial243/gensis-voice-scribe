@@ -6,6 +6,7 @@ import { TemplateCreationForm } from "@/components/templates/TemplateCreationFor
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useRequireAuth } from "@/lib/auth";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function TemplatesPage() {
   const { loading } = useRequireAuth();
@@ -20,31 +21,33 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 container py-8">
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Mes modèles IA</CardTitle>
-              <CardDescription>
-                Créez vos propres structures pour générer automatiquement des notes à partir des observations de terrain.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TemplateCreationForm 
-                editingTemplateId={editingTemplateId} 
-                onEditComplete={() => setEditingTemplateId(null)} 
-              />
-            </CardContent>
-          </Card>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="flex-1 container py-8">
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Mes modèles IA</CardTitle>
+                <CardDescription>
+                  Créez vos propres structures pour générer automatiquement des notes à partir des observations de terrain.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TemplateCreationForm 
+                  editingTemplateId={editingTemplateId} 
+                  onEditComplete={() => setEditingTemplateId(null)} 
+                />
+              </CardContent>
+            </Card>
 
-          <TemplatesList 
-            onEditTemplate={(templateId) => setEditingTemplateId(templateId)} 
-          />
-        </main>
+            <TemplatesList 
+              onEditTemplate={(templateId) => setEditingTemplateId(templateId)} 
+            />
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
