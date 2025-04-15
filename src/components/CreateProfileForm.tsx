@@ -52,15 +52,19 @@ export function CreateProfileForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      // Convertir la date en format ISO pour Supabase
+      const formattedDate = format(values.birthDate, 'yyyy-MM-dd');
+      
       const { data: profile, error } = await supabase
         .from('young_profiles')
         .insert({
           first_name: values.firstName,
           last_name: values.lastName,
-          birth_date: values.birthDate,
+          birth_date: formattedDate, // Convertir Date en string
           situation: values.situation,
           professional_project: values.professionalProject,
           family_environment: values.familyEnvironment,
+          user_id: '00000000-0000-0000-0000-000000000000' // Temporaire: à remplacer par l'ID de l'utilisateur authentifié
         })
         .select()
         .single();
@@ -78,6 +82,7 @@ export function CreateProfileForm() {
         title: "Erreur lors de la création du profil",
         variant: "destructive",
       });
+      console.error("Error creating profile:", error);
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +154,7 @@ export function CreateProfileForm() {
                     }
                     initialFocus
                     locale={fr}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
