@@ -3,9 +3,14 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
-export function VoiceRecorder() {
+interface VoiceRecorderProps {
+  onTranscriptionComplete: (text: string, audioURL: string | null) => void;
+  onTranscriptionStart: () => void;
+}
+
+export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -84,17 +89,38 @@ export function VoiceRecorder() {
   };
 
   const processRecording = () => {
+    if (!audioURL) return;
+    
     setIsProcessing(true);
-    // Simuler le traitement (à remplacer par l'intégration réelle avec Whisper et OpenAI)
-    setTimeout(() => {
-      setIsProcessing(false);
-      toast({
-        title: "Transcription terminée",
-        description: "Votre enregistrement a été transcrit avec succès.",
+    onTranscriptionStart();
+    
+    // Convertir l'audioURL en blob pour l'envoi
+    fetch(audioURL)
+      .then(response => response.blob())
+      .then(blob => {
+        // Convertir le blob en base64
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          // Enlever le préfixe data:audio/wav;base64,
+          const base64Audio = base64data.split(',')[1];
+          
+          // Simuler une transcription (à remplacer par un vrai appel API à Whisper)
+          setTimeout(() => {
+            // Transcription fictive pour démonstration
+            const mockTranscription = "Voici une transcription fictive de l'enregistrement audio. Dans une implémentation réelle, ce texte viendrait de l'API Whisper d'OpenAI après analyse de l'audio enregistré.";
+            
+            setIsProcessing(false);
+            onTranscriptionComplete(mockTranscription, audioURL);
+            
+            toast({
+              title: "Transcription terminée",
+              description: "Votre enregistrement a été transcrit avec succès.",
+            });
+          }, 2000);
+        };
       });
-      // Réinitialiser pour un nouvel enregistrement
-      setAudioURL(null);
-    }, 2000);
   };
 
   const formatTime = (seconds: number) => {
@@ -104,19 +130,19 @@ export function VoiceRecorder() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full">
       <CardContent className="pt-6">
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-24 h-24 flex items-center justify-center">
             {isRecording ? (
-              <div className="absolute inset-0 bg-gensys-100 dark:bg-gensys-900 rounded-full animate-pulse-recording"></div>
+              <div className="absolute inset-0 bg-red-100 dark:bg-red-900 rounded-full animate-pulse"></div>
             ) : null}
             <div 
               className={`
                 w-20 h-20 rounded-full flex items-center justify-center
                 ${isRecording 
-                  ? 'bg-gensys-500 text-white' 
-                  : 'bg-secondary border-2 border-gensys-500 text-gensys-500'}
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-secondary border-2 border-primary text-primary'}
               `}
             >
               {isRecording ? (
@@ -141,7 +167,7 @@ export function VoiceRecorder() {
             {!isRecording && !audioURL && (
               <Button 
                 onClick={startRecording} 
-                className="w-full bg-gensys-500 hover:bg-gensys-600"
+                className="w-full"
               >
                 Commencer l'enregistrement
               </Button>
@@ -168,7 +194,7 @@ export function VoiceRecorder() {
                 </Button>
                 <Button 
                   onClick={processRecording} 
-                  className="w-full bg-gensys-500 hover:bg-gensys-600"
+                  className="w-full"
                 >
                   Transcrire
                 </Button>

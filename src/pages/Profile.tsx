@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Edit, Search } from 'lucide-react';
+import { Edit, Search, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,11 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { FolderDialog } from '@/components/FolderDialog';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { FileList } from '@/components/FileList';
+import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [isRecorderOpen, setIsRecorderOpen] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ['profile', id],
@@ -114,6 +117,22 @@ export default function Profile() {
           ))}
         </div>
       </main>
+
+      {/* Floating microphone button */}
+      <Button
+        onClick={() => setIsRecorderOpen(true)}
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center gradient-bg"
+        size="icon"
+      >
+        <Mic className="h-6 w-6 text-white" />
+      </Button>
+
+      <TranscriptionDialog 
+        open={isRecorderOpen} 
+        onOpenChange={setIsRecorderOpen} 
+        profileId={id || ''} 
+        folders={folders}
+      />
 
       <Button
         className="fixed bottom-24 right-4 animate-pulse hover:animate-none"
