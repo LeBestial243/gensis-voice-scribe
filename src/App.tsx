@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Profiles from "./pages/Profiles";
+import Profile from "./pages/Profile";
+import YoungProfilePage from "./pages/YoungProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profiles" element={<Profiles />} />
+            <Route path="/profiles/:id" element={<Profile />} />
+            <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
