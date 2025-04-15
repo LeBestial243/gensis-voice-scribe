@@ -19,6 +19,7 @@ const Index = () => {
   const { user } = useAuth();
   const [transcriptionInProgress, setTranscriptionInProgress] = useState(false);
   const [isIncidentDialogOpen, setIsIncidentDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // Ajout de l'état pour la recherche
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Chargement...</div>;
@@ -65,7 +66,7 @@ const Index = () => {
             </section>
             
             <section className="neumorphic rounded-2xl p-6">
-              <TranscriptionsList />
+              <TranscriptionsList searchQuery={searchQuery} profileId={user?.id || ''} />
             </section>
           </main>
           {isMobile && <MobileNav className="animate-slide-up" />}
