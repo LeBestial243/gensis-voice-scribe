@@ -21,7 +21,7 @@ export function AppSidebar() {
       <SidebarHeader className="flex h-16 items-center px-6 border-b">
         <div className="flex items-center gap-2 justify-between w-full">
           <div className="font-bold text-xl text-primary">GENSYS</div>
-          <SidebarTrigger asChild>
+          <SidebarTrigger>
             <Button variant="ghost" size="icon" className="md:hidden">
               <PanelLeft className="h-5 w-5" />
               <span className="sr-only">Toggle sidebar</span>
