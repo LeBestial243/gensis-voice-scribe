@@ -23,7 +23,7 @@ Données du jeune :
 - Date d'arrivée : ${profileData.arrival_date}
 
 Voici les observations à synthétiser :
-${transcriptions.join('\n\n')}
+${transcriptions}
 
 Structure attendue :
 ${templateSections.map(section => `${section.title}:\n${section.instructions || ''}`).join('\n\n')}

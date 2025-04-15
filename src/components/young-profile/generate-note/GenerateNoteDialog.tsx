@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -18,6 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TemplateSelector } from "./TemplateSelector";
 import { FileSelector } from "./FileSelector";
 import { ResultEditor } from "./ResultEditor";
+
+interface File {
+  id: string;
+  name: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+  content?: string;
+}
 
 interface GenerateNoteDialogProps {
   open: boolean;
@@ -52,6 +60,55 @@ export function GenerateNoteDialog({
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch selected files with content
+  const { data: selectedFilesData = [] } = useQuery({
+    queryKey: ['selected_files_content', selectedFiles],
+    queryFn: async () => {
+      if (selectedFiles.length === 0) return [];
+
+      const { data: filesData, error } = await supabase
+        .from('files')
+        .select(`
+          id,
+          name,
+          type,
+          created_at,
+          updated_at,
+          path
+        `)
+        .in('id', selectedFiles);
+      
+      if (error) throw error;
+      if (!filesData) return [];
+
+      // For each file, try to get its content
+      const filesWithContent = await Promise.all(filesData.map(async (file) => {
+        try {
+          // Attempt to download the file content
+          const { data: fileContent, error: downloadError } = await supabase
+            .storage
+            .from('files')
+            .download(file.path);
+          
+          if (downloadError) {
+            console.error('Error downloading file:', downloadError);
+            return { ...file, content: '' };
+          }
+
+          // Convert blob to text
+          const content = await fileContent.text();
+          return { ...file, content };
+        } catch (error) {
+          console.error('Error processing file content:', error);
+          return { ...file, content: '' };
+        }
+      }));
+      
+      return filesWithContent;
+    },
+    enabled: selectedFiles.length > 0,
   });
 
   // Save note mutation
@@ -108,10 +165,16 @@ export function GenerateNoteDialog({
         .eq('template_id', selectedTemplateId)
         .order('order_index');
 
+      // Get the transcription contents from selectedFilesData
+      const transcriptionContents = selectedFilesData
+        .filter(file => file.content)
+        .map(file => `--- ${file.name} ---\n${file.content || ''}`)
+        .join('\n\n');
+
       // Call our edge function
       const { data, error } = await supabase.functions.invoke('generate-note', {
         body: {
-          transcriptions: selectedFiles,
+          transcriptions: transcriptionContents,
           templateSections,
           profileData: profile
         }
@@ -280,4 +343,3 @@ export function GenerateNoteDialog({
     </Dialog>
   );
 }
-

@@ -7,6 +7,15 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+interface File {
+  id: string;
+  name: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+  content?: string; // Making content optional
+}
+
 interface FileSelectorProps {
   profileId: string;
   selectedFiles: string[];
@@ -14,7 +23,7 @@ interface FileSelectorProps {
 }
 
 export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSelectorProps) {
-  const { data: files = [] } = useQuery({
+  const { data: files = [], isLoading } = useQuery({
     queryKey: ['files_for_generation', profileId],
     queryFn: async () => {
       // First fetch folders
@@ -23,9 +32,9 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
         .select('id')
         .eq('profile_id', profileId);
       
-      if (!folders) return [];
+      if (!folders || folders.length === 0) return [];
       
-      // Then fetch files and their contents
+      // Then fetch files
       const { data: filesData, error } = await supabase
         .from('files')
         .select(`
@@ -34,16 +43,45 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
           type,
           created_at,
           updated_at,
-          content
+          path
         `)
         .in('folder_id', folders.map(f => f.id))
         .eq('type', 'text/plain')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return filesData;
+      if (!filesData) return [];
+
+      // For each file, try to get its content
+      const filesWithContent = await Promise.all(filesData.map(async (file) => {
+        try {
+          // Attempt to download the file content
+          const { data: fileContent, error: downloadError } = await supabase
+            .storage
+            .from('files')
+            .download(file.path);
+          
+          if (downloadError) {
+            console.error('Error downloading file:', downloadError);
+            return { ...file, content: '' };
+          }
+
+          // Convert blob to text
+          const content = await fileContent.text();
+          return { ...file, content };
+        } catch (error) {
+          console.error('Error processing file content:', error);
+          return { ...file, content: '' };
+        }
+      }));
+      
+      return filesWithContent;
     },
   });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-4">Chargement des fichiers...</div>;
+  }
 
   return (
     <ScrollArea className="h-[400px] rounded-md border p-4">
@@ -81,4 +119,3 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
     </ScrollArea>
   );
 }
-
