@@ -12,7 +12,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Settings, LogOut, BarChart2, PanelLeft } from "lucide-react";
+import { Home, FileText, Settings, LogOut, BarChart2, PanelLeft, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppSidebar() {
@@ -55,6 +55,14 @@ export function AppSidebar() {
                   <a href="#" className="flex items-center gap-2">
                     <BarChart2 className="h-5 w-5" />
                     <span>Statistiques</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a href="/templates" className="flex items-center gap-2">
+                    <FileCode className="h-5 w-5" />
+                    <span>Mes templates</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>

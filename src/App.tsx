@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Profiles from "./pages/Profiles";
 import YoungProfilePage from "./pages/YoungProfilePage";
+import TemplatesPage from "./pages/TemplatesPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

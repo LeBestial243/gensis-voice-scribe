@@ -11,6 +11,11 @@ interface UseNoteGenerationProps {
   onSuccess?: () => void;
 }
 
+// Extended File interface to include content
+interface FileWithContent extends File {
+  content?: string;
+}
+
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -70,7 +75,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   });
 
   // Fetch selected files with content
-  const { data: selectedFilesData = [] } = useQuery<File[]>({
+  const { data: selectedFilesData = [] } = useQuery<FileWithContent[]>({
     queryKey: ['selected_files_content', selectedFiles],
     queryFn: async () => {
       if (selectedFiles.length === 0) return [];
@@ -91,7 +96,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       if (!filesData) return [];
 
       // For each file, try to get its content
-      const filesWithContent: File[] = [];
+      const filesWithContent: FileWithContent[] = [];
       
       for (const file of filesData) {
         try {
