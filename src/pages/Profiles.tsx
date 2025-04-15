@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -76,7 +77,7 @@ export default function Profiles() {
               <DialogHeader>
                 <DialogTitle>Créer un nouveau profil</DialogTitle>
               </DialogHeader>
-              <CreateProfileForm onSuccess={() => setOpenCreateProfile(false)} />
+              <CreateProfileForm />
             </DialogContent>
           </Dialog>
         </div>
