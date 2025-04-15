@@ -25,7 +25,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,9 +34,10 @@ const formSchema = z.object({
   birthDate: z.date({
     required_error: "La date de naissance est requise",
   }),
-  situation: z.string().optional(),
-  professionalProject: z.string().optional(),
-  familyEnvironment: z.string().optional(),
+  structure: z.string().min(1, "La structure est requise"),
+  arrivalDate: z.date({
+    required_error: "La date d'arrivée est requise",
+  }),
 });
 
 export function CreateProfileForm() {
@@ -52,18 +52,14 @@ export function CreateProfileForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Convertir la date en format ISO pour Supabase
-      const formattedDate = format(values.birthDate, 'yyyy-MM-dd');
-      
       const { data: profile, error } = await supabase
         .from('young_profiles')
         .insert({
           first_name: values.firstName,
           last_name: values.lastName,
-          birth_date: formattedDate, // Convertir Date en string
-          situation: values.situation,
-          professional_project: values.professionalProject,
-          family_environment: values.familyEnvironment,
+          birth_date: format(values.birthDate, 'yyyy-MM-dd'),
+          structure: values.structure,
+          arrival_date: format(values.arrivalDate, 'yyyy-MM-dd'),
           user_id: '00000000-0000-0000-0000-000000000000' // Temporaire: à remplacer par l'ID de l'utilisateur authentifié
         })
         .select()
@@ -75,7 +71,6 @@ export function CreateProfileForm() {
         title: "Profil créé avec succès",
       });
 
-      // Rediriger vers la page du profil avec le microphone actif
       navigate(`/profile/${profile.id}?record=true`);
     } catch (error) {
       toast({
@@ -165,10 +160,10 @@ export function CreateProfileForm() {
 
         <FormField
           control={form.control}
-          name="situation"
+          name="structure"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Situation</FormLabel>
+              <FormLabel>Structure</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -179,27 +174,43 @@ export function CreateProfileForm() {
 
         <FormField
           control={form.control}
-          name="professionalProject"
+          name="arrivalDate"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Projet professionnel</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="familyEnvironment"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Environnement familial</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
+            <FormItem className="flex flex-col">
+              <FormLabel>Date d'arrivée dans la structure</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP", { locale: fr })
+                      ) : (
+                        <span>Sélectionnez une date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date > new Date()
+                    }
+                    initialFocus
+                    locale={fr}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}

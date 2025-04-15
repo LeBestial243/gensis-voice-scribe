@@ -65,38 +65,35 @@ export type Database = {
       }
       young_profiles: {
         Row: {
+          arrival_date: string
           birth_date: string
           created_at: string
-          family_environment: string | null
           first_name: string
           id: string
           last_name: string
-          professional_project: string | null
-          situation: string | null
+          structure: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          arrival_date: string
           birth_date: string
           created_at?: string
-          family_environment?: string | null
           first_name: string
           id?: string
           last_name: string
-          professional_project?: string | null
-          situation?: string | null
+          structure?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          arrival_date?: string
           birth_date?: string
           created_at?: string
-          family_environment?: string | null
           first_name?: string
           id?: string
           last_name?: string
-          professional_project?: string | null
-          situation?: string | null
+          structure?: string | null
           updated_at?: string
           user_id?: string
         }
