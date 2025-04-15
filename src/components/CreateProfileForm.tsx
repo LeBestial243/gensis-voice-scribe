@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -50,6 +49,9 @@ export function CreateProfileForm() {
 
   const createProfile = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase
         .from('young_profiles')
         .insert({
@@ -58,6 +60,7 @@ export function CreateProfileForm() {
           birth_date: format(values.birthDate, 'yyyy-MM-dd'),
           structure: values.structure,
           arrival_date: format(values.arrivalDate, 'yyyy-MM-dd'),
+          user_id: user.id,
         })
         .select()
         .single();

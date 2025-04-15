@@ -8,28 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-// Type for profile data
-type Profile = {
-  id: string;
-  first_name: string;
-  last_name: string;
-};
-
-// Type for folder data (mock for now)
-type Folder = {
-  id: string;
-  title: string;
-  fileCount: number;
-};
-
-// Mock folders data
-const mockFolders: Folder[] = [
-  { id: '1', title: 'Dossier scolaire', fileCount: 3 },
-  { id: '2', title: 'Suivi médical', fileCount: 2 },
-  { id: '3', title: 'Documents administratifs', fileCount: 5 },
-  { id: '4', title: 'Activités extrascolaires', fileCount: 1 },
-];
+import { FolderDialog } from '@/components/FolderDialog';
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
@@ -45,11 +24,25 @@ export default function Profile() {
         .single();
 
       if (error) throw error;
-      return data as Profile;
+      return data;
     },
   });
 
-  const filteredFolders = mockFolders.filter(folder =>
+  const { data: folders = [] } = useQuery({
+    queryKey: ['folders', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('profile_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredFolders = folders.filter(folder =>
     folder.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -70,16 +63,18 @@ export default function Profile() {
       </header>
 
       <main className="container py-6 space-y-6">
-        {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Rechercher un dossier..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex justify-between items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rechercher un dossier..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <FolderDialog profileId={id || ''} />
         </div>
 
         {/* Folders grid */}
@@ -91,7 +86,7 @@ export default function Profile() {
                   {folder.title}
                 </CardTitle>
                 <Badge variant="secondary">
-                  {folder.fileCount} fichier{folder.fileCount > 1 ? 's' : ''}
+                  0 fichiers
                 </Badge>
               </CardHeader>
               <CardContent>
