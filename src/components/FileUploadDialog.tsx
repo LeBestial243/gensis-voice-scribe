@@ -46,7 +46,8 @@ export function FileUploadDialog({ folderId }: FileUploadDialogProps) {
       setOpen(false);
       toast({ title: "Fichier ajouté avec succès" });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Upload error:', error);
       toast({
         title: "Erreur lors de l'ajout du fichier",
         variant: "destructive",
