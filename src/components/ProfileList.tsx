@@ -33,6 +33,7 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
     if (onSelectProfile) {
       onSelectProfile(id);
     } else {
+      // Assurez-vous d'utiliser l'ID réel dans l'URL, pas le littéral :id
       navigate(`/young_profiles/${id}`);
     }
   };

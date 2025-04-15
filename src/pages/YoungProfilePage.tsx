@@ -20,6 +20,7 @@ import { GenerateNoteDialog } from '@/components/young-profile/GenerateNoteDialo
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const profileId = id || '';
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('transcriptions');
@@ -28,15 +29,22 @@ export default function YoungProfilePage() {
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const { toast } = useToast();
 
+  console.log('YoungProfilePage: Loading profile with ID:', profileId);
+
   // Fetch young profile data with better error handling
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
-    queryKey: ['young_profile', id],
+    queryKey: ['young_profile', profileId],
     queryFn: async () => {
-      console.log('Fetching profile with ID:', id);
+      console.log('Fetching profile with ID:', profileId);
+
+      if (!profileId || profileId === ':id') {
+        throw new Error('ID de profil invalide');
+      }
+
       const { data, error } = await supabase
         .from('young_profiles')
         .select('*')
-        .eq('id', id)
+        .eq('id', profileId)
         .single();
 
       if (error) {
@@ -47,6 +55,7 @@ export default function YoungProfilePage() {
       console.log('Profile data:', data);
       return data;
     },
+    enabled: !!profileId && profileId !== ':id',
   });
 
   // Calculate age from birth_date
@@ -158,7 +167,7 @@ export default function YoungProfilePage() {
 
             <TabsContent value="transcriptions" className="mt-0">
               <TranscriptionsList 
-                profileId={id || ''} 
+                profileId={profileId} 
                 folderId={selectedFolderId}
                 searchQuery={searchQuery}
               />
@@ -166,7 +175,7 @@ export default function YoungProfilePage() {
 
             <TabsContent value="folders" className="mt-0">
               <FoldersList 
-                profileId={id || ''} 
+                profileId={profileId} 
                 searchQuery={searchQuery}
                 onFolderSelect={setSelectedFolderId}
                 selectedFolderId={selectedFolderId}
@@ -175,7 +184,7 @@ export default function YoungProfilePage() {
 
             <TabsContent value="ia-notes" className="mt-0">
               <NotesList 
-                profileId={id || ''} 
+                profileId={profileId} 
                 searchQuery={searchQuery}
               />
             </TabsContent>
@@ -205,14 +214,14 @@ export default function YoungProfilePage() {
       <RecordingDialog 
         open={isRecordingOpen} 
         onOpenChange={setIsRecordingOpen} 
-        profileId={id || ''}
+        profileId={profileId}
       />
 
       {/* Generate Note Dialog */}
       <GenerateNoteDialog
         open={isGenerateNoteOpen}
         onOpenChange={setIsGenerateNoteOpen}
-        profileId={id || ''}
+        profileId={profileId}
       />
     </div>
   );
