@@ -123,7 +123,7 @@ export function GenerateNoteDialog({
         .insert([{ 
           title, 
           content,
-          user_id: profile?.user_id,
+          user_id: profileId,
           template_id: selectedTemplateId || null
         }])
         .select()

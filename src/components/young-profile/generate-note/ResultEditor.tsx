@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Copy, Download, Save } from "lucide-react";
 
 interface ResultEditorProps {
   noteTitle: string;
@@ -50,17 +51,19 @@ export function ResultEditor({
       <div className="flex justify-between">
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCopy}>
+            <Copy className="h-4 w-4 mr-2" />
             Copier
           </Button>
           <Button variant="outline" onClick={onExport}>
+            <Download className="h-4 w-4 mr-2" />
             Exporter
           </Button>
         </div>
         <Button onClick={onSave}>
+          <Save className="h-4 w-4 mr-2" />
           Sauvegarder
         </Button>
       </div>
     </div>
   );
 }
-
