@@ -15,6 +15,7 @@ import { FoldersList } from '@/components/young-profile/FoldersList';
 import { TranscriptionsList } from '@/components/young-profile/TranscriptionsList';
 import { NotesList } from '@/components/young-profile/NotesList';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -23,18 +24,25 @@ export default function YoungProfilePage() {
   const [selectedTab, setSelectedTab] = useState('transcriptions');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
+  const { toast } = useToast();
 
-  // Fetch young profile data
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  // Fetch young profile data with better error handling
+  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['young_profile', id],
     queryFn: async () => {
+      console.log('Fetching profile with ID:', id);
       const { data, error } = await supabase
         .from('young_profiles')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+      
+      console.log('Profile data:', data);
       return data;
     },
   });
@@ -51,6 +59,7 @@ export default function YoungProfilePage() {
     return format(parseISO(date), 'dd MMMM yyyy', { locale: fr });
   };
 
+  // Handle loading state
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -59,11 +68,17 @@ export default function YoungProfilePage() {
     );
   }
 
-  if (!profile) {
+  // Handle error state with better user feedback
+  if (profileError || !profile) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Profil non trouvé</h1>
+          <p className="text-muted-foreground">
+            {profileError ? 
+              `Erreur lors du chargement du profil: ${(profileError as Error).message}` : 
+              "Le profil que vous recherchez n'existe pas ou a été supprimé."}
+          </p>
           <Button 
             className="mt-4" 
             onClick={() => navigate('/profiles')}
@@ -179,6 +194,12 @@ export default function YoungProfilePage() {
       <Button
         className="fixed bottom-24 right-4 bg-purple-600 hover:bg-purple-700 animate-pulse hover:animate-none"
         size="lg"
+        onClick={() => {
+          toast({
+            title: "Génération en cours...",
+            description: "Nous préparons votre note basée sur les données du profil."
+          });
+        }}
       >
         Générer une note IA
       </Button>
