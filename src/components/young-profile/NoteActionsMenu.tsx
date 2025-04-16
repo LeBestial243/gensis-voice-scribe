@@ -1,5 +1,4 @@
-
-import { MoreHorizontal, Copy, FileText, FilePdf, Mail } from "lucide-react";
+import { MoreHorizontal, Copy, FileText, File, Mail } from "lucide-react";
 import { useState } from "react";
 import { 
   DropdownMenu,
@@ -154,7 +153,7 @@ export function NoteActionsMenu({ note }: NoteActionsMenuProps) {
             Exporter en .txt
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleExportPdf}>
-            <FilePdf className="mr-2 h-4 w-4" />
+            <File className="mr-2 h-4 w-4" />
             Exporter en PDF
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
