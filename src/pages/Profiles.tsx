@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { FileList } from '@/components/FileList';
 import { FolderDialog } from '@/components/FolderDialog';
+import { GenerateNoteDialog } from '@/components/young-profile/GenerateNoteDialog';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
@@ -22,6 +22,7 @@ export default function Profiles() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
+  const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
 
   const { data: selectedProfile } = useQuery({
     queryKey: ['profile', selectedProfileId],
@@ -180,11 +181,23 @@ export default function Profiles() {
       />
 
       <Button
-        className="fixed bottom-24 right-4 animate-pulse hover:animate-none"
+        className="fixed bottom-24 right-4 bg-purple-600 hover:bg-purple-700 animate-pulse hover:animate-none"
         size="lg"
+        onClick={() => {
+          console.log('Generate note button clicked in Profiles');
+          setIsGenerateNoteOpen(true);
+        }}
       >
         Générer une note IA
       </Button>
+
+      {selectedProfileId && (
+        <GenerateNoteDialog
+          open={isGenerateNoteOpen}
+          onOpenChange={setIsGenerateNoteOpen}
+          profileId={selectedProfileId}
+        />
+      )}
     </div>
   );
 }
