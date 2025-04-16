@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, Users, FileText, Settings, LogOut, BarChart2, PanelLeft, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export function AppSidebar() {
@@ -50,10 +50,10 @@ export function AppSidebar() {
                   isActive={location.pathname === '/'}
                   className="hover:bg-accent/10 transition-all duration-300"
                 >
-                  <a href="/" className="flex items-center gap-2">
+                  <Link to="/" className="flex items-center gap-2 no-underline text-inherit">
                     <Home className={`h-5 w-5 ${location.pathname === '/' ? 'text-neumorph-accent' : ''}`} />
                     <span className={location.pathname === '/' ? 'text-neumorph-accent' : ''}>Accueil</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -62,10 +62,10 @@ export function AppSidebar() {
                   isActive={location.pathname === '/profiles'}
                   className="hover:bg-accent/10 transition-all duration-300"
                 >
-                  <a href="/profiles" className="flex items-center gap-2">
+                  <Link to="/profiles" className="flex items-center gap-2 no-underline text-inherit">
                     <Users className={`h-5 w-5 ${location.pathname === '/profiles' ? 'text-neumorph-accent' : ''}`} />
                     <span className={location.pathname === '/profiles' ? 'text-neumorph-accent' : ''}>Jeunes suivis</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -74,10 +74,10 @@ export function AppSidebar() {
                   isActive={location.pathname === '/templates'}
                   className="hover:bg-accent/10 transition-all duration-300"
                 >
-                  <a href="/templates" className="flex items-center gap-2">
+                  <Link to="/templates" className="flex items-center gap-2 no-underline text-inherit">
                     <FileCode className={`h-5 w-5 ${location.pathname === '/templates' ? 'text-neumorph-accent' : ''}`} />
                     <span className={location.pathname === '/templates' ? 'text-neumorph-accent' : ''}>Mes templates</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
