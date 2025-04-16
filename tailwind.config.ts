@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -24,11 +23,17 @@ export default {
         exo: ["Exo", "sans-serif"],
       },
       colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        neumorph: {
+          bg: "#F0F4FF",
+          accent: "#9867F0",
+          primary: "#5B86E5",
+          secondary: "#36D1DC",
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))'
@@ -79,12 +84,6 @@ export default {
           'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
-        },
-        neumorph: {
-          bg: '#F0F4FF',
-          accent: '#9867F0',
-          primary: '#5B86E5',
-          secondary: '#36D1DC',
         },
       },
       borderRadius: {
