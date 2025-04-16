@@ -16,6 +16,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transcriptionText, setTranscriptionText] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
