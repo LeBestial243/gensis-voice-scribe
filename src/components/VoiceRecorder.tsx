@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
@@ -69,7 +68,8 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       };
       
       mediaRecorder.onerror = (event) => {
-        setError("Erreur avec l'enregistreur: " + (event.error?.message || "erreur inconnue"));
+        const errorMessage = "Erreur avec l'enregistreur: erreur inconnue";
+        setError(errorMessage);
         setIsRecording(false);
         
         if (timerRef.current) {
