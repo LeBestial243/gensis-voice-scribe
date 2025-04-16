@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -64,12 +65,12 @@ export default function Profiles() {
 
   if (!selectedProfileId) {
     return (
-      <div className="container mx-auto py-6 px-4 pb-24">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Mes profils</h1>
+      <div className="container mx-auto py-8 px-4 pb-24">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Mes profils</h1>
           <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="interactive">
                 <Plus className="h-4 w-4 mr-2" />
                 Créer un profil
               </Button>
@@ -91,23 +92,24 @@ export default function Profiles() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm shadow-neumorph rounded-xl mx-4 my-2">
         <div className="container flex items-center justify-between h-16">
           {selectedProfile && (
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">
               {selectedProfile.first_name} {selectedProfile.last_name}
             </h1>
           )}
           <div className="flex items-center gap-2">
             <Button 
-              variant="outline" 
+              variant="neumorphic" 
               size="icon"
               onClick={() => setSelectedProfileId(null)}
+              className="interactive"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left text-neumorph-accent"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             </Button>
-            <Button variant="outline" size="icon">
-              <Edit className="h-4 w-4" />
+            <Button variant="neumorphic" size="icon" className="interactive">
+              <Edit className="h-4 w-4 text-neumorph-accent" />
             </Button>
           </div>
         </div>
@@ -115,14 +117,14 @@ export default function Profiles() {
 
       <main className="container py-6 space-y-6">
         <div className="flex justify-between items-center">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-w-sm neumorphic-inset rounded-xl">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Rechercher un dossier..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-0 shadow-none bg-transparent"
             />
           </div>
           <FolderDialog profileId={selectedProfileId} />
@@ -132,8 +134,8 @@ export default function Profiles() {
           {filteredFolders.map((folder) => (
             <Card 
               key={folder.id} 
-              className={`hover:bg-accent/50 transition-colors cursor-pointer ${
-                selectedFolderId === folder.id ? 'bg-accent' : ''
+              className={`neumorphic interactive cursor-pointer ${
+                selectedFolderId === folder.id ? 'bg-accent/10 shadow-neumorph-active' : ''
               }`}
               onClick={() => setSelectedFolderId(folder.id)}
             >
@@ -145,7 +147,7 @@ export default function Profiles() {
                   {selectedFolderId === folder.id && (
                     <FileUploadDialog folderId={folder.id} />
                   )}
-                  <Badge variant="secondary">
+                  <Badge variant="neumorphic">
                     0 fichiers
                   </Badge>
                 </div>
@@ -167,7 +169,7 @@ export default function Profiles() {
 
       <Button
         onClick={() => setIsRecorderOpen(true)}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center gradient-bg"
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center gradient-bg interactive"
         size="icon"
       >
         <Mic className="h-6 w-6 text-white" />
@@ -181,7 +183,7 @@ export default function Profiles() {
       />
 
       <Button
-        className="fixed bottom-24 right-4 bg-purple-600 hover:bg-purple-700 animate-pulse hover:animate-none"
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-neumorph-accent to-purple-700 hover:bg-purple-700 animate-pulse hover:animate-none interactive text-white shadow-lg"
         size="lg"
         onClick={() => {
           console.log('Generate note button clicked in Profiles');

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -6,10 +7,9 @@ import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText } from "lucide-react";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -17,7 +17,9 @@ const Index = () => {
   const navigate = useNavigate();
 
   if (loading) {
-    return <div className="h-screen flex items-center justify-center">Chargement...</div>;
+    return <div className="h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neumorph-accent"></div>
+    </div>;
   }
 
   return (
@@ -26,17 +28,17 @@ const Index = () => {
         <AppSidebar />
         <div className="flex-1">
           <Header />
-          <main className="container mx-auto py-6 px-4 md:px-6 max-w-4xl pb-24">
-            <Card className="mb-6">
+          <main className="container mx-auto py-8 px-4 md:px-6 max-w-4xl pb-24">
+            <Card className="mb-8 neumorphic hover:shadow-neumorph-hover transition-all duration-300">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Bienvenue sur GENSYS</span>
-                  <Button onClick={() => navigate('/profiles')} size="sm">
+                  <span className="text-2xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Bienvenue sur GENSYS</span>
+                  <Button onClick={() => navigate('/profiles')} size="sm" className="interactive">
                     <Plus className="h-4 w-4 mr-2" />
                     Créer un profil
                   </Button>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-lg">
                   Gérez vos suivis éducatifs et générez des notes professionnelles avec l'IA
                 </CardDescription>
               </CardHeader>
@@ -44,23 +46,23 @@ const Index = () => {
 
             <div className="grid gap-6 md:grid-cols-2">
               <Button
-                variant="outline"
+                variant="neumorphic"
                 size="lg"
-                className="h-32 flex flex-col items-center justify-center gap-2"
+                className="h-32 flex flex-col items-center justify-center gap-2 interactive rounded-xl"
                 onClick={() => navigate('/profiles')}
               >
-                <Users className="h-8 w-8" />
-                <span>Accéder aux profils</span>
+                <Users className="h-8 w-8 text-neumorph-accent" />
+                <span className="text-lg font-medium">Accéder aux profils</span>
               </Button>
 
               <Button
-                variant="outline"
+                variant="neumorphic"
                 size="lg"
-                className="h-32 flex flex-col items-center justify-center gap-2"
+                className="h-32 flex flex-col items-center justify-center gap-2 interactive rounded-xl"
                 onClick={() => navigate('/templates')}
               >
-                <FileText className="h-8 w-8" />
-                <span>Gérer mes templates</span>
+                <FileText className="h-8 w-8 text-neumorph-accent" />
+                <span className="text-lg font-medium">Gérer mes templates</span>
               </Button>
             </div>
           </main>
