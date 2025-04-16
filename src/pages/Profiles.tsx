@@ -69,7 +69,7 @@ export default function Profiles() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Mes profils</h1>
           <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
             <DialogTrigger asChild>
-              <Button className="interactive">
+              <Button className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out">
                 <Plus className="h-4 w-4 mr-2" />
                 Créer un profil
               </Button>

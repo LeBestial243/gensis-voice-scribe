@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -20,6 +21,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["DM Sans", "sans-serif"],
+        dmsans: ["DM Sans", "sans-serif"],
         exo: ["Exo", "sans-serif"],
       },
       colors: {

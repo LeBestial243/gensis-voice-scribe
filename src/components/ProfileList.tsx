@@ -61,16 +61,18 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {profiles?.map((profile) => (
         <Card 
           key={profile.id} 
-          className="cursor-pointer hover:bg-accent/50 transition-colors"
+          className="bg-[#F0F4FF] hover:scale-[1.02] transition-all duration-300 ease-in-out cursor-pointer shadow-[8px_8px_16px_rgba(0,0,0,0.1),_-8px_-8px_16px_rgba(255,255,255,0.7)]"
           onClick={() => handleProfileClick(profile.id)}
         >
           <CardHeader>
-            <CardTitle>{profile.first_name} {profile.last_name}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-bold tracking-tight text-gray-800 font-dmsans">
+              {profile.first_name} {profile.last_name}
+            </CardTitle>
+            <CardDescription className="text-sm text-gray-500 font-dmsans">
               {profile.structure || "Aucune structure"} • 
               {new Date(profile.arrival_date).toLocaleDateString('fr-FR')}
             </CardDescription>
