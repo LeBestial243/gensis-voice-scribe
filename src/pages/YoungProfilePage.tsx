@@ -52,7 +52,7 @@ export default function YoungProfilePage() {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neumorph-accent"></div>
       </div>
     );
   }
@@ -60,8 +60,8 @@ export default function YoungProfilePage() {
   if (profileError || !profile) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">Profil non trouvé</h1>
+        <div className="text-center space-y-4 neumorphic p-8">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Profil non trouvé</h1>
           <p className="text-muted-foreground">
             {profileError ? 
               `Erreur lors du chargement du profil: ${(profileError as Error).message}` : 
