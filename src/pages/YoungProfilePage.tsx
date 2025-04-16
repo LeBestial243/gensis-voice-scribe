@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +7,7 @@ import { ProfileHeader } from '@/components/young-profile/ProfileHeader';
 import { SearchTabs } from '@/components/young-profile/SearchTabs';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
-import { GenerateNoteDialog } from '@/components/young-profile/GenerateNoteDialog';
+import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 import { useToast } from '@/hooks/use-toast';
 
 export default function YoungProfilePage() {

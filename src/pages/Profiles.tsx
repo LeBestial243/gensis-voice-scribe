@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { FileList } from '@/components/FileList';
 import { FolderDialog } from '@/components/FolderDialog';
-import { GenerateNoteDialog } from '@/components/young-profile/GenerateNoteDialog';
+import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
