@@ -143,16 +143,26 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         .eq('template_id', selectedTemplateId)
         .order('order_index');
 
-      const transcriptionContents = selectedFilesData
+      // Vérifier si le contenu des fichiers sélectionnés est disponible
+      if (!selectedFilesData || selectedFilesData.length === 0) {
+        throw new Error("Impossible de récupérer le contenu des fichiers");
+      }
+
+      // Extraire le contenu des transcriptions
+      const transcriptionText = selectedFilesData
         .filter(file => file.content)
         .map(file => `--- ${file.name} ---\n${file.content || ''}`)
         .join('\n\n');
 
       const { data, error } = await supabase.functions.invoke('generate-note', {
         body: {
-          transcriptions: transcriptionContents,
+          youngProfile: profile,
           templateSections,
-          profileData: profile
+          selectedNotes: selectedFilesData.map(file => ({
+            id: file.id,
+            content: file.content
+          })),
+          transcriptionText
         }
       });
 
