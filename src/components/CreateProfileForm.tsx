@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -71,7 +72,7 @@ export function CreateProfileForm() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['young_profiles'] });
       toast({ title: "Profil créé avec succès" });
-      navigate(`/profile/${data.id}?record=true`);
+      navigate(`/young_profiles/${data.id}?record=true`);
     },
     onError: () => {
       toast({
