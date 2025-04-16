@@ -1,9 +1,9 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, audioURL: string | null) => void;
@@ -21,7 +21,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
 
-  // Cleanup function
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -83,44 +82,57 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      // Stop all audio tracks
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
 
-  const processRecording = () => {
+  const processRecording = async () => {
     if (!audioURL) return;
     
-    setIsProcessing(true);
-    onTranscriptionStart();
-    
-    // Convertir l'audioURL en blob pour l'envoi
-    fetch(audioURL)
-      .then(response => response.blob())
-      .then(blob => {
-        // Convertir le blob en base64
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
+    try {
+      setIsProcessing(true);
+      onTranscriptionStart();
+
+      const response = await fetch(audioURL);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      const base64Promise = new Promise((resolve) => {
         reader.onloadend = () => {
           const base64data = reader.result as string;
-          // Enlever le préfixe data:audio/wav;base64,
           const base64Audio = base64data.split(',')[1];
-          
-          // Simuler une transcription (à remplacer par un vrai appel API à Whisper)
-          setTimeout(() => {
-            // Transcription fictive pour démonstration
-            const mockTranscription = "Voici une transcription fictive de l'enregistrement audio. Dans une implémentation réelle, ce texte viendrait de l'API Whisper d'OpenAI après analyse de l'audio enregistré.";
-            
-            setIsProcessing(false);
-            onTranscriptionComplete(mockTranscription, audioURL);
-            
-            toast({
-              title: "Transcription terminée",
-              description: "Votre enregistrement a été transcrit avec succès.",
-            });
-          }, 2000);
+          resolve(base64Audio);
         };
       });
+      
+      reader.readAsDataURL(blob);
+      const base64Audio = await base64Promise;
+
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setTranscriptionText(data.text);
+      setIsProcessing(false);
+      onTranscriptionComplete(data.text, audioURL);
+      
+      toast({
+        title: "Transcription terminée",
+        description: "Votre enregistrement a été transcrit avec succès.",
+      });
+    } catch (error) {
+      console.error('Error processing recording:', error);
+      setIsProcessing(false);
+      toast({
+        title: "Erreur de transcription",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatTime = (seconds: number) => {

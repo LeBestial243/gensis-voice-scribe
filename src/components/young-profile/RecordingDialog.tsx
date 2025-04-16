@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,7 +32,6 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch folders for the profile
   const { data: folders = [] } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
@@ -48,10 +46,8 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
     },
   });
 
-  // Save transcription mutation
   const saveTranscription = useMutation({
     mutationFn: async ({ title, content, folderId }: { title: string, content: string, folderId: string }) => {
-      // Create the file record
       const { data, error } = await supabase
         .from('files')
         .insert({
@@ -59,7 +55,7 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
           content: content,
           folder_id: folderId,
           type: 'transcription',
-          path: '', // No actual file for transcription, just text
+          path: '',
           size: content.length
         })
         .select();
@@ -135,23 +131,41 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      // Stop all audio tracks
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       setActiveTab("transcription");
     }
   };
 
-  const processRecording = () => {
+  const processRecording = async () => {
     if (!audioURL) return;
     
-    setIsProcessing(true);
-    
-    // Simulate transcription (in real app, send to Whisper API)
-    setTimeout(() => {
-      // Mock transcription text
-      const mockText = "Ceci est une transcription simulée de l'enregistrement audio. Dans une implémentation réelle, ce texte viendrait de l'API Whisper après analyse de l'audio enregistré.";
+    try {
+      setIsProcessing(true);
+
+      const response = await fetch(audioURL);
+      const blob = await response.blob();
+      const reader = new FileReader();
       
-      setTranscriptionText(mockText);
+      const base64Promise = new Promise((resolve) => {
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          const base64Audio = base64data.split(',')[1];
+          resolve(base64Audio);
+        };
+      });
+      
+      reader.readAsDataURL(blob);
+      const base64Audio = await base64Promise;
+
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setTranscriptionText(data.text);
       setIsProcessing(false);
       setActiveTab("transcription");
       
@@ -159,7 +173,15 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
         title: "Transcription terminée",
         description: "Votre enregistrement a été transcrit avec succès.",
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Error processing recording:', error);
+      setIsProcessing(false);
+      toast({
+        title: "Erreur de transcription",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = () => {
