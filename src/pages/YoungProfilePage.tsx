@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -21,6 +20,7 @@ export default function YoungProfilePage() {
   const { toast } = useToast();
 
   console.log('YoungProfilePage: Loading profile with ID:', profileId);
+  console.log('YoungProfilePage: isGenerateNoteOpen state:', isGenerateNoteOpen);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['young_profile', profileId],
@@ -89,7 +89,10 @@ export default function YoungProfilePage() {
 
       <FloatingActions 
         onRecordingClick={() => setIsRecordingOpen(true)}
-        onGenerateNoteClick={() => setIsGenerateNoteOpen(true)}
+        onGenerateNoteClick={() => {
+          console.log('Generate note button clicked');
+          setIsGenerateNoteOpen(true);
+        }}
       />
 
       <RecordingDialog 

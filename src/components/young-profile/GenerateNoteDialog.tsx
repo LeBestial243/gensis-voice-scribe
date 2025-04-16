@@ -1,2 +1,4 @@
 
-export { GenerateNoteDialog } from './generate-note/GenerateNoteDialog';
+import { GenerateNoteDialog as GenerateNoteDialogComponent } from './generate-note/GenerateNoteDialog';
+
+export const GenerateNoteDialog = GenerateNoteDialogComponent;

@@ -20,7 +20,10 @@ export function FloatingActions({ onRecordingClick, onGenerateNoteClick }: Float
       <Button
         className="fixed bottom-24 right-4 bg-purple-600 hover:bg-purple-700 animate-pulse hover:animate-none"
         size="lg"
-        onClick={onGenerateNoteClick}
+        onClick={() => {
+          console.log('Generate note button clicked in FloatingActions');
+          onGenerateNoteClick();
+        }}
       >
         Générer une note IA
       </Button>
