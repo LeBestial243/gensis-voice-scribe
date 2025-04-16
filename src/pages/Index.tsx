@@ -1,94 +1,74 @@
-
 import { useState } from "react";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
-import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { TranscriptionsList } from "@/components/TranscriptionsList";
 import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, LogOut } from "lucide-react";
-import { IncidentReportDialog } from "@/components/IncidentReportDialog";
+import { Users, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { FileText } from "lucide-react";
 
 const Index = () => {
   const isMobile = useIsMobile();
   const { loading } = useRequireAuth();
-  const { user } = useAuth();
-  const [transcriptionInProgress, setTranscriptionInProgress] = useState(false);
-  const [isIncidentDialogOpen, setIsIncidentDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">Chargement...</div>;
   }
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const handleTranscriptionComplete = (text: string, audioURL: string | null) => {
-    // For the Index page, we could update the transcriptions list or show a notification
-    console.log("Transcription completed:", text);
-    setTranscriptionInProgress(false);
-  };
-
-  const handleTranscriptionStart = () => {
-    setTranscriptionInProgress(true);
-  };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1">
-          {isMobile && <Header />}
+          <Header />
           <main className="container mx-auto py-6 px-4 md:px-6 max-w-4xl pb-24">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#36D1DC] to-[#5B86E5] bg-clip-text text-transparent">
-                Transformez votre voix en documents professionnels
-              </h1>
-              <Button variant="ghost" onClick={handleSignOut} size="icon">
-                <LogOut className="h-5 w-5" />
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Bienvenue sur GENSYS</span>
+                  <Button onClick={() => navigate('/profiles')} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer un profil
+                  </Button>
+                </CardTitle>
+                <CardDescription>
+                  Gérez vos suivis éducatifs et générez des notes professionnelles avec l'IA
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-32 flex flex-col items-center justify-center gap-2"
+                onClick={() => navigate('/profiles')}
+              >
+                <Users className="h-8 w-8" />
+                <span>Accéder aux profils</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-32 flex flex-col items-center justify-center gap-2"
+                onClick={() => navigate('/templates')}
+              >
+                <FileText className="h-8 w-8" />
+                <span>Gérer mes templates</span>
               </Button>
             </div>
-            
-            <section className="mb-8">
-              <h2 className="text-xl font-bold mb-4">Enregistrer votre voix</h2>
-              <div className="neumorphic rounded-2xl p-6">
-                <VoiceRecorder 
-                  onTranscriptionComplete={handleTranscriptionComplete}
-                  onTranscriptionStart={handleTranscriptionStart}
-                />
-              </div>
-            </section>
-            
-            <section className="neumorphic rounded-2xl p-6">
-              <TranscriptionsList />
-            </section>
           </main>
           {isMobile && <MobileNav className="animate-slide-up" />}
         </div>
       </div>
-
-      {/* Floating Incident Report Button */}
-      <Button
-        onClick={() => setIsIncidentDialogOpen(true)}
-        className="fixed bottom-24 right-4 rounded-full h-14 w-14 shadow-lg flex items-center justify-center animate-pulse hover:animate-none"
-        size="icon"
-        variant="default"
-      >
-        <AlertTriangle className="h-6 w-6" />
-      </Button>
-
-      {/* Incident Report Dialog */}
-      <IncidentReportDialog 
-        open={isIncidentDialogOpen} 
-        onOpenChange={setIsIncidentDialogOpen}
-      />
     </SidebarProvider>
   );
-};
+}
 
 export default Index;

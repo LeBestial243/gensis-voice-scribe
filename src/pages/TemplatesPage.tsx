@@ -7,10 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AppSidebar } from "@/components/AppSidebar";
 import { useRequireAuth } from "@/lib/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { MobileNav } from "@/components/MobileNav";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function TemplatesPage() {
   const { loading } = useRequireAuth();
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   
   if (loading) {
     return (
@@ -46,6 +49,7 @@ export default function TemplatesPage() {
               onEditTemplate={(templateId) => setEditingTemplateId(templateId)} 
             />
           </main>
+          {isMobile && <MobileNav className="animate-slide-up" />}
         </div>
       </div>
     </SidebarProvider>
