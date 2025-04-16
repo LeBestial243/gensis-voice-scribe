@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -18,6 +17,36 @@ function calculateAge(birthDate: string) {
   }
   
   return age;
+}
+
+function generatePromptFromTranscription({
+  transcriptionText,
+  youngProfile
+}) {
+  const age = calculateAge(youngProfile.birth_date);
+
+  return `
+Tu es un assistant d'écriture destiné aux éducateurs spécialisés.  
+Tu aides à transformer une transcription vocale en une note professionnelle claire, synthétique et bien formulée.
+
+🔎 Informations sur le jeune concerné :
+- Prénom : ${youngProfile.first_name}
+- Nom : ${youngProfile.last_name}
+- Âge : ${age} ans
+- Date de naissance : ${youngProfile.birth_date}
+- Structure : ${youngProfile.structure}
+- Projet éducatif : ${youngProfile.project || 'Non renseigné'}
+
+🎙️ Voici la transcription brute de l'observation orale :
+"""${transcriptionText}"""
+
+📝 Consignes :
+- Reformule le contenu pour qu'il soit lisible et professionnel
+- Supprime les hésitations, répétitions ou formulations orales
+- Garde le sens exact des propos de l'éducateur
+- Écris au présent de manière neutre et concise
+- Ne déforme rien : reformule sans interpréter
+`;
 }
 
 function generatePromptFromNotes({
@@ -71,13 +100,11 @@ serve(async (req) => {
   }
 
   try {
-    const { youngProfile, templateSections, selectedNotes } = await req.json()
+    const { youngProfile, templateSections, selectedNotes, transcriptionText } = await req.json()
     
-    const systemPrompt = generatePromptFromNotes({
-      youngProfile,
-      sections: templateSections,
-      selectedNotes
-    });
+    const systemPrompt = transcriptionText ? 
+      generatePromptFromTranscription({ transcriptionText, youngProfile }) :
+      generatePromptFromNotes({ youngProfile, sections: templateSections, selectedNotes });
 
     console.log("System prompt:", systemPrompt);
 
