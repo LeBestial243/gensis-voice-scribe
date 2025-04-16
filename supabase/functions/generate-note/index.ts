@@ -7,35 +7,77 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function calculateAge(birthDate: string) {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const month = today.getMonth() - birth.getMonth();
+  
+  if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
+function generatePromptFromNotes({
+  youngProfile,
+  sections,
+  selectedNotes
+}) {
+  const age = calculateAge(youngProfile.birth_date);
+
+  const header = `
+Tu es un assistant d'écriture destiné aux professionnels du secteur éducatif. Tu aides à générer une note structurée, claire et synthétique à partir d'observations déjà formalisées et stockées.
+
+🔎 Profil du jeune :
+- Prénom : ${youngProfile.first_name}
+- Nom : ${youngProfile.last_name}
+- Âge : ${age} ans
+- Date de naissance : ${youngProfile.birth_date}
+- Structure : ${youngProfile.structure}
+- Projet éducatif : ${youngProfile.project || 'Non renseigné'}
+- Date d'arrivée : ${youngProfile.arrival_date}
+`;
+
+  const corpus = `
+📝 Notes sélectionnées par l'éducateur :
+${selectedNotes.map((n) => `• ${n.content}`).join('\n')}
+`;
+
+  const structure = `
+🧩 Structure attendue de la note finale :
+
+${sections
+  .sort((a, b) => a.order_index - b.order_index)
+  .map((section, i) =>
+    `${i + 1}. ${section.title}\n> ${section.instructions || 'Aucune instruction spécifique.'}`)
+  .join('\n\n')}
+`;
+
+  const guidelines = `
+✍️ Consignes pour l'IA :
+- Reformuler intelligemment, ne jamais copier/coller
+- Respecter l'ordre et l'intention pédagogique des sections
+- Employer un ton professionnel, neutre et synthétique
+`;
+
+  return `${header}\n${corpus}\n${structure}\n${guidelines}`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { transcriptions, templateSections, profileData } = await req.json()
+    const { youngProfile, templateSections, selectedNotes } = await req.json()
     
-    const systemPrompt = `Tu es un assistant d'écriture spécialisé pour les professionnels éducatifs.
-    
-Données du jeune :
-- Prénom : ${profileData.first_name}
-- Nom : ${profileData.last_name || ''}
-- Structure : ${profileData.structure || 'Non spécifiée'}
-- Date d'arrivée : ${profileData.arrival_date || ''}
-- Date de naissance : ${profileData.birth_date || ''}
-
-Voici les observations à synthétiser :
-${transcriptions}
-
-Structure attendue :
-${templateSections.map(section => `${section.title}:\n${section.instructions || 'Pas d\'instruction spécifique'}`).join('\n\n')}
-
-Consignes :
-- Adopte un langage professionnel et neutre
-- Structure le texte selon les sections indiquées
-- Reformule de manière intelligente les observations
-- Reste factuel et objectif
-- Ne pas copier les phrases brutes des transcriptions`;
+    const systemPrompt = generatePromptFromNotes({
+      youngProfile,
+      sections: templateSections,
+      selectedNotes
+    });
 
     console.log("System prompt:", systemPrompt);
 
