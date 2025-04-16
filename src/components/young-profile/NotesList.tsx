@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -26,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { NoteActionsMenu } from "./NoteActionsMenu";
 
 interface NotesListProps {
   profileId: string;
@@ -39,11 +39,9 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
-  // Fetch notes for the profile
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ['notes', profileId],
     queryFn: async () => {
-      // Fetch notes related to the young profile
       const { data, error } = await supabase
         .from('notes')
         .select('*')
@@ -55,7 +53,6 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
     },
   });
 
-  // Delete note mutation
   const deleteNote = useMutation({
     mutationFn: async (noteId: string) => {
       const { error } = await supabase
@@ -84,7 +81,6 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
     }
   });
 
-  // Filter notes based on search query
   const filteredNotes = notes.filter(note => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
@@ -186,6 +182,7 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
                       })}
                     </CardDescription>
                   </div>
+                  <NoteActionsMenu note={note} />
                 </div>
               </CardHeader>
               <CardContent>
