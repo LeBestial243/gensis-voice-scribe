@@ -1,9 +1,11 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, audioURL: string | null) => void;
@@ -17,6 +19,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcriptionText, setTranscriptionText] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
@@ -37,6 +40,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   }, [isRecording, audioURL]);
 
   const startRecording = async () => {
+    // Reset any previous errors
+    setError(null);
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -62,6 +68,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         }
       };
       
+      mediaRecorder.onerror = (event) => {
+        setError("Erreur avec l'enregistreur: " + (event.error?.message || "erreur inconnue"));
+        setIsRecording(false);
+        
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
+      
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
@@ -72,6 +88,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       
     } catch (error) {
       console.error('Error starting recording:', error);
+      setError("Permission refusée. Veuillez autoriser l'accès au microphone.");
       toast({
         title: "Permission refusée",
         description: "Veuillez autoriser l'accès au microphone pour enregistrer.",
@@ -82,28 +99,52 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      try {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+        setError("Erreur lors de l'arrêt de l'enregistrement.");
+        toast({
+          title: "Erreur",
+          description: "Impossible d'arrêter l'enregistrement correctement.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const processRecording = async () => {
-    if (!audioURL) return;
+    if (!audioURL) {
+      setError("Aucun enregistrement audio à traiter.");
+      return;
+    }
     
-    try {
-      setIsProcessing(true);
-      onTranscriptionStart();
+    // Reset any previous errors
+    setError(null);
+    setIsProcessing(true);
+    onTranscriptionStart();
 
+    try {
       const response = await fetch(audioURL);
+      if (!response.ok) {
+        throw new Error(`Impossible d'accéder à l'enregistrement: ${response.status} ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
       const reader = new FileReader();
       
-      const base64Promise = new Promise((resolve) => {
+      const base64Promise = new Promise<string>((resolve, reject) => {
         reader.onloadend = () => {
-          const base64data = reader.result as string;
-          const base64Audio = base64data.split(',')[1];
-          resolve(base64Audio);
+          try {
+            const base64data = reader.result as string;
+            const base64Audio = base64data.split(',')[1];
+            resolve(base64Audio);
+          } catch (error) {
+            reject(new Error("Erreur lors de la conversion de l'audio en base64."));
+          }
         };
+        reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier audio."));
       });
       
       reader.readAsDataURL(blob);
@@ -117,6 +158,10 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         throw error;
       }
 
+      if (!data || !data.text) {
+        throw new Error("Réponse de transcription invalide.");
+      }
+
       setTranscriptionText(data.text);
       setIsProcessing(false);
       onTranscriptionComplete(data.text, audioURL);
@@ -128,6 +173,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     } catch (error) {
       console.error('Error processing recording:', error);
       setIsProcessing(false);
+      setError(error instanceof Error ? error.message : "Une erreur inconnue est survenue");
       toast({
         title: "Erreur de transcription",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
@@ -146,6 +192,13 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     <Card className="w-full">
       <CardContent className="pt-6">
         <div className="flex flex-col items-center gap-4">
+          {error && (
+            <Alert variant="destructive" className="mb-4 w-full">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="relative w-24 h-24 flex items-center justify-center">
             {isRecording ? (
               <div className="absolute inset-0 bg-red-100 dark:bg-red-900 rounded-full animate-pulse"></div>
@@ -173,7 +226,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
           )}
           
           {audioURL && !isRecording && (
-            <audio controls src={audioURL} className="w-full mt-2" />
+            <audio 
+              controls 
+              src={audioURL} 
+              className="w-full mt-2"
+              onError={() => {
+                setError("Impossible de lire l'enregistrement audio.");
+                URL.revokeObjectURL(audioURL);
+                setAudioURL(null);
+              }}
+            />
           )}
           
           <div className="flex flex-col sm:flex-row gap-2 w-full">
@@ -181,6 +243,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
               <Button 
                 onClick={startRecording} 
                 className="w-full"
+                disabled={!!error && error.includes("Permission refusée")}
               >
                 Commencer l'enregistrement
               </Button>

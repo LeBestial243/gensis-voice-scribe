@@ -18,11 +18,12 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const [generatedContent, setGeneratedContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("Note IA - " + format(new Date(), "PPP", { locale: fr }));
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch profile data
-  const { data: profile } = useQuery({
+  const { data: profile, error: profileError } = useQuery({
     queryKey: ['young_profile', profileId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,14 +32,22 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         .eq('id', profileId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw new Error(`Erreur de chargement du profil: ${error.message}`);
+      }
       return data;
     },
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   // Save note mutation
   const saveNote = useMutation({
     mutationFn: async ({ title, content }: { title: string; content: string }) => {
+      // Reset previous errors
+      setError(null);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Utilisateur non authentifié");
       
@@ -53,7 +62,10 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving note:', error);
+        throw new Error(`Erreur lors de la sauvegarde: ${error.message}`);
+      }
       return data;
     },
     onSuccess: () => {
@@ -65,16 +77,18 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       onSuccess?.();
     },
     onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+      setError(errorMessage);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder la note: " + (error as Error).message,
+        description: "Impossible de sauvegarder la note: " + errorMessage,
         variant: "destructive"
       });
     }
   });
 
   // Fetch selected files with content
-  const { data: selectedFilesData = [] } = useQuery<FileWithContent[]>({
+  const { data: selectedFilesData = [], error: filesError } = useQuery<FileWithContent[]>({
     queryKey: ['selected_files_content', selectedFiles],
     queryFn: async () => {
       if (selectedFiles.length === 0) return [];
@@ -92,7 +106,10 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         `)
         .in('id', selectedFiles);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching files data:', error);
+        throw new Error(`Erreur de chargement des fichiers: ${error.message}`);
+      }
       if (!filesData) return [];
 
       // For each file, try to get its content
@@ -107,7 +124,10 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
           
           if (downloadError) {
             console.error('Error downloading file:', downloadError);
-            filesWithContent.push({ ...file, content: '' });
+            filesWithContent.push({ 
+              ...file, 
+              content: `[Erreur de chargement: ${downloadError.message}]`
+            });
             continue;
           }
 
@@ -115,16 +135,24 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
           filesWithContent.push({ ...file, content });
         } catch (error) {
           console.error('Error processing file content:', error);
-          filesWithContent.push({ ...file, content: '' });
+          const errorMessage = error instanceof Error ? error.message : "erreur inconnue";
+          filesWithContent.push({ 
+            ...file, 
+            content: `[Erreur de traitement: ${errorMessage}]`
+          });
         }
       }
       
       return filesWithContent;
     },
     enabled: selectedFiles.length > 0,
+    retry: 2,
   });
 
   const handleGenerate = async () => {
+    // Reset previous errors
+    setError(null);
+    
     if (!selectedTemplateId || selectedFiles.length === 0 || !profile) {
       toast({
         title: "Données manquantes",
@@ -137,11 +165,15 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     setIsGenerating(true);
 
     try {
-      const { data: templateSections } = await supabase
+      const { data: templateSections, error: sectionsError } = await supabase
         .from('template_sections')
         .select('*')
         .eq('template_id', selectedTemplateId)
         .order('order_index');
+
+      if (sectionsError) {
+        throw new Error(`Erreur de chargement des sections: ${sectionsError.message}`);
+      }
 
       // Vérifier si le contenu des fichiers sélectionnés est disponible
       if (!selectedFilesData || selectedFilesData.length === 0) {
@@ -166,14 +198,23 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(`Erreur de la fonction de génération: ${error.message}`);
+      }
+
+      if (!data || !data.content) {
+        throw new Error("La réponse de l'IA ne contient pas de contenu généré");
+      }
 
       setGeneratedContent(data.content);
       return "result";
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+      setError(errorMessage);
       toast({
         title: "Erreur de génération",
-        description: "Une erreur est survenue lors de la génération de la note",
+        description: errorMessage,
         variant: "destructive"
       });
       console.error('Generation error:', error);
@@ -187,6 +228,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     setSelectedTemplateId("");
     setSelectedFiles([]);
     setGeneratedContent("");
+    setError(null);
     setNoteTitle("Note IA - " + format(new Date(), "PPP", { locale: fr }));
   };
 
@@ -200,6 +242,9 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     noteTitle,
     setNoteTitle,
     isGenerating,
+    error,
+    profileError,
+    filesError,
     handleGenerate,
     handleReset,
     saveNote,

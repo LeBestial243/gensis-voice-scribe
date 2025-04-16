@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, FolderOpen, File } from "lucide-react";
+import { Folder, FolderOpen, File, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FoldersListProps {
   profileId: string;
@@ -23,7 +24,11 @@ export function FoldersList({
   selectedFolderId 
 }: FoldersListProps) {
   // Fetch folders for the profile
-  const { data: folders = [], isLoading: foldersLoading } = useQuery({
+  const { 
+    data: folders = [], 
+    isLoading: foldersLoading, 
+    error: foldersError 
+  } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
       console.log('Fetching folders for profile ID:', profileId);
@@ -35,16 +40,19 @@ export function FoldersList({
 
       if (error) {
         console.error('Error fetching folders:', error);
-        throw error;
+        throw new Error(`Erreur lors du chargement des dossiers: ${error.message}`);
       }
       
       console.log('Folders data:', data);
-      return data;
+      return data || [];
     },
   });
 
   // Count files in each folder
-  const { data: foldersCounts = {} } = useQuery({
+  const { 
+    data: foldersCounts = {}, 
+    error: countsError 
+  } = useQuery({
     queryKey: ['folders_file_count', profileId, folders],
     queryFn: async () => {
       const folderIds = folders.map(folder => folder.id);
@@ -60,7 +68,7 @@ export function FoldersList({
       
       if (error) {
         console.error('Error fetching file counts:', error);
-        throw error;
+        throw new Error(`Erreur lors du comptage des fichiers: ${error.message}`);
       }
       
       // Organize counts by folder_id
@@ -76,6 +84,8 @@ export function FoldersList({
       return counts;
     },
     enabled: folders.length > 0,
+    retry: 3, // Retry 3 times if the query fails
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   // Filter folders based on search query
@@ -83,6 +93,14 @@ export function FoldersList({
     if (!searchQuery) return true;
     return folder.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  // Combine errors for display
+  const hasError = foldersError || countsError;
+  const errorMessage = foldersError 
+    ? (foldersError instanceof Error ? foldersError.message : 'Erreur lors du chargement des dossiers')
+    : countsError 
+      ? (countsError instanceof Error ? countsError.message : 'Erreur lors du comptage des fichiers')
+      : null;
 
   if (foldersLoading) {
     return (
@@ -94,6 +112,13 @@ export function FoldersList({
 
   return (
     <div className="space-y-4">
+      {hasError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Dossiers</h2>
         <FolderDialog profileId={profileId} />
