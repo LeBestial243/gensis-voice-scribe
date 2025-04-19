@@ -182,7 +182,7 @@ export default function Profiles() {
       />
 
       <Button
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 animate-pulse hover:animate-none interactive text-white shadow-lg"
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 interactive text-white shadow-lg"
         size="lg"
         onClick={() => {
           console.log('Generate note button clicked in Profiles');
