@@ -24,7 +24,7 @@ export function FloatingActions({ onRecordingClick, onGenerateNoteClick }: Float
       </Button>
 
       <Button
-        className="fixed bottom-24 right-4 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg interactive text-white"
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 shadow-lg hover:shadow-lg interactive text-white"
         size="lg"
         onClick={handleGenerateNoteClick}
       >
