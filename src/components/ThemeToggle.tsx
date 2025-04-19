@@ -32,13 +32,13 @@ export function ThemeToggle() {
 
   return (
     <Button 
-      variant="neumorphic" 
+      variant="ghost" 
       size="icon"
       onClick={toggleTheme}
       className="rounded-full interactive"
       aria-label="Toggle theme"
     >
-      {darkMode ? <Sun className="h-5 w-5 text-neumorph-accent" /> : <Moon className="h-5 w-5 text-neumorph-accent" />}
+      {darkMode ? <Sun className="h-5 w-5 text-accent" /> : <Moon className="h-5 w-5 text-accent" />}
     </Button>
   );
 }

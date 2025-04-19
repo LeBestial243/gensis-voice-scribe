@@ -66,7 +66,7 @@ export default function Profiles() {
     return (
       <div className="container mx-auto py-8 px-4 pb-24">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Mes profils</h1>
+          <h1 className="text-3xl font-bold text-title">Mes profils</h1>
           <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out">
@@ -91,24 +91,24 @@ export default function Profiles() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm shadow-neumorph rounded-xl mx-4 my-2">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm shadow-md rounded-xl mx-4 my-2">
         <div className="container flex items-center justify-between h-16">
           {selectedProfile && (
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">
+            <h1 className="text-2xl font-bold text-title">
               {selectedProfile.first_name} {selectedProfile.last_name}
             </h1>
           )}
           <div className="flex items-center gap-2">
             <Button 
-              variant="neumorphic" 
+              variant="ghost" 
               size="icon"
               onClick={() => setSelectedProfileId(null)}
               className="interactive"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left text-neumorph-accent"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left text-accent"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             </Button>
-            <Button variant="neumorphic" size="icon" className="interactive">
-              <Edit className="h-4 w-4 text-neumorph-accent" />
+            <Button variant="ghost" size="icon" className="interactive">
+              <Edit className="h-4 w-4 text-accent" />
             </Button>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function Profiles() {
 
       <main className="container py-6 space-y-6">
         <div className="flex justify-between items-center">
-          <div className="relative flex-1 max-w-sm neumorphic-inset rounded-xl">
+          <div className="relative flex-1 max-w-sm bg-muted rounded-xl">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -133,8 +133,8 @@ export default function Profiles() {
           {filteredFolders.map((folder) => (
             <Card 
               key={folder.id} 
-              className={`neumorphic interactive cursor-pointer ${
-                selectedFolderId === folder.id ? 'bg-accent/10 shadow-neumorph-active' : ''
+              className={`cursor-pointer interactive ${
+                selectedFolderId === folder.id ? 'bg-accent/10 shadow-md' : ''
               }`}
               onClick={() => setSelectedFolderId(folder.id)}
             >
@@ -146,7 +146,7 @@ export default function Profiles() {
                   {selectedFolderId === folder.id && (
                     <FileUploadDialog folderId={folder.id} />
                   )}
-                  <Badge variant="neumorphic">
+                  <Badge variant="outline">
                     0 fichiers
                   </Badge>
                 </div>
@@ -168,7 +168,7 @@ export default function Profiles() {
 
       <Button
         onClick={() => setIsRecorderOpen(true)}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center gradient-bg interactive"
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 interactive"
         size="icon"
       >
         <Mic className="h-6 w-6 text-white" />
@@ -182,7 +182,7 @@ export default function Profiles() {
       />
 
       <Button
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-neumorph-accent to-purple-700 hover:bg-purple-700 animate-pulse hover:animate-none interactive text-white shadow-lg"
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 animate-pulse hover:animate-none interactive text-white shadow-lg"
         size="lg"
         onClick={() => {
           console.log('Generate note button clicked in Profiles');
