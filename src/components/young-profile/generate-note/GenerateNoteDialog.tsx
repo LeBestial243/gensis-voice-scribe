@@ -45,12 +45,12 @@ export function GenerateNoteDialog({
     onSuccess: () => onOpenChange(false)
   });
 
-  // Reset state when dialog is closed
+  // Reset state when dialog is closed - with proper dependency array to prevent infinite loop
   useEffect(() => {
-    if (!open) {
+    if (!open && generatedContent) {
       handleReset();
     }
-  }, [open, handleReset]);
+  }, [open, handleReset, generatedContent]);
 
   const handleDialogClose = (isOpen: boolean) => {
     if (!isOpen && (generatedContent || selectedFiles.length > 0)) {
@@ -60,6 +60,14 @@ export function GenerateNoteDialog({
       return;
     }
     onOpenChange(isOpen);
+  };
+
+  const handleFileSelect = (fileId: string) => {
+    if (selectedFiles.includes(fileId)) {
+      setSelectedFiles(selectedFiles.filter(id => id !== fileId));
+    } else {
+      setSelectedFiles([...selectedFiles, fileId]);
+    }
   };
 
   const handleSaveNote = async () => {
@@ -76,14 +84,6 @@ export function GenerateNoteDialog({
       title: noteTitle, 
       content: generatedContent 
     });
-  };
-
-  const handleFileSelect = (fileId: string) => {
-    if (selectedFiles.includes(fileId)) {
-      setSelectedFiles(selectedFiles.filter(id => id !== fileId));
-    } else {
-      setSelectedFiles([...selectedFiles, fileId]);
-    }
   };
 
   const handleCopyContent = () => {

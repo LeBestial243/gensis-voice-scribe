@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +21,11 @@ export default function YoungProfilePage() {
   const { toast } = useToast();
 
   console.log('YoungProfilePage: Loading profile with ID:', profileId);
-  console.log('YoungProfilePage: isGenerateNoteOpen state:', isGenerateNoteOpen);
+  
+  // Add this effect for debugging dialog state
+  useEffect(() => {
+    console.log('YoungProfilePage: isGenerateNoteOpen state updated:', isGenerateNoteOpen);
+  }, [isGenerateNoteOpen]);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['young_profile', profileId],
@@ -49,10 +53,16 @@ export default function YoungProfilePage() {
     enabled: !!profileId && profileId !== ':id',
   });
 
+  // Use callback to ensure the function reference doesn't change on every render
+  const handleOpenGenerateNote = useCallback(() => {
+    console.log('Opening note generation dialog');
+    setIsGenerateNoteOpen(true);
+  }, []);
+
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neumorph-accent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -60,8 +70,8 @@ export default function YoungProfilePage() {
   if (profileError || !profile) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center space-y-4 neumorphic p-8">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-neumorph-secondary to-neumorph-accent text-transparent bg-clip-text">Profil non trouvé</h1>
+        <div className="text-center space-y-4 p-8 bg-white rounded-xl shadow-md">
+          <h1 className="text-2xl font-bold text-gray-800">Profil non trouvé</h1>
           <p className="text-muted-foreground">
             {profileError ? 
               `Erreur lors du chargement du profil: ${(profileError as Error).message}` : 
@@ -73,7 +83,7 @@ export default function YoungProfilePage() {
   }
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 bg-gray-50">
       <ProfileHeader profile={profile} />
 
       <main className="container py-6 space-y-6">
@@ -90,10 +100,7 @@ export default function YoungProfilePage() {
 
       <FloatingActions 
         onRecordingClick={() => setIsRecordingOpen(true)}
-        onGenerateNoteClick={() => {
-          console.log('Generate note button clicked');
-          setIsGenerateNoteOpen(true);
-        }}
+        onGenerateNoteClick={handleOpenGenerateNote}
       />
 
       <RecordingDialog 
