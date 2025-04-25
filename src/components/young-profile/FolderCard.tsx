@@ -31,12 +31,21 @@ export function FolderCard({
     onUploadClick(folder.id, event);
   };
 
+  // Calculer la hauteur max en fonction du nombre de fichiers
+  const getMaxHeight = () => {
+    if (fileCount === 0) return 'max-h-[100px]';
+    if (fileCount <= 3) return 'max-h-[300px]';
+    if (fileCount <= 5) return 'max-h-[400px]';
+    return 'max-h-[500px]';
+  };
+
   return (
     <Card 
       className={cn(
-        "cursor-pointer transition-all duration-200",
+        "cursor-pointer transition-all duration-200 overflow-hidden",
         "hover:shadow-md",
-        isActive && "ring-2 ring-primary ring-offset-2"
+        isActive ? "ring-2 ring-primary ring-offset-2" : "",
+        isActive ? getMaxHeight() : "max-h-[100px]"
       )}
       onClick={onToggle}
       data-folder-id={folder.id}
@@ -67,7 +76,7 @@ export function FolderCard({
       </CardHeader>
       
       {isActive && (
-        <CardContent className="animate-accordion-down">
+        <CardContent className="animate-accordion-down overflow-auto">
           <div className="flex gap-2 my-2">
             <Button 
               variant="outline" 
@@ -79,7 +88,7 @@ export function FolderCard({
             </Button>
           </div>
           
-          <div className="mt-4">
+          <div className="mt-4 overflow-auto">
             <FileDisplay folderId={folder.id} />
           </div>
         </CardContent>
