@@ -7,7 +7,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface FilePreviewDialogProps {
@@ -43,43 +42,28 @@ export function FilePreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <h2 className="text-2xl font-semibold mb-6">{file.name}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">{file.name}</h2>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
+                  {getInitials("Felly Lunkeba")}
+                </AvatarFallback>
+              </Avatar>
+              <span>Felly Lunkeba</span>
+              <span>•</span>
+              <span>{createdAt}</span>
+            </div>
+          </div>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-muted-foreground">État</span>
-              <Badge variant="secondary" className="bg-red-50 text-red-600 hover:bg-red-50">
-                Not started
-              </Badge>
+        <ScrollArea className="flex-1 mt-6">
+          <div className="space-y-4">
+            <div className="prose prose-gray max-w-none">
+              <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {file.description || "Aucun contenu disponible"}
+              </p>
             </div>
-            
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-muted-foreground">Assignation</span>
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
-                    {getInitials("Felly Lunkeba")}
-                  </AvatarFallback>
-                </Avatar>
-                <span>Felly Lunkeba</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-muted-foreground">Level</span>
-              <Badge variant="secondary" className="bg-red-50 text-red-600 hover:bg-red-50">
-                high
-              </Badge>
-            </div>
-
-            {file.description && (
-              <div className="py-3 border-b">
-                <h3 className="text-lg font-medium mb-2">Commentaires</h3>
-                <p className="text-muted-foreground whitespace-pre-wrap">{file.description}</p>
-              </div>
-            )}
           </div>
         </ScrollArea>
       </DialogContent>
