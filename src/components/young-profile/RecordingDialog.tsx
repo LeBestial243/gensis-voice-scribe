@@ -52,7 +52,7 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
         .from('files')
         .insert({
           name: title,
-          content: content,
+          description: content,
           folder_id: folderId,
           type: 'transcription',
           path: '',

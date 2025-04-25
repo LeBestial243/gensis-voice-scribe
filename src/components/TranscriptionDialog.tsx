@@ -45,25 +45,33 @@ export function TranscriptionDialog({
 
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
-      // Create file record in database
+      console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
+      
+      // Créer un fichier texte dans la base de données, mais sans utiliser le champ 'content'
       const { data, error } = await supabase
         .from('files')
         .insert({
           folder_id: folderId,
           name: `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`,
-          type: "text/plain",
+          type: "transcription",
           size: new Blob([text]).size,
-          content: text,
+          // Suppression du champ content qui n'existe pas dans la table
           path: `transcriptions/${folderId}/${Date.now()}.txt`,
+          // Ajoutons le texte dans la description à la place
+          description: text
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', selectedFolderId] });
+      queryClient.invalidateQueries({ queryKey: ['folders_file_count'] }); // Mise à jour des compteurs de fichiers
       toast({ title: "Transcription enregistrée avec succès" });
       handleReset();
       onOpenChange(false);
@@ -73,6 +81,7 @@ export function TranscriptionDialog({
       setError(error instanceof Error ? error.message : "Erreur lors de l'enregistrement.");
       toast({
         title: "Erreur lors de l'enregistrement de la transcription",
+        description: "Vérifiez la structure de votre base de données",
         variant: "destructive",
       });
     },
