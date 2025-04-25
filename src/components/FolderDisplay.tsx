@@ -1,32 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Card, 
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "@/components/ui/card";
-import { FileDisplay } from "./FileDisplay";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Folder as FolderIcon, 
-  FolderOpen, 
-  Plus, 
-  UploadCloud,
-  Loader2,
-  ChevronDown 
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Folder, Plus, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
+import { FolderCard } from "./young-profile/FolderCard";
 
 interface FolderDisplayProps {
   profileId: string;
@@ -51,7 +33,6 @@ export function FolderDisplay({
   
   console.log("FolderDisplay: Rendering for profileId", profileId);
   
-  // Récupération des dossiers
   const { 
     data: folders = [], 
     isLoading: foldersLoading
@@ -75,7 +56,6 @@ export function FolderDisplay({
     enabled: !!profileId
   });
 
-  // Récupération du nombre de fichiers par dossier
   const { data: folderCounts = {}, refetch: refetchFolderCounts } = useQuery({
     queryKey: ['folder_counts', profileId],
     queryFn: async () => {
@@ -96,12 +76,9 @@ export function FolderDisplay({
       
       console.log("FolderDisplay: Raw file data for counts:", data);
       
-      // Compter les fichiers par dossier
       const counts: Record<string, number> = {};
-      // Initialiser tous les dossiers à 0
       folderIds.forEach(id => { counts[id] = 0; });
       
-      // Si des fichiers ont été trouvés, les compter
       if (data) {
         data.forEach(file => {
           counts[file.folder_id] = (counts[file.folder_id] || 0) + 1;
@@ -113,8 +90,7 @@ export function FolderDisplay({
     },
     enabled: folders.length > 0
   });
-  
-  // Mutation pour créer un dossier
+
   const createFolder = useMutation({
     mutationFn: async (title: string) => {
       console.log("FolderDisplay: Creating folder with title", title);
@@ -139,7 +115,6 @@ export function FolderDisplay({
       });
       setNewFolderName("");
       setIsCreateFolderOpen(false);
-      // Sélectionner automatiquement le nouveau dossier
       onFolderSelect(data.id);
     },
     onError: (error) => {
@@ -152,12 +127,10 @@ export function FolderDisplay({
     }
   });
 
-  // Mutation pour télécharger un fichier
   const uploadFile = useMutation({
     mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
       console.log("FolderDisplay: Uploading file", file.name, "to folder", folderId);
       
-      // Étape 1: Télécharger le fichier dans le stockage
       const fileName = file.name;
       const filePath = `${folderId}/${Date.now()}_${fileName}`;
       
@@ -168,8 +141,6 @@ export function FolderDisplay({
       if (storageError) {
         console.error('Error uploading to storage:', storageError);
         
-        // Si l'upload échoue, on essaie de stocker le contenu directement
-        // en base de données pour les fichiers texte
         if (file.type.includes('text') || file.size < 100000) {
           console.log("FolderDisplay: Fallback to storing as text content");
           const text = await file.text();
@@ -201,7 +172,6 @@ export function FolderDisplay({
       
       console.log("FolderDisplay: File uploaded to storage successfully");
       
-      // Étape 2: Créer l'entrée dans la base de données
       const { data, error } = await supabase
         .from('files')
         .insert({
@@ -278,18 +248,6 @@ export function FolderDisplay({
     setUploadFolderId(folderId);
     setIsUploadOpen(true);
   };
-  
-  // Effet pour rafraîchir les compteurs de fichiers lorsqu'un dossier est sélectionné
-  useEffect(() => {
-    if (activeFolderId) {
-      refetchFolderCounts();
-    }
-  }, [activeFolderId, refetchFolderCounts]);
-
-  // Filtrer les dossiers en fonction de la recherche
-  const filteredFolders = folders.filter(folder => 
-    folder.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const handleFolderClick = (folderId: string) => {
     onFolderSelect(folderId === activeFolderId ? null : folderId);
@@ -303,9 +261,12 @@ export function FolderDisplay({
     );
   }
 
+  const filteredFolders = folders.filter(folder => 
+    folder.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      {/* En-tête avec bouton de création de dossier */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Dossiers</h2>
         <Button 
@@ -346,73 +307,18 @@ export function FolderDisplay({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredFolders.map((folder) => (
-            <Card 
+            <FolderCard
               key={folder.id}
-              className={cn(
-                "cursor-pointer transition-all duration-200",
-                "hover:shadow-md",
-                activeFolderId === folder.id && "ring-2 ring-primary ring-offset-2"
-              )}
-              onClick={() => handleFolderClick(folder.id)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center">
-                    <div className="relative">
-                      {activeFolderId === folder.id ? (
-                        <FolderOpen className="h-5 w-5 mr-2 text-primary" />
-                      ) : (
-                        <FolderIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-                      )}
-                      <ChevronDown 
-                        className={cn(
-                          "h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground transition-transform duration-200",
-                          activeFolderId === folder.id && "rotate-180"
-                        )}
-                      />
-                    </div>
-                    <CardTitle className="text-base">{folder.title}</CardTitle>
-                  </div>
-                  <Badge variant={activeFolderId === folder.id ? "default" : "outline"}>
-                    {folderCounts[folder.id] || 0} fichier{(folderCounts[folder.id] || 0) !== 1 ? 's' : ''}
-                  </Badge>
-                </div>
-                <CardDescription className="pl-7">
-                  {folder.created_at && 
-                    `Créé ${formatDistanceToNow(parseISO(folder.created_at), { 
-                      addSuffix: true, 
-                      locale: fr 
-                    })}`
-                  }
-                </CardDescription>
-              </CardHeader>
-              
-              {activeFolderId === folder.id && (
-                <CardContent className="animate-accordion-down">
-                  {/* Boutons d'actions pour le dossier sélectionné */}
-                  <div className="flex gap-2 my-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => handleOpenUpload(folder.id, e)}
-                    >
-                      <UploadCloud className="h-4 w-4 mr-1" />
-                      Ajouter un fichier
-                    </Button>
-                  </div>
-                  
-                  {/* Liste des fichiers du dossier */}
-                  <div className="mt-4">
-                    <FileDisplay folderId={folder.id} />
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+              folder={folder}
+              fileCount={folderCounts[folder.id] || 0}
+              isActive={folder.id === activeFolderId}
+              onToggle={() => handleFolderClick(folder.id)}
+              onUploadClick={handleOpenUpload}
+            />
           ))}
         </div>
       )}
       
-      {/* Dialogue de création de dossier */}
       <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -458,7 +364,6 @@ export function FolderDisplay({
         </DialogContent>
       </Dialog>
       
-      {/* Dialogue de téléchargement de fichier */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

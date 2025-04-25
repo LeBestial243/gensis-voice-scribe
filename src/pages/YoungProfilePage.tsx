@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +15,7 @@ export default function YoungProfilePage() {
   const profileId = id || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('transcriptions');
+
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
