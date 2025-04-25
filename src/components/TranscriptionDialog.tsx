@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -47,19 +46,33 @@ export function TranscriptionDialog({
     mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
       
-      // Créer un fichier texte dans la base de données, mais sans utiliser le champ 'content'
+      const { data: tableInfo, error: tableError } = await supabase
+        .from('files')
+        .select('*')
+        .limit(1);
+        
+      if (tableError) {
+        console.error('Error checking table structure:', tableError);
+        throw tableError;
+      }
+      
+      const fileData = {
+        folder_id: folderId,
+        name: `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`,
+        type: "transcription",
+        size: new Blob([text]).size,
+        path: `transcriptions/${folderId}/${Date.now()}.txt`,
+      };
+      
+      if ('description' in Object.keys(tableInfo?.[0] || {})) {
+        Object.assign(fileData, { description: text });
+      }
+      
+      console.log('Inserting file with data:', fileData);
+      
       const { data, error } = await supabase
         .from('files')
-        .insert({
-          folder_id: folderId,
-          name: `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`,
-          type: "transcription",
-          size: new Blob([text]).size,
-          // Suppression du champ content qui n'existe pas dans la table
-          path: `transcriptions/${folderId}/${Date.now()}.txt`,
-          // Ajoutons le texte dans la description à la place
-          description: text
-        })
+        .insert(fileData)
         .select()
         .single();
 
@@ -67,11 +80,16 @@ export function TranscriptionDialog({
         console.error('Database error:', error);
         throw error;
       }
+      
+      if (data && !('description' in Object.keys(tableInfo?.[0] || {}))) {
+        console.log('Warning: Description column not found, text content may not be saved properly');
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', selectedFolderId] });
-      queryClient.invalidateQueries({ queryKey: ['folders_file_count'] }); // Mise à jour des compteurs de fichiers
+      queryClient.invalidateQueries({ queryKey: ['folders_file_count'] }); 
       toast({ title: "Transcription enregistrée avec succès" });
       handleReset();
       onOpenChange(false);
@@ -135,7 +153,6 @@ export function TranscriptionDialog({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // Only reset if closing and not during active transcription
       if (!isTranscribing) {
         handleReset();
       }

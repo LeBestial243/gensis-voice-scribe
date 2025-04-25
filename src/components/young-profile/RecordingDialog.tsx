@@ -48,16 +48,33 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
 
   const saveTranscription = useMutation({
     mutationFn: async ({ title, content, folderId }: { title: string, content: string, folderId: string }) => {
+      const { data: tableInfo, error: tableError } = await supabase
+        .from('files')
+        .select('*')
+        .limit(1);
+        
+      if (tableError) {
+        console.error('Error checking table structure:', tableError);
+        throw tableError;
+      }
+      
+      const fileData = {
+        name: title,
+        folder_id: folderId,
+        type: 'transcription',
+        path: '',
+        size: content.length
+      };
+      
+      if ('description' in Object.keys(tableInfo?.[0] || {})) {
+        Object.assign(fileData, { description: content });
+      }
+      
+      console.log('Inserting file with data:', fileData);
+      
       const { data, error } = await supabase
         .from('files')
-        .insert({
-          name: title,
-          description: content,
-          folder_id: folderId,
-          type: 'transcription',
-          path: '',
-          size: content.length
-        })
+        .insert(fileData)
         .select();
 
       if (error) throw error;
@@ -75,10 +92,11 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
       onOpenChange(false);
       resetRecording();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error saving transcription:', error);
       toast({
         title: "Erreur",
-        description: "Impossible d'enregistrer la transcription.",
+        description: error instanceof Error ? error.message : "Impossible d'enregistrer la transcription.",
         variant: "destructive"
       });
     }
