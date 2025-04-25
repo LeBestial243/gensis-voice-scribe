@@ -36,11 +36,17 @@ export function FileCard({
       .slice(0, 2);
   };
 
+  // Handle click on the card to prevent propagation to parent
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop event from bubbling up to parent folder
+    setShowPreview(true);
+  };
+
   return (
     <>
       <Card 
         className="group cursor-pointer hover:shadow-md transition-shadow duration-200"
-        onClick={() => setShowPreview(true)}
+        onClick={handleCardClick}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
