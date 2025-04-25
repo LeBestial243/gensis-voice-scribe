@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -46,33 +47,20 @@ export function TranscriptionDialog({
     mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
       
-      const { data: tableInfo, error: tableError } = await supabase
-        .from('files')
-        .select('*')
-        .limit(1);
-        
-      if (tableError) {
-        console.error('Error checking table structure:', tableError);
-        throw tableError;
-      }
+      const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`;
+      const filePath = `transcriptions/${folderId}/${Date.now()}.txt`;
       
-      const fileData = {
-        folder_id: folderId,
-        name: `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`,
-        type: "transcription",
-        size: new Blob([text]).size,
-        path: `transcriptions/${folderId}/${Date.now()}.txt`,
-      };
-      
-      if ('description' in Object.keys(tableInfo?.[0] || {})) {
-        Object.assign(fileData, { description: text });
-      }
-      
-      console.log('Inserting file with data:', fileData);
-      
+      // 1. Insérer le fichier de métadonnées dans la base de données
       const { data, error } = await supabase
         .from('files')
-        .insert(fileData)
+        .insert({
+          folder_id: folderId,
+          name: fileName,
+          type: "transcription",
+          size: new Blob([text]).size,
+          path: filePath,
+          content: text // Stocker directement le contenu dans la colonne content
+        })
         .select()
         .single();
 
@@ -81,8 +69,22 @@ export function TranscriptionDialog({
         throw error;
       }
       
-      if (data && !('description' in Object.keys(tableInfo?.[0] || {}))) {
-        console.log('Warning: Description column not found, text content may not be saved properly');
+      // 2. Aussi stocker le contenu dans le stockage Supabase pour la redondance
+      try {
+        const { error: storageError } = await supabase
+          .storage
+          .from('files')
+          .upload(filePath, new Blob([text]), {
+            contentType: 'text/plain',
+            upsert: true
+          });
+          
+        if (storageError) {
+          console.warn('Storage upload warning (continuing anyway):', storageError);
+          // On continue même si le stockage échoue car nous avons le contenu dans la DB
+        }
+      } catch (storageErr) {
+        console.warn('Storage error (continuing anyway):', storageErr);
       }
       
       return data;

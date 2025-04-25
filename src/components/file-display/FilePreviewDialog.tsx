@@ -43,14 +43,18 @@ export function FilePreviewDialog({
         setFileContent(null);
         
         try {
-          // D'abord vérifier si le contenu est déjà disponible
+          console.log('Fetching file content for:', file);
+          
+          // D'abord vérifier si le contenu est déjà disponible dans le fichier
           if (file.content) {
+            console.log('Using content from file object:', file.content.substring(0, 50) + '...');
             setFileContent(file.content);
             return;
           }
           
           // Ensuite vérifier le champ description
           if (file.description) {
+            console.log('Using description from file object');
             setFileContent(file.description);
             return;
           }
@@ -58,45 +62,45 @@ export function FilePreviewDialog({
           // Si pas de contenu disponible, essayer de récupérer depuis la base de données
           const { data, error } = await supabase
             .from('files')
-            .select('*')
+            .select('content')
             .eq('id', file.id)
             .single();
             
           if (error) {
-            console.error('Erreur lors de la récupération du fichier:', error);
-            throw error;
+            console.error('Erreur lors de la récupération du fichier depuis la base de données:', error);
+          } else if (data && data.content) {
+            console.log('Retrieved content from database:', data.content.substring(0, 50) + '...');
+            setFileContent(data.content);
+            return;
           }
           
-          // Vérifier s'il y a un contenu disponible dans la réponse
-          if (data) {
-            console.log('Données du fichier récupérées:', data);
-            // Noter que les colonnes 'content' et 'description' n'existent pas directement dans la table 'files'
-            // On pourrait avoir besoin de récupérer le contenu à partir du storage
-            if (data.path && typeof data.path === 'string') {
-              try {
-                const { data: fileData, error: downloadError } = await supabase.storage
-                  .from('files')
-                  .download(data.path);
-                  
-                if (downloadError) throw downloadError;
+          // Si toujours pas de contenu, essayer de le récupérer depuis le storage
+          if (file.path && typeof file.path === 'string') {
+            try {
+              console.log('Attempting to download from storage path:', file.path);
+              const { data: fileData, error: downloadError } = await supabase.storage
+                .from('files')
+                .download(file.path);
                 
-                if (fileData) {
-                  const text = await fileData.text();
-                  setFileContent(text);
-                  return;
-                }
-              } catch (downloadErr) {
-                console.error('Erreur lors du téléchargement du fichier:', downloadErr);
-                // On continue si le téléchargement échoue
+              if (downloadError) {
+                console.error('Erreur lors du téléchargement depuis le storage:', downloadError);
+              } else if (fileData) {
+                const text = await fileData.text();
+                console.log('Downloaded content from storage:', text.substring(0, 50) + '...');
+                setFileContent(text);
+                return;
               }
+            } catch (downloadErr) {
+              console.error('Exception lors du téléchargement du fichier:', downloadErr);
             }
           }
           
           // Si on arrive ici, aucun contenu n'a été trouvé
+          console.log('No content found by any method');
           setFileContent(null);
           
         } catch (error) {
-          console.error('Erreur lors du chargement du contenu:', error);
+          console.error('Erreur générale lors du chargement du contenu:', error);
           setFileContent(null);
         } finally {
           setLoading(false);
