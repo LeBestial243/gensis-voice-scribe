@@ -1,26 +1,18 @@
+
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Plus, Search, Mic, Edit } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { CreateProfileForm } from '@/components/CreateProfileForm';
-import { ProfileList } from '@/components/ProfileList';
-import { MobileNav } from '@/components/MobileNav';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TranscriptionDialog } from '@/components/TranscriptionDialog';
-import { FileUploadDialog } from '@/components/FileUploadDialog';
-import { FileList } from '@/components/FileList';
-import { FolderDialog } from '@/components/FolderDialog';
-import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
+import { Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ProfileList } from '@/components/ProfileList';
+import { MobileNav } from '@/components/MobileNav';
+import { ProfileListHeader } from '@/components/profiles/ProfileListHeader';
+import { ProfileFilesSection } from '@/components/profiles/ProfileFilesSection';
+import { ProfileFloatingActions } from '@/components/profiles/ProfileFloatingActions';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
 
@@ -58,31 +50,13 @@ export default function Profiles() {
     enabled: !!selectedProfileId,
   });
 
-  const filteredFolders = folders.filter(folder =>
-    folder.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   if (!selectedProfileId) {
     return (
       <div className="container mx-auto py-8 px-4 pb-24">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-title">Mes profils</h1>
-          <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out">
-                <Plus className="h-4 w-4 mr-2" />
-                Créer un profil
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Créer un nouveau profil</DialogTitle>
-              </DialogHeader>
-              <CreateProfileForm />
-            </DialogContent>
-          </Dialog>
-        </div>
-
+        <ProfileListHeader 
+          openCreateProfile={openCreateProfile}
+          setOpenCreateProfile={setOpenCreateProfile}
+        />
         <ProfileList onSelectProfile={setSelectedProfileId} />
         <MobileNav />
       </div>
@@ -115,90 +89,17 @@ export default function Profiles() {
       </header>
 
       <main className="container py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="relative flex-1 max-w-sm bg-muted rounded-xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Rechercher un dossier..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-0 shadow-none bg-transparent"
-            />
-          </div>
-          <FolderDialog profileId={selectedProfileId} />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => (
-            <Card 
-              key={folder.id} 
-              className={`cursor-pointer interactive ${
-                selectedFolderId === folder.id ? 'bg-accent/10 shadow-md' : ''
-              }`}
-              onClick={() => setSelectedFolderId(folder.id)}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-medium">
-                  {folder.title}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {selectedFolderId === folder.id && (
-                    <FileUploadDialog folderId={folder.id} />
-                  )}
-                  <Badge variant="outline">
-                    0 fichiers
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Dernière modification il y a 2 jours
-                </p>
-                {selectedFolderId === folder.id && (
-                  <div className="mt-4">
-                    <FileList folderId={folder.id} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ProfileFilesSection selectedProfileId={selectedProfileId} />
       </main>
 
-      <Button
-        onClick={() => setIsRecorderOpen(true)}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 interactive"
-        size="icon"
-      >
-        <Mic className="h-6 w-6 text-white" />
-      </Button>
-
-      <TranscriptionDialog 
-        open={isRecorderOpen} 
-        onOpenChange={setIsRecorderOpen} 
-        profileId={selectedProfileId} 
+      <ProfileFloatingActions
+        selectedProfileId={selectedProfileId}
+        isRecorderOpen={isRecorderOpen}
+        setIsRecorderOpen={setIsRecorderOpen}
+        isGenerateNoteOpen={isGenerateNoteOpen}
+        setIsGenerateNoteOpen={setIsGenerateNoteOpen}
         folders={folders}
       />
-
-      <Button
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 interactive text-white shadow-lg"
-        size="lg"
-        onClick={() => {
-          console.log('Generate note button clicked in Profiles');
-          setIsGenerateNoteOpen(true);
-        }}
-      >
-        Générer une note IA
-      </Button>
-
-      {selectedProfileId && (
-        <GenerateNoteDialog
-          open={isGenerateNoteOpen}
-          onOpenChange={setIsGenerateNoteOpen}
-          profileId={selectedProfileId}
-        />
-      )}
     </div>
   );
 }
