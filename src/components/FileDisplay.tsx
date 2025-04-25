@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText } from "lucide-react";
@@ -106,4 +105,3 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     </>
   );
 }
-
