@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Folder, Plus, Loader2, FolderOpen, AlertCircle, File, UploadCloud } from "lucide-react";
+import { Folder, Plus, Loader2, AlertCircle, File, UploadCloud } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +31,7 @@ export function FolderDisplay({
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   
-  console.log("FolderDisplay: Rendering for profileId", profileId);
-  console.log("FolderDisplay: Current activeFolderId", activeFolderId);
+  console.log("FolderDisplay: Rendering with activeFolderId", activeFolderId);
   
   const { 
     data: folders = [], 
@@ -251,11 +250,15 @@ export function FolderDisplay({
   };
 
   const handleFolderClick = (folderId: string) => {
-    console.log("Clicked folder:", folderId, "Current active:", activeFolderId);
+    console.log("FolderDisplay: handleFolderClick called with", folderId);
+    console.log("FolderDisplay: Current activeFolderId is", activeFolderId);
+    
     if (onFolderSelect) {
       if (folderId === activeFolderId) {
+        console.log("FolderDisplay: Setting activeFolderId to null (toggle off)");
         onFolderSelect(null);
       } else {
+        console.log("FolderDisplay: Setting activeFolderId to", folderId);
         onFolderSelect(folderId);
       }
     }
@@ -272,6 +275,8 @@ export function FolderDisplay({
   const filteredFolders = folders.filter(folder => 
     folder.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  console.log("FolderDisplay: Rendering", filteredFolders.length, "folders with activeFolderId", activeFolderId);
 
   return (
     <div className="space-y-6">
@@ -314,16 +319,20 @@ export function FolderDisplay({
         )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => (
-            <FolderCard
-              key={folder.id}
-              folder={folder}
-              fileCount={folderCounts[folder.id] || 0}
-              isActive={folder.id === activeFolderId}
-              onToggle={() => handleFolderClick(folder.id)}
-              onUploadClick={handleOpenUpload}
-            />
-          ))}
+          {filteredFolders.map((folder) => {
+            const isActive = folder.id === activeFolderId;
+            console.log(`Rendering folder ${folder.id} with isActive=${isActive}`);
+            return (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                fileCount={folderCounts[folder.id] || 0}
+                isActive={isActive}
+                onToggle={() => handleFolderClick(folder.id)}
+                onUploadClick={handleOpenUpload}
+              />
+            );
+          })}
         </div>
       )}
       

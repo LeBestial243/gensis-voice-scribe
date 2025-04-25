@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,9 @@ export default function Profiles() {
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Reset selected folder when profile changes
   useEffect(() => {
+    console.log("Profiles: Profile changed, resetting selected folder");
     setSelectedFolderId(null);
   }, [selectedProfileId]);
 
@@ -49,6 +52,7 @@ export default function Profiles() {
         .eq('profile_id', selectedProfileId);
 
       if (error) throw error;
+      console.log("Profiles: Fetched folders list:", data);
       return data || [];
     },
     enabled: !!selectedProfileId,
@@ -163,7 +167,7 @@ export default function Profiles() {
         open={isRecorderOpen} 
         onOpenChange={setIsRecorderOpen} 
         profileId={selectedProfileId} 
-        folders={foldersList} 
+        folders={foldersList}
       />
 
       <Button
