@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plus, Search, Mic, Edit } from 'lucide-react';
@@ -8,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { CreateProfileForm } from '@/components/CreateProfileForm';
 import { ProfileList } from '@/components/ProfileList';
 import { MobileNav } from '@/components/MobileNav';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
@@ -24,6 +25,16 @@ export default function Profiles() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Force refetch folder data and file counts when selecting a profile
+  useEffect(() => {
+    if (selectedProfileId) {
+      console.log("Profiles: Selected profile changed, invalidating queries");
+      queryClient.invalidateQueries({ queryKey: ['folders', selectedProfileId] });
+      queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
+    }
+  }, [selectedProfileId, queryClient]);
 
   const { data: selectedProfile } = useQuery({
     queryKey: ['profile', selectedProfileId],
@@ -129,7 +140,12 @@ export default function Profiles() {
           </div>
         </div>
 
-        <FolderDisplay profileId={selectedProfileId} searchQuery={searchQuery} />
+        {/* Assurer que FolderDisplay a une key qui change lorsque le profileId change */}
+        <FolderDisplay 
+          key={`folder-display-${selectedProfileId}-${Date.now()}`} 
+          profileId={selectedProfileId} 
+          searchQuery={searchQuery} 
+        />
       </main>
 
       <Button
