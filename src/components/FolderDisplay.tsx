@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Folder, Plus, Loader2 } from "lucide-react";
+import { Folder, Plus, Loader2, FolderOpen, UploadCloud, AlertCircle, File } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -281,7 +281,7 @@ export function FolderDisplay({
       {filteredFolders.length === 0 ? (
         searchQuery ? (
           <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <FolderIcon className="h-12 w-12 text-muted-foreground mb-4" />
+            <Folder className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Aucun résultat</h3>
             <p className="text-muted-foreground">
               Aucun dossier ne correspond à "{searchQuery}"
@@ -289,7 +289,7 @@ export function FolderDisplay({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <FolderIcon className="h-12 w-12 text-muted-foreground mb-4" />
+            <Folder className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Aucun dossier</h3>
             <p className="text-muted-foreground">
               Créez votre premier dossier pour commencer à organiser vos fichiers
