@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -147,7 +148,7 @@ export default function Profiles() {
         open={isRecorderOpen} 
         onOpenChange={setIsRecorderOpen} 
         profileId={selectedProfileId} 
-        folders={folders}
+        folders={[]} // Pass an empty array instead of undefined 'folders'
       />
 
       <Button
