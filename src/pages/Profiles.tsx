@@ -27,7 +27,7 @@ export default function Profiles() {
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Reset selected folder when profile changes
+  // Clear selected folder when profile changes
   useEffect(() => {
     console.log("Profiles: Profile changed, resetting selected folder");
     setSelectedFolderId(null);
