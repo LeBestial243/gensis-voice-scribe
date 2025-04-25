@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,8 @@ import {
   FolderOpen, 
   Plus, 
   UploadCloud,
-  Loader2 
+  Loader2,
+  ChevronDown 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, parseISO } from "date-fns";
@@ -26,16 +26,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 interface FolderDisplayProps {
   profileId: string;
   searchQuery?: string;
+  activeFolderId: string | null;
+  onFolderSelect: (folderId: string | null) => void;
 }
 
-export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProps) {
+export function FolderDisplay({ 
+  profileId, 
+  searchQuery = "", 
+  activeFolderId,
+  onFolderSelect
+}: FolderDisplayProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -133,7 +140,7 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
       setNewFolderName("");
       setIsCreateFolderOpen(false);
       // Sélectionner automatiquement le nouveau dossier
-      setSelectedFolderId(data.id);
+      onFolderSelect(data.id);
     },
     onError: (error) => {
       console.error('Error in createFolder mutation:', error);
@@ -274,15 +281,19 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
   
   // Effet pour rafraîchir les compteurs de fichiers lorsqu'un dossier est sélectionné
   useEffect(() => {
-    if (selectedFolderId) {
+    if (activeFolderId) {
       refetchFolderCounts();
     }
-  }, [selectedFolderId, refetchFolderCounts]);
+  }, [activeFolderId, refetchFolderCounts]);
 
   // Filtrer les dossiers en fonction de la recherche
   const filteredFolders = folders.filter(folder => 
     folder.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleFolderClick = (folderId: string) => {
+    onFolderSelect(folderId === activeFolderId ? null : folderId);
+  };
 
   if (foldersLoading) {
     return (
@@ -337,22 +348,32 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
           {filteredFolders.map((folder) => (
             <Card 
               key={folder.id}
-              className={`cursor-pointer hover:shadow-md transition-all duration-200 ${
-                selectedFolderId === folder.id ? 'ring-2 ring-primary ring-offset-2' : ''
-              }`}
-              onClick={() => setSelectedFolderId(selectedFolderId === folder.id ? null : folder.id)}
+              className={cn(
+                "cursor-pointer transition-all duration-200",
+                "hover:shadow-md",
+                activeFolderId === folder.id && "ring-2 ring-primary ring-offset-2"
+              )}
+              onClick={() => handleFolderClick(folder.id)}
             >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center">
-                    {selectedFolderId === folder.id ? (
-                      <FolderOpen className="h-5 w-5 mr-2 text-primary" />
-                    ) : (
-                      <FolderIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-                    )}
+                    <div className="relative">
+                      {activeFolderId === folder.id ? (
+                        <FolderOpen className="h-5 w-5 mr-2 text-primary" />
+                      ) : (
+                        <FolderIcon className="h-5 w-5 mr-2 text-muted-foreground" />
+                      )}
+                      <ChevronDown 
+                        className={cn(
+                          "h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground transition-transform duration-200",
+                          activeFolderId === folder.id && "rotate-180"
+                        )}
+                      />
+                    </div>
                     <CardTitle className="text-base">{folder.title}</CardTitle>
                   </div>
-                  <Badge variant={selectedFolderId === folder.id ? "default" : "outline"}>
+                  <Badge variant={activeFolderId === folder.id ? "default" : "outline"}>
                     {folderCounts[folder.id] || 0} fichier{(folderCounts[folder.id] || 0) !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -366,8 +387,8 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
                 </CardDescription>
               </CardHeader>
               
-              {selectedFolderId === folder.id && (
-                <CardContent>
+              {activeFolderId === folder.id && (
+                <CardContent className="animate-accordion-down">
                   {/* Boutons d'actions pour le dossier sélectionné */}
                   <div className="flex gap-2 my-2">
                     <Button 

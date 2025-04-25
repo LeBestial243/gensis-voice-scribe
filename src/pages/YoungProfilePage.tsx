@@ -16,7 +16,7 @@ export default function YoungProfilePage() {
   const profileId = id || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('transcriptions');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const { toast } = useToast();
@@ -93,14 +93,16 @@ export default function YoungProfilePage() {
           onSearchChange={setSearchQuery}
           selectedTab={selectedTab}
           onTabChange={setSelectedTab}
-          selectedFolderId={selectedFolderId}
-          onFolderSelect={setSelectedFolderId}
+          selectedFolderId={activeFolderId}
+          onFolderSelect={setActiveFolderId}
         />
         
         {selectedTab === "files" && (
           <FolderDisplay 
             profileId={profileId} 
-            searchQuery={searchQuery} 
+            searchQuery={searchQuery}
+            activeFolderId={activeFolderId}
+            onFolderSelect={setActiveFolderId}
             key={`folders-${profileId}-${searchQuery}`}
           />
         )}
