@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Folder, FolderOpen, UploadCloud, ChevronDown } from "lucide-react";
 import { FileDisplay } from '../FileDisplay';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 interface FolderCardProps {
   folder: {
@@ -30,7 +31,7 @@ export function FolderCard({
     onUploadClick(folder.id, event);
   };
 
-  console.log("FolderCard rendering:", folder.id, "isActive:", isActive);
+  console.log(`FolderCard rendering: ${folder.id}, isActive: ${isActive}`);
 
   return (
     <Card 

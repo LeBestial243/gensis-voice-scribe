@@ -27,16 +27,16 @@ export default function Profiles() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    setSelectedFolderId(null);
+  }, [selectedProfileId]);
+
+  useEffect(() => {
     if (selectedProfileId) {
       console.log("Profiles: Selected profile changed, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['folders', selectedProfileId] });
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
     }
   }, [selectedProfileId, queryClient]);
-
-  useEffect(() => {
-    setSelectedFolderId(null);
-  }, [selectedProfileId]);
 
   const { data: selectedProfile } = useQuery({
     queryKey: ['profile', selectedProfileId],
@@ -54,27 +54,6 @@ export default function Profiles() {
     },
     enabled: !!selectedProfileId,
   });
-
-  const { data: folders = [] } = useQuery({
-    queryKey: ['folders', selectedProfileId],
-    queryFn: async () => {
-      if (!selectedProfileId) return [];
-      
-      const { data, error } = await supabase
-        .from('folders')
-        .select('*')
-        .eq('profile_id', selectedProfileId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedProfileId,
-  });
-
-  const filteredFolders = folders.filter(folder =>
-    folder.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const handleFolderSelect = (folderId: string | null) => {
     console.log("Profiles: Setting selected folder ID to", folderId, "from", selectedFolderId);
