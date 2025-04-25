@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -41,6 +42,8 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   
+  console.log("FolderDisplay: Rendering for profileId", profileId);
+  
   // Récupération des dossiers
   const { 
     data: folders = [], 
@@ -48,54 +51,77 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
   } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
+      console.log("FolderDisplay: Fetching folders for profile", profileId);
       const { data, error } = await supabase
         .from('folders')
         .select('*')
         .eq('profile_id', profileId)
         .order('title', { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching folders:', error);
+        throw error;
+      }
+      console.log("FolderDisplay: Fetched folders:", data);
+      return data || [];
     },
+    enabled: !!profileId
   });
 
   // Récupération du nombre de fichiers par dossier
-  const { data: folderCounts = {} } = useQuery({
-    queryKey: ['folder_counts', profileId, folders.map(f => f.id).join(',')],
+  const { data: folderCounts = {}, refetch: refetchFolderCounts } = useQuery({
+    queryKey: ['folder_counts', profileId],
     queryFn: async () => {
       const folderIds = folders.map(folder => folder.id);
       if (!folderIds.length) return {};
       
+      console.log("FolderDisplay: Fetching file counts for folders", folderIds);
+      
       const { data, error } = await supabase
         .from('files')
-        .select('folder_id, id')
+        .select('folder_id')
         .in('folder_id', folderIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching file counts:', error);
+        throw error;
+      }
+      
+      console.log("FolderDisplay: Raw file data for counts:", data);
       
       // Compter les fichiers par dossier
       const counts: Record<string, number> = {};
+      // Initialiser tous les dossiers à 0
       folderIds.forEach(id => { counts[id] = 0; });
       
-      data.forEach(file => {
-        counts[file.folder_id] = (counts[file.folder_id] || 0) + 1;
-      });
+      // Si des fichiers ont été trouvés, les compter
+      if (data) {
+        data.forEach(file => {
+          counts[file.folder_id] = (counts[file.folder_id] || 0) + 1;
+        });
+      }
       
+      console.log("FolderDisplay: Calculated folder counts:", counts);
       return counts;
     },
-    enabled: folders.length > 0,
+    enabled: folders.length > 0
   });
-
+  
   // Mutation pour créer un dossier
   const createFolder = useMutation({
     mutationFn: async (title: string) => {
+      console.log("FolderDisplay: Creating folder with title", title);
       const { data, error } = await supabase
         .from('folders')
         .insert({ title, profile_id: profileId })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating folder:', error);
+        throw error;
+      }
+      console.log("FolderDisplay: Created folder:", data);
       return data;
     },
     onSuccess: (data) => {
@@ -110,6 +136,7 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
       setSelectedFolderId(data.id);
     },
     onError: (error) => {
+      console.error('Error in createFolder mutation:', error);
       toast({
         title: "Erreur lors de la création du dossier",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -121,20 +148,23 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
   // Mutation pour télécharger un fichier
   const uploadFile = useMutation({
     mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
+      console.log("FolderDisplay: Uploading file", file.name, "to folder", folderId);
+      
       // Étape 1: Télécharger le fichier dans le stockage
       const fileName = file.name;
       const filePath = `${folderId}/${Date.now()}_${fileName}`;
       
-      const { error: storageError } = await supabase.storage
+      const { error: storageError, data: storageData } = await supabase.storage
         .from('files')
         .upload(filePath, file);
   
       if (storageError) {
         console.error('Error uploading to storage:', storageError);
+        
         // Si l'upload échoue, on essaie de stocker le contenu directement
         // en base de données pour les fichiers texte
-        
         if (file.type.includes('text') || file.size < 100000) {
+          console.log("FolderDisplay: Fallback to storing as text content");
           const text = await file.text();
           
           const { data, error: dbError } = await supabase
@@ -150,12 +180,19 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
             .select()
             .single();
             
-          if (dbError) throw dbError;
+          if (dbError) {
+            console.error('Error storing file as text:', dbError);
+            throw dbError;
+          }
+          
+          console.log("FolderDisplay: Successfully stored file as text:", data);
           return data;
         } else {
           throw storageError;
         }
       }
+      
+      console.log("FolderDisplay: File uploaded to storage successfully");
       
       // Étape 2: Créer l'entrée dans la base de données
       const { data, error } = await supabase
@@ -170,12 +207,20 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating file record:', error);
+        throw error;
+      }
+      
+      console.log("FolderDisplay: File record created in database:", data);
       return data;
     },
     onSuccess: () => {
+      console.log("FolderDisplay: File upload successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['files'] });
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
+      refetchFolderCounts();
+      
       toast({ 
         title: "Fichier téléchargé", 
         description: "Le fichier a été téléchargé avec succès" 
@@ -184,6 +229,7 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
       setIsUploadOpen(false);
     },
     onError: (error) => {
+      console.error('Upload error:', error);
       toast({
         title: "Erreur lors du téléchargement",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -218,10 +264,20 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
     uploadFile.mutate({ file: fileToUpload, folderId: uploadFolderId });
   };
 
-  const handleOpenUpload = (folderId: string) => {
+  const handleOpenUpload = (folderId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
     setUploadFolderId(folderId);
     setIsUploadOpen(true);
   };
+  
+  // Effet pour rafraîchir les compteurs de fichiers lorsqu'un dossier est sélectionné
+  useEffect(() => {
+    if (selectedFolderId) {
+      refetchFolderCounts();
+    }
+  }, [selectedFolderId, refetchFolderCounts]);
 
   // Filtrer les dossiers en fonction de la recherche
   const filteredFolders = folders.filter(folder => 
@@ -317,10 +373,7 @@ export function FolderDisplay({ profileId, searchQuery = "" }: FolderDisplayProp
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenUpload(folder.id);
-                      }}
+                      onClick={(e) => handleOpenUpload(folder.id, e)}
                     >
                       <UploadCloud className="h-4 w-4 mr-1" />
                       Ajouter un fichier

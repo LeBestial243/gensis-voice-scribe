@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -28,9 +28,12 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   
+  console.log("FileDisplay: Rendering for folderId", folderId);
+  
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['files', folderId],
     queryFn: async () => {
+      console.log("FileDisplay: Fetching files for folder", folderId);
       const { data, error } = await supabase
         .from('files')
         .select('*')
@@ -41,38 +44,61 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
         console.error('Error fetching files:', error);
         throw error;
       }
-      return data;
+      console.log("FileDisplay: Fetched files:", data);
+      return data || [];
     },
+    enabled: !!folderId
   });
 
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: string) => {
+      console.log("FileDisplay: Deleting file with ID", fileId);
       try {
+        // Get the file info first to get the path
         const { data: fileData, error: fileError } = await supabase
           .from('files')
           .select('path')
           .eq('id', fileId)
           .single();
 
-        if (fileError) throw fileError;
-        if (!fileData) throw new Error('File not found');
+        if (fileError) {
+          console.error('Error getting file data:', fileError);
+          throw fileError;
+        }
 
+        if (!fileData) {
+          throw new Error('File not found');
+        }
+
+        console.log("FileDisplay: File path to delete:", fileData.path);
+
+        // Only attempt to delete from storage if path exists and isn't empty
         if (fileData.path && fileData.path.trim() !== '') {
+          // Delete from storage
           const { error: storageError } = await supabase.storage
             .from('files')
             .remove([fileData.path]);
 
           if (storageError) {
             console.error('Error deleting file from storage:', storageError);
+            // We still want to delete the database record even if storage delete fails
           }
         }
 
-        const { error: dbError } = await supabase
+        console.log("FileDisplay: Deleting file record from database");
+        // Delete from database
+        const { data, error: dbError } = await supabase
           .from('files')
           .delete()
-          .eq('id', fileId);
+          .eq('id', fileId)
+          .select();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error('Error deleting file from database:', dbError);
+          throw dbError;
+        }
+        
+        console.log("FileDisplay: File successfully deleted", data);
         return fileId;
       } catch (error) {
         console.error('Error in delete mutation:', error);
@@ -80,13 +106,13 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
       }
     },
     onSuccess: (deletedFileId) => {
+      console.log("FileDisplay: File deletion successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
       toast({ 
         title: "Fichier supprimé", 
         description: "Le fichier a été supprimé avec succès"
       });
-      console.log('Successfully deleted file with ID:', deletedFileId);
     },
     onError: (error) => {
       console.error('Delete error:', error);
@@ -98,7 +124,10 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     },
   });
 
-  const handleDeleteFile = (fileId: string) => {
+  const handleDeleteFile = (fileId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
     setFileToDelete(fileId);
     setConfirmOpen(true);
   };
@@ -137,7 +166,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     );
   }
 
-  if (files.length === 0) {
+  if (!files || files.length === 0) {
     return (
       <div className="text-center py-4 text-muted-foreground">
         Aucun fichier dans ce dossier
@@ -160,22 +189,28 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
           <TableBody>
             {files.map((file) => (
               <TableRow key={file.id}>
-                <TableCell>{file.name}</TableCell>
+                <TableCell className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  {file.name}
+                </TableCell>
                 <TableCell>{file.type}</TableCell>
                 <TableCell>{formatSize(file.size)}</TableCell>
                 <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleDeleteFile(file.id)}
-                    disabled={deleteFileMutation.isPending}
-                  >
-                    {deleteFileMutation.isPending && deleteFileMutation.variables === file.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    )}
-                  </Button>
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => handleDeleteFile(file.id, e)}
+                      disabled={deleteFileMutation.isPending && deleteFileMutation.variables === file.id}
+                      className="h-8 w-8"
+                    >
+                      {deleteFileMutation.isPending && deleteFileMutation.variables === file.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      )}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
