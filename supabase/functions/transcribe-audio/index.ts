@@ -49,6 +49,22 @@ serve(async (req) => {
       throw new Error('No audio data provided')
     }
 
+    // Check if OpenAI API key is configured
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiApiKey) {
+      console.error('OpenAI API key not configured')
+      return new Response(
+        JSON.stringify({ 
+          error: "OpenAI API key not configured. Please configure the OPENAI_API_KEY in your Supabase project settings.",
+          code: "missing_api_key" 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     // Process audio in chunks
     const binaryAudio = processBase64Chunks(audio)
     
@@ -62,15 +78,34 @@ serve(async (req) => {
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
       },
       body: formData,
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('OpenAI API error:', error)
-      throw new Error(`OpenAI API error: ${error}`)
+      const errorText = await response.text()
+      console.error('OpenAI API error:', errorText)
+      
+      let errorMessage = 'Error communicating with OpenAI API'
+      let errorCode = 'api_error'
+      
+      try {
+        const errorJson = JSON.parse(errorText)
+        // Handle specific error codes
+        if (errorJson?.error?.code === 'insufficient_quota') {
+          errorMessage = 'Votre quota OpenAI est dépassé. Veuillez vérifier votre plan et vos détails de facturation.'
+          errorCode = 'insufficient_quota'
+        } else if (errorJson?.error?.message) {
+          errorMessage = errorJson.error.message
+          errorCode = errorJson?.error?.code || 'api_error'
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the raw error text
+        errorMessage = errorText
+      }
+      
+      throw new Error(errorMessage, { cause: { code: errorCode } })
     }
 
     const result = await response.json()
@@ -83,8 +118,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Transcription error:', error)
+    const errorCode = error.cause?.code || 'unknown_error'
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message, 
+        code: errorCode
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

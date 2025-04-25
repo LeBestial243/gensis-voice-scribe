@@ -157,10 +157,23 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       });
 
       if (error) {
-        throw error;
+        throw new Error(`Erreur de la fonction de transcription: ${error.message}`);
       }
 
-      if (!data || !data.text) {
+      if (!data) {
+        throw new Error("Aucune donnée reçue du service de transcription.");
+      }
+
+      if (data.error) {
+        // Handle specific error codes
+        if (data.code === 'insufficient_quota') {
+          throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
+        } else {
+          throw new Error(data.error);
+        }
+      }
+
+      if (!data.text) {
         throw new Error("Réponse de transcription invalide.");
       }
 
