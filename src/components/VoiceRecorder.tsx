@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
@@ -354,8 +353,8 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
                 controls 
                 src={audioURL} 
                 className="w-full mt-2"
-                onError={(e) => {
-                  console.error("Audio playback error:", e);
+                onError={() => {
+                  console.error("Audio playback error");
                   setError("Impossible de lire l'enregistrement audio.");
                   URL.revokeObjectURL(audioURL);
                   setAudioURL(null);
