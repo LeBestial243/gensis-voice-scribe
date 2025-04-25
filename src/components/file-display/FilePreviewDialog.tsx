@@ -55,19 +55,10 @@ export function FilePreviewDialog({
             return;
           }
           
-          // Si aucun contenu n'est disponible directement, essayer de récupérer depuis la base de données
-          // Puisque le champ 'content' n'existe pas dans la table 'files', on récupère seulement 'description'
-          const { data, error } = await supabase
-            .from('files')
-            .select('description')
-            .eq('id', file.id)
-            .single();
-            
-          if (error) throw error;
-          
-          if (data) {
-            setFileContent(data.description || null);
-          }
+          // Si aucun contenu n'est disponible directement dans l'objet file, 
+          // on utilise seulement les propriétés qu'on sait exister
+          console.log("Aucun contenu trouvé dans l'objet fichier, affichage des informations basiques uniquement");
+          setFileContent(null);
         } catch (error) {
           console.error('Erreur lors du chargement du contenu:', error);
           setFileContent(null);
