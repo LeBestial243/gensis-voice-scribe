@@ -149,7 +149,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                       size="icon" 
                       onClick={(e) => handleDeleteFile(file.id, e)}
                       disabled={deleteFile.isPending && deleteFile.variables === file.id}
-                      className="h-8 w-8"
+                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                     >
                       {deleteFile.isPending && deleteFile.variables === file.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
