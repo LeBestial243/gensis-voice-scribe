@@ -14,17 +14,18 @@ interface VoiceRecorderProps {
 
 export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcriptionText, setTranscriptionText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [micPermission, setMicPermission] = useState<boolean | null>(null);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
 
+  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -39,28 +40,84 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     };
   }, [isRecording, audioURL]);
 
+  // Check microphone permission
+  const checkMicrophonePermission = async () => {
+    try {
+      // Just check if we can get the stream without actually using it
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Clean up the stream right away
+      stream.getTracks().forEach(track => track.stop());
+      setMicPermission(true);
+      setError(null);
+      return true;
+    } catch (err) {
+      console.error("Microphone permission error:", err);
+      setMicPermission(false);
+      setError("Accès au microphone refusé. Veuillez autoriser l'accès dans les paramètres de votre navigateur.");
+      toast({
+        title: "Permission refusée",
+        description: "Accès au microphone refusé. Veuillez vérifier les paramètres de votre navigateur.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const startRecording = async () => {
     // Reset any previous errors
     setError(null);
     
+    // First, check if we have permission
+    const hasPermission = await checkMicrophonePermission();
+    if (!hasPermission) return;
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Starting audio recording...");
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
       
-      const mediaRecorder = new MediaRecorder(stream);
+      console.log("Audio stream obtained:", stream.id);
+      
+      const options = { mimeType: 'audio/webm' };
+      const mediaRecorder = new MediaRecorder(stream, options);
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
       mediaRecorder.ondataavailable = (e) => {
+        console.log("Data available: chunk size:", e.data.size);
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
       };
       
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        console.log("MediaRecorder stopped");
+        if (audioChunksRef.current.length === 0) {
+          setError("Aucun son n'a été enregistré. Veuillez vérifier votre microphone.");
+          toast({
+            title: "Enregistrement vide",
+            description: "Aucun son n'a été enregistré. Veuillez vérifier votre microphone.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log("Audio blob created:", audioBlob.size, "bytes");
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
         setIsRecording(false);
+        
+        toast({
+          title: "Enregistrement terminé",
+          description: "Vous pouvez maintenant écouter ou transcrire votre enregistrement.",
+        });
         
         if (timerRef.current) {
           clearInterval(timerRef.current);
@@ -69,8 +126,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       };
       
       // Error event handler for mediaRecorder
-      mediaRecorder.addEventListener('error', () => {
-        const errorMessage = "Erreur avec l'enregistreur: erreur inconnue";
+      mediaRecorder.addEventListener('error', (e) => {
+        console.error("MediaRecorder error:", e);
+        const errorMessage = "Erreur avec l'enregistreur: " + (e.error?.message || "erreur inconnue");
         setError(errorMessage);
         setIsRecording(false);
         
@@ -78,9 +136,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+        
+        toast({
+          title: "Erreur d'enregistrement",
+          description: errorMessage,
+          variant: "destructive",
+        });
       });
       
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every second
+      console.log("MediaRecorder started");
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -88,12 +153,17 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         setRecordingTime((prevTime) => prevTime + 1);
       }, 1000);
       
+      toast({
+        title: "Enregistrement en cours",
+        description: "Parlez clairement dans votre microphone.",
+      });
+      
     } catch (error) {
       console.error('Error starting recording:', error);
-      setError("Permission refusée. Veuillez autoriser l'accès au microphone.");
+      setError("Erreur lors du démarrage de l'enregistrement: " + (error instanceof Error ? error.message : "erreur inconnue"));
       toast({
-        title: "Permission refusée",
-        description: "Veuillez autoriser l'accès au microphone pour enregistrer.",
+        title: "Erreur d'enregistrement",
+        description: "Impossible de démarrer l'enregistrement. Veuillez vérifier votre microphone.",
         variant: "destructive",
       });
     }
@@ -102,11 +172,15 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       try {
+        console.log("Stopping MediaRecorder...");
         mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        mediaRecorderRef.current.stream.getTracks().forEach(track => {
+          console.log("Stopping track:", track.kind);
+          track.stop();
+        });
       } catch (error) {
         console.error('Error stopping recording:', error);
-        setError("Erreur lors de l'arrêt de l'enregistrement.");
+        setError("Erreur lors de l'arrêt de l'enregistrement: " + (error instanceof Error ? error.message : "erreur inconnue"));
         toast({
           title: "Erreur",
           description: "Impossible d'arrêter l'enregistrement correctement.",
@@ -119,6 +193,11 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const processRecording = async () => {
     if (!audioURL) {
       setError("Aucun enregistrement audio à traiter.");
+      toast({
+        title: "Erreur",
+        description: "Aucun enregistrement audio à traiter.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -126,14 +205,26 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     setError(null);
     setIsProcessing(true);
     onTranscriptionStart();
+    
+    toast({
+      title: "Traitement en cours",
+      description: "Envoi de l'audio pour transcription...",
+    });
 
     try {
+      console.log("Fetching audio URL:", audioURL);
       const response = await fetch(audioURL);
       if (!response.ok) {
         throw new Error(`Impossible d'accéder à l'enregistrement: ${response.status} ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      console.log("Audio blob fetched:", blob.size, "bytes", blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error("L'enregistrement audio est vide.");
+      }
+      
       const reader = new FileReader();
       
       const base64Promise = new Promise<string>((resolve, reject) => {
@@ -141,20 +232,24 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
           try {
             const base64data = reader.result as string;
             const base64Audio = base64data.split(',')[1];
+            console.log("Audio converted to base64, length:", base64Audio.length);
             resolve(base64Audio);
           } catch (error) {
-            reject(new Error("Erreur lors de la conversion de l'audio en base64."));
+            reject(new Error("Erreur lors de la conversion de l'audio en base64: " + (error instanceof Error ? error.message : "erreur inconnue")));
           }
         };
-        reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier audio."));
+        reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier audio: " + (reader.error?.message || "erreur inconnue")));
       });
       
       reader.readAsDataURL(blob);
       const base64Audio = await base64Promise;
 
+      console.log("Invoking transcribe-audio function...");
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
         body: { audio: base64Audio }
       });
+
+      console.log("Function response received:", { data, error });
 
       if (error) {
         throw new Error(`Erreur de la fonction de transcription: ${error.message}`);
@@ -168,16 +263,22 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         // Handle specific error codes
         if (data.code === 'insufficient_quota') {
           throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
+        } else if (data.code === 'missing_api_key') {
+          throw new Error("Clé API OpenAI manquante. Veuillez configurer la clé API dans les paramètres du projet.");
         } else {
           throw new Error(data.error);
         }
       }
 
       if (!data.text) {
-        throw new Error("Réponse de transcription invalide.");
+        throw new Error("Réponse de transcription invalide ou texte vide.");
       }
 
-      setTranscriptionText(data.text);
+      if (data.text.trim() === "") {
+        throw new Error("La transcription est vide. Essayez de parler plus fort ou de vous rapprocher du microphone.");
+      }
+
+      console.log("Transcription received:", data.text);
       setIsProcessing(false);
       onTranscriptionComplete(data.text, audioURL);
       
@@ -189,6 +290,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       console.error('Error processing recording:', error);
       setIsProcessing(false);
       setError(error instanceof Error ? error.message : "Une erreur inconnue est survenue");
+      
       toast({
         title: "Erreur de transcription",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
@@ -202,6 +304,11 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
+
+  // Request microphone permission when component mounts
+  useEffect(() => {
+    checkMicrophonePermission();
+  }, []);
 
   return (
     <Card className="w-full">
@@ -235,22 +342,26 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
           </div>
           
           {isRecording && (
-            <div className="text-lg font-semibold">
-              {formatTime(recordingTime)}
+            <div className="text-lg font-semibold animate-pulse">
+              Enregistrement en cours... {formatTime(recordingTime)}
             </div>
           )}
           
           {audioURL && !isRecording && (
-            <audio 
-              controls 
-              src={audioURL} 
-              className="w-full mt-2"
-              onError={() => {
-                setError("Impossible de lire l'enregistrement audio.");
-                URL.revokeObjectURL(audioURL);
-                setAudioURL(null);
-              }}
-            />
+            <>
+              <div className="text-sm text-muted-foreground mb-1">Écoutez votre enregistrement</div>
+              <audio 
+                controls 
+                src={audioURL} 
+                className="w-full mt-2"
+                onError={(e) => {
+                  console.error("Audio playback error:", e);
+                  setError("Impossible de lire l'enregistrement audio.");
+                  URL.revokeObjectURL(audioURL);
+                  setAudioURL(null);
+                }}
+              />
+            </>
           )}
           
           <div className="flex flex-col sm:flex-row gap-2 w-full">
@@ -258,8 +369,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
               <Button 
                 onClick={startRecording} 
                 className="w-full"
-                disabled={!!error && error.includes("Permission refusée")}
+                disabled={micPermission === false}
               >
+                <Mic className="mr-2 h-4 w-4" />
                 Commencer l'enregistrement
               </Button>
             )}
@@ -270,6 +382,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
                 variant="destructive"
                 className="w-full"
               >
+                <Square className="mr-2 h-4 w-4" />
                 Arrêter l'enregistrement
               </Button>
             )}
@@ -299,6 +412,15 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
               </Button>
             )}
           </div>
+          
+          {micPermission === false && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                Pour utiliser cette fonction, veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </CardContent>
     </Card>

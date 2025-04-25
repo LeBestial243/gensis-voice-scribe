@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Folder {
   id: string;
@@ -34,6 +36,8 @@ export function TranscriptionDialog({
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -49,6 +53,7 @@ export function TranscriptionDialog({
           name: `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`,
           type: "text/plain",
           size: new Blob([text]).size,
+          content: text,
           path: `transcriptions/${folderId}/${Date.now()}.txt`,
         })
         .select()
@@ -65,6 +70,7 @@ export function TranscriptionDialog({
     },
     onError: (error) => {
       console.error('Save error:', error);
+      setError(error instanceof Error ? error.message : "Erreur lors de l'enregistrement.");
       toast({
         title: "Erreur lors de l'enregistrement de la transcription",
         variant: "destructive",
@@ -76,10 +82,17 @@ export function TranscriptionDialog({
     setTranscript(text);
     setAudioURL(audioUrl);
     setIsTranscribing(false);
+    setError(null);
+  };
+
+  const handleTranscriptionStart = () => {
+    setIsTranscribing(true);
+    setError(null);
   };
 
   const handleSaveTranscription = () => {
     if (!transcript.trim()) {
+      setError("La transcription est vide. Veuillez enregistrer un message ou saisir du texte.");
       toast({
         title: "La transcription est vide",
         description: "Veuillez enregistrer un message ou saisir du texte",
@@ -89,6 +102,7 @@ export function TranscriptionDialog({
     }
 
     if (!selectedFolderId) {
+      setError("Aucun dossier sélectionné. Veuillez sélectionner un dossier.");
       toast({
         title: "Aucun dossier sélectionné",
         description: "Veuillez sélectionner un dossier",
@@ -107,6 +121,7 @@ export function TranscriptionDialog({
     setTranscript("");
     setAudioURL(null);
     setSelectedFolderId("");
+    setError(null);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -127,13 +142,20 @@ export function TranscriptionDialog({
             <h3 className="text-xl font-bold mb-4">Enregistrer une observation</h3>
             <VoiceRecorder 
               onTranscriptionComplete={handleTranscriptionComplete} 
-              onTranscriptionStart={() => setIsTranscribing(true)}
+              onTranscriptionStart={handleTranscriptionStart}
             />
           </>
         ) : (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Transcription</h3>
             <p className="text-sm text-muted-foreground">{currentDate}</p>
+            
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             
             <Card className="neumorphic">
               <CardContent className="pt-6">
@@ -147,7 +169,10 @@ export function TranscriptionDialog({
             </Card>
             
             {audioURL && (
-              <audio controls src={audioURL} className="w-full" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Écouter l'enregistrement</p>
+                <audio controls src={audioURL} className="w-full" />
+              </div>
             )}
             
             <div className="space-y-2">
@@ -178,7 +203,14 @@ export function TranscriptionDialog({
                 onClick={handleSaveTranscription}
                 disabled={saveTranscriptionMutation.isPending || !selectedFolderId}
               >
-                {saveTranscriptionMutation.isPending ? "Enregistrement..." : "Valider et classer"}
+                {saveTranscriptionMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  "Valider et classer"
+                )}
               </Button>
             </div>
           </div>

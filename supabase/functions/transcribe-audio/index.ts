@@ -65,14 +65,19 @@ serve(async (req) => {
       )
     }
 
+    console.log('Processing audio data, length:', audio.length)
+
     // Process audio in chunks
     const binaryAudio = processBase64Chunks(audio)
+    console.log('Binary audio processed, size:', binaryAudio.length, 'bytes')
     
     // Prepare form data
     const formData = new FormData()
     const blob = new Blob([binaryAudio], { type: 'audio/webm' })
     formData.append('file', blob, 'audio.webm')
     formData.append('model', 'whisper-1')
+    
+    console.log('Sending request to OpenAI API...')
 
     // Send to OpenAI
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -110,6 +115,21 @@ serve(async (req) => {
 
     const result = await response.json()
     console.log('Transcription result:', result)
+    
+    // Check if the transcription is empty
+    if (!result.text || result.text.trim() === '') {
+      console.warn('Empty transcription received')
+      return new Response(
+        JSON.stringify({ 
+          error: "Aucun texte détecté dans l'enregistrement. Veuillez parler plus fort ou vous rapprocher du microphone.",
+          code: "empty_transcription" 
+        }),
+        {
+          status: 200, // Not an error, just empty
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
 
     return new Response(
       JSON.stringify({ text: result.text }),
