@@ -73,7 +73,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   return (
     <>
       <ScrollArea className="h-auto max-h-[500px] w-full">
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {files.map((file: FileType) => (
             <FileCard
               key={file.id}
