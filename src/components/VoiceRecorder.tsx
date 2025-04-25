@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
@@ -244,42 +245,69 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       const base64Audio = await base64Promise;
 
       console.log("Invoking transcribe-audio function...");
-      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: base64Audio }
-      });
+      
+      // Adding retries for better reliability
+      let attempts = 0;
+      const maxAttempts = 3;
+      let result = null;
+      let functionError = null;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+            body: { audio: base64Audio }
+          });
 
-      console.log("Function response received:", { data, error });
-
-      if (error) {
-        throw new Error(`Erreur de la fonction de transcription: ${error.message}`);
-      }
-
-      if (!data) {
-        throw new Error("Aucune donnée reçue du service de transcription.");
-      }
-
-      if (data.error) {
-        // Handle specific error codes
-        if (data.code === 'insufficient_quota') {
-          throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
-        } else if (data.code === 'missing_api_key') {
-          throw new Error("Clé API OpenAI manquante. Veuillez configurer la clé API dans les paramètres du projet.");
-        } else {
-          throw new Error(data.error);
+          console.log("Function response received:", { data, error });
+          
+          if (error) {
+            functionError = error;
+            throw new Error(`Erreur de la fonction de transcription: ${error.message}`);
+          }
+          
+          result = data;
+          break; // Success, exit the retry loop
+        } catch (retryError) {
+          attempts++;
+          console.warn(`Attempt ${attempts}/${maxAttempts} failed:`, retryError);
+          
+          if (attempts >= maxAttempts) {
+            throw retryError; // Re-throw the last error if we've reached max attempts
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
         }
       }
 
-      if (!data.text) {
+      if (!result) {
+        throw new Error(functionError ? 
+          `Erreur après ${maxAttempts} tentatives: ${functionError.message}` : 
+          `Échec de la transcription après ${maxAttempts} tentatives.`);
+      }
+
+      if (result.error) {
+        // Handle specific error codes
+        if (result.code === 'insufficient_quota') {
+          throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
+        } else if (result.code === 'missing_api_key') {
+          throw new Error("Clé API OpenAI manquante. Veuillez configurer la clé API dans les paramètres du projet.");
+        } else {
+          throw new Error(result.error);
+        }
+      }
+
+      if (!result.text) {
         throw new Error("Réponse de transcription invalide ou texte vide.");
       }
 
-      if (data.text.trim() === "") {
+      if (result.text.trim() === "") {
         throw new Error("La transcription est vide. Essayez de parler plus fort ou de vous rapprocher du microphone.");
       }
 
-      console.log("Transcription received:", data.text);
+      console.log("Transcription received:", result.text);
       setIsProcessing(false);
-      onTranscriptionComplete(data.text, audioURL);
+      onTranscriptionComplete(result.text, audioURL);
       
       toast({
         title: "Transcription terminée",
@@ -295,6 +323,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
         variant: "destructive",
       });
+      
+      // Send a blank transcription to move the UI forward even with an error
+      onTranscriptionComplete("", audioURL);
     }
   };
 
