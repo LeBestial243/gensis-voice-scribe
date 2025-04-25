@@ -13,6 +13,8 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface FileCardProps {
   file: FileType;
@@ -22,15 +24,47 @@ interface FileCardProps {
 }
 
 export function FileCard({ file, onRename, onDelete, isDeleting }: FileCardProps) {
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   const handleDownload = async () => {
-    console.log('Downloading file:', file.name);
+    console.log('Downloading file:', file.name, 'path:', file.path);
+    setIsDownloading(true);
+    
     try {
+      // Vérifier que le chemin du fichier existe
+      if (!file.path || file.path.trim() === '') {
+        toast({
+          title: "Erreur de téléchargement",
+          description: "Chemin du fichier invalide",
+          variant: "destructive",
+        });
+        setIsDownloading(false);
+        return;
+      }
+      
       const { data, error } = await supabase.storage
         .from('files')
         .download(file.path);
         
       if (error) {
         console.error('Error downloading file:', error);
+        toast({
+          title: "Erreur de téléchargement",
+          description: error.message || "Impossible de télécharger le fichier",
+          variant: "destructive",
+        });
+        setIsDownloading(false);
+        return;
+      }
+      
+      if (!data) {
+        toast({
+          title: "Erreur de téléchargement",
+          description: "Aucune donnée reçue",
+          variant: "destructive",
+        });
+        setIsDownloading(false);
         return;
       }
       
@@ -43,8 +77,20 @@ export function FileCard({ file, onRename, onDelete, isDeleting }: FileCardProps
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
+      
+      toast({
+        title: "Téléchargement réussi",
+        description: `Le fichier "${file.name}" a été téléchargé`,
+      });
+    } catch (error: any) {
       console.error('Error in download process:', error);
+      toast({
+        title: "Erreur de téléchargement",
+        description: error?.message || "Une erreur s'est produite lors du téléchargement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
   
@@ -82,9 +128,14 @@ export function FileCard({ file, onRename, onDelete, isDeleting }: FileCardProps
             variant="ghost" 
             size="icon"
             onClick={handleDownload}
+            disabled={isDownloading}
             className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
           >
-            <Download className="h-4 w-4" />
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
           </Button>
           <Button 
             variant="ghost" 
