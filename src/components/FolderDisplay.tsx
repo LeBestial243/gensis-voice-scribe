@@ -1,184 +1,86 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Card, 
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "@/components/ui/card";
-import { FileDisplay } from "./FileDisplay";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Folder as FolderIcon, 
-  FolderOpen, 
-  Plus, 
-  UploadCloud,
-  Loader2,
-  ChevronDown 
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { FolderGrid } from "./folder/FolderGrid";
+import { UploadDialog } from "./folder/UploadDialog";
 
 interface FolderDisplayProps {
   profileId: string;
-  searchQuery?: string;
+  searchQuery: string;
   activeFolderId: string | null;
   onFolderSelect: (folderId: string | null) => void;
 }
 
 export function FolderDisplay({ 
   profileId, 
-  searchQuery = "", 
+  searchQuery,
   activeFolderId,
   onFolderSelect
 }: FolderDisplayProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
-  
-  console.log("FolderDisplay: Rendering for profileId", profileId);
-  
-  // Récupération des dossiers
-  const { 
-    data: folders = [], 
-    isLoading: foldersLoading
-  } = useQuery({
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
-      console.log("FolderDisplay: Fetching folders for profile", profileId);
       const { data, error } = await supabase
         .from('folders')
         .select('*')
         .eq('profile_id', profileId)
-        .order('title', { ascending: true });
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching folders:', error);
-        throw error;
-      }
-      console.log("FolderDisplay: Fetched folders:", data);
-      return data || [];
+      if (error) throw error;
+      return data;
     },
-    enabled: !!profileId
   });
 
-  // Récupération du nombre de fichiers par dossier
-  const { data: folderCounts = {}, refetch: refetchFolderCounts } = useQuery({
-    queryKey: ['folder_counts', profileId],
+  const { data: folderCounts = {} } = useQuery({
+    queryKey: ['folders_file_count', profileId, folders],
     queryFn: async () => {
-      const folderIds = folders.map(folder => folder.id);
-      if (!folderIds.length) return {};
-      
-      console.log("FolderDisplay: Fetching file counts for folders", folderIds);
+      if (!folders.length) return {};
       
       const { data, error } = await supabase
         .from('files')
         .select('folder_id')
-        .in('folder_id', folderIds);
+        .in('folder_id', folders.map(f => f.id));
       
-      if (error) {
-        console.error('Error fetching file counts:', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("FolderDisplay: Raw file data for counts:", data);
-      
-      // Compter les fichiers par dossier
       const counts: Record<string, number> = {};
-      // Initialiser tous les dossiers à 0
-      folderIds.forEach(id => { counts[id] = 0; });
+      folders.map(f => f.id).forEach(id => {
+        counts[id] = (data || []).filter(file => file.folder_id === id).length;
+      });
       
-      // Si des fichiers ont été trouvés, les compter
-      if (data) {
-        data.forEach(file => {
-          counts[file.folder_id] = (counts[file.folder_id] || 0) + 1;
-        });
-      }
-      
-      console.log("FolderDisplay: Calculated folder counts:", counts);
       return counts;
     },
-    enabled: folders.length > 0
-  });
-  
-  // Mutation pour créer un dossier
-  const createFolder = useMutation({
-    mutationFn: async (title: string) => {
-      console.log("FolderDisplay: Creating folder with title", title);
-      const { data, error } = await supabase
-        .from('folders')
-        .insert({ title, profile_id: profileId })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating folder:', error);
-        throw error;
-      }
-      console.log("FolderDisplay: Created folder:", data);
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['folders', profileId] });
-      toast({ 
-        title: "Dossier créé", 
-        description: `Le dossier "${data.title}" a été créé avec succès` 
-      });
-      setNewFolderName("");
-      setIsCreateFolderOpen(false);
-      // Sélectionner automatiquement le nouveau dossier
-      onFolderSelect(data.id);
-    },
-    onError: (error) => {
-      console.error('Error in createFolder mutation:', error);
-      toast({
-        title: "Erreur lors de la création du dossier",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite",
-        variant: "destructive",
-      });
-    }
+    enabled: folders.length > 0,
   });
 
-  // Mutation pour télécharger un fichier
   const uploadFile = useMutation({
-    mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
-      console.log("FolderDisplay: Uploading file", file.name, "to folder", folderId);
+    mutationFn: async (file: File) => {
+      if (!uploadFolderId) throw new Error("No folder selected");
       
-      // Étape 1: Télécharger le fichier dans le stockage
-      const fileName = file.name;
-      const filePath = `${folderId}/${Date.now()}_${fileName}`;
+      const filePath = `${uploadFolderId}/${Date.now()}_${file.name}`;
       
-      const { error: storageError, data: storageData } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from('files')
         .upload(filePath, file);
   
       if (storageError) {
-        console.error('Error uploading to storage:', storageError);
-        
-        // Si l'upload échoue, on essaie de stocker le contenu directement
-        // en base de données pour les fichiers texte
         if (file.type.includes('text') || file.size < 100000) {
-          console.log("FolderDisplay: Fallback to storing as text content");
           const text = await file.text();
           
           const { data, error: dbError } = await supabase
             .from('files')
             .insert({
-              name: fileName,
-              folder_id: folderId,
+              name: file.name,
+              folder_id: uploadFolderId,
               type: file.type,
               size: file.size,
               path: null,
@@ -187,26 +89,17 @@ export function FolderDisplay({
             .select()
             .single();
             
-          if (dbError) {
-            console.error('Error storing file as text:', dbError);
-            throw dbError;
-          }
-          
-          console.log("FolderDisplay: Successfully stored file as text:", data);
+          if (dbError) throw dbError;
           return data;
-        } else {
-          throw storageError;
         }
+        throw storageError;
       }
       
-      console.log("FolderDisplay: File uploaded to storage successfully");
-      
-      // Étape 2: Créer l'entrée dans la base de données
       const { data, error } = await supabase
         .from('files')
         .insert({
-          name: fileName,
-          folder_id: folderId,
+          name: file.name,
+          folder_id: uploadFolderId,
           type: file.type,
           size: file.size,
           path: filePath
@@ -214,29 +107,20 @@ export function FolderDisplay({
         .select()
         .single();
         
-      if (error) {
-        console.error('Error creating file record:', error);
-        throw error;
-      }
-      
-      console.log("FolderDisplay: File record created in database:", data);
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      console.log("FolderDisplay: File upload successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['files'] });
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
-      refetchFolderCounts();
       
       toast({ 
         title: "Fichier téléchargé", 
         description: "Le fichier a été téléchargé avec succès" 
       });
-      setFileToUpload(null);
       setIsUploadOpen(false);
     },
     onError: (error) => {
-      console.error('Upload error:', error);
       toast({
         title: "Erreur lors du téléchargement",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -245,273 +129,54 @@ export function FolderDisplay({
     }
   });
 
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) {
-      toast({
-        title: "Nom du dossier requis",
-        description: "Veuillez saisir un nom pour le dossier",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    createFolder.mutate(newFolderName);
-  };
-
-  const handleUploadFile = () => {
-    if (!fileToUpload || !uploadFolderId) {
-      toast({
-        title: "Informations manquantes",
-        description: "Veuillez sélectionner un fichier et un dossier",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    uploadFile.mutate({ file: fileToUpload, folderId: uploadFolderId });
-  };
-
-  const handleOpenUpload = (folderId: string, event?: React.MouseEvent) => {
+  const handleUploadClick = (folderId: string, event?: React.MouseEvent) => {
     if (event) {
       event.stopPropagation();
     }
     setUploadFolderId(folderId);
     setIsUploadOpen(true);
   };
-  
-  // Effet pour rafraîchir les compteurs de fichiers lorsqu'un dossier est sélectionné
-  useEffect(() => {
-    if (activeFolderId) {
-      refetchFolderCounts();
-    }
-  }, [activeFolderId, refetchFolderCounts]);
 
-  // Filtrer les dossiers en fonction de la recherche
-  const filteredFolders = folders.filter(folder => 
+  const filteredFolders = folders.filter(folder =>
     folder.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleFolderClick = (folderId: string) => {
-    onFolderSelect(folderId === activeFolderId ? null : folderId);
-  };
 
   if (foldersLoading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec bouton de création de dossier */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Dossiers</h2>
-        <Button 
-          onClick={() => setIsCreateFolderOpen(true)}
-          className="bg-primary text-white hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Créer un dossier
-        </Button>
-      </div>
-      
-      {filteredFolders.length === 0 ? (
-        searchQuery ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <FolderIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun résultat</h3>
-            <p className="text-muted-foreground">
-              Aucun dossier ne correspond à "{searchQuery}"
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <FolderIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun dossier</h3>
-            <p className="text-muted-foreground">
-              Créez votre premier dossier pour commencer à organiser vos fichiers
-            </p>
-            <Button 
-              onClick={() => setIsCreateFolderOpen(true)} 
-              className="mt-4"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Créer un dossier
-            </Button>
-          </div>
-        )
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => (
-            <Card 
-              key={folder.id}
-              className={cn(
-                "cursor-pointer transition-all duration-200",
-                "hover:shadow-md",
-                activeFolderId === folder.id && "ring-2 ring-primary ring-offset-2"
-              )}
-              onClick={() => handleFolderClick(folder.id)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center">
-                    <div className="relative">
-                      {activeFolderId === folder.id ? (
-                        <FolderOpen className="h-5 w-5 mr-2 text-primary" />
-                      ) : (
-                        <FolderIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-                      )}
-                      <ChevronDown 
-                        className={cn(
-                          "h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground transition-transform duration-200",
-                          activeFolderId === folder.id && "rotate-180"
-                        )}
-                      />
-                    </div>
-                    <CardTitle className="text-base">{folder.title}</CardTitle>
-                  </div>
-                  <Badge variant={activeFolderId === folder.id ? "default" : "outline"}>
-                    {folderCounts[folder.id] || 0} fichier{(folderCounts[folder.id] || 0) !== 1 ? 's' : ''}
-                  </Badge>
-                </div>
-                <CardDescription className="pl-7">
-                  {folder.created_at && 
-                    `Créé ${formatDistanceToNow(parseISO(folder.created_at), { 
-                      addSuffix: true, 
-                      locale: fr 
-                    })}`
-                  }
-                </CardDescription>
-              </CardHeader>
-              
-              {activeFolderId === folder.id && (
-                <CardContent className="animate-accordion-down">
-                  {/* Boutons d'actions pour le dossier sélectionné */}
-                  <div className="flex gap-2 my-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => handleOpenUpload(folder.id, e)}
-                    >
-                      <UploadCloud className="h-4 w-4 mr-1" />
-                      Ajouter un fichier
-                    </Button>
-                  </div>
-                  
-                  {/* Liste des fichiers du dossier */}
-                  <div className="mt-4">
-                    <FileDisplay folderId={folder.id} />
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          ))}
+        <div className="relative flex-1 max-w-sm bg-muted rounded-xl">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Rechercher un dossier..."
+            value={searchQuery}
+            className="pl-10 border-0 shadow-none bg-transparent"
+          />
         </div>
-      )}
-      
-      {/* Dialogue de création de dossier */}
-      <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Créer un nouveau dossier</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="folderName">Nom du dossier</Label>
-              <Input
-                id="folderName"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Ex: Rapports médicaux"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsCreateFolderOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleCreateFolder}
-              disabled={createFolder.isPending}
-            >
-              {createFolder.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialogue de téléchargement de fichier */}
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ajouter un fichier</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="file">Sélectionner un fichier</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files && files.length > 0) {
-                    setFileToUpload(files[0]);
-                  }
-                }}
-              />
-              {fileToUpload && (
-                <p className="text-sm text-muted-foreground">
-                  Fichier sélectionné: {fileToUpload.name} ({(fileToUpload.size / 1024).toFixed(1)} KB)
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsUploadOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleUploadFile}
-              disabled={uploadFile.isPending || !fileToUpload}
-            >
-              {uploadFile.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Téléchargement...
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  Télécharger
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
+
+      <FolderGrid
+        folders={filteredFolders}
+        activeFolderId={activeFolderId}
+        folderCounts={folderCounts}
+        onFolderSelect={onFolderSelect}
+        onUploadClick={handleUploadClick}
+      />
+
+      <UploadDialog
+        open={isUploadOpen}
+        onOpenChange={setIsUploadOpen}
+        onUpload={(file) => uploadFile.mutate(file)}
+        isUploading={uploadFile.isPending}
+      />
     </div>
   );
 }
