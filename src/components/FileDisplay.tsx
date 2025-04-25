@@ -6,7 +6,7 @@ import {
   File, 
   FileImage, 
   FileText, 
-  FilePdf,
+  FilePdf as LucideFilePdf,
   FileArchive,
   Download,
   Trash2, 
@@ -93,7 +93,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   const getFileIcon = (type: string) => {
     if (type.includes('pdf')) {
-      return <FilePdf className="h-8 w-8 text-red-500" />;
+      return <LucideFilePdf className="h-8 w-8 text-red-500" />;
     }
     if (type.includes('image')) {
       return <FileImage className="h-8 w-8 text-blue-500" />;
