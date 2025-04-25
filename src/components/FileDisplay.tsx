@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText } from "lucide-react";
@@ -52,7 +53,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8">
+      <div className="flex justify-center items-center h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -60,11 +61,13 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   if (!files || files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
+      <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center border-2 border-dashed border-muted rounded-xl bg-muted/5">
         <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">Aucun fichier</h3>
-        <p className="text-muted-foreground">
-          Aucun fichier n'a été ajouté à ce dossier
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">
+          Aucun fichier
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Glissez et déposez des fichiers ici ou utilisez le bouton d'ajout
         </p>
       </div>
     );
@@ -72,8 +75,8 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   return (
     <>
-      <ScrollArea className="h-[500px] w-full pr-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <ScrollArea className="h-[600px] w-full pr-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {files.map((file: FileType) => (
             <FileCard
               key={file.id}
