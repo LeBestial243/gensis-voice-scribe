@@ -253,14 +253,12 @@ export function FolderDisplay({
     console.log("FolderDisplay: handleFolderClick called with", folderId);
     console.log("FolderDisplay: Current activeFolderId is", activeFolderId);
     
-    if (onFolderSelect) {
-      if (folderId === activeFolderId) {
-        console.log("FolderDisplay: Setting activeFolderId to null (toggle off)");
-        onFolderSelect(null);
-      } else {
-        console.log("FolderDisplay: Setting activeFolderId to", folderId);
-        onFolderSelect(folderId);
-      }
+    if (folderId === activeFolderId) {
+      console.log("FolderDisplay: Setting activeFolderId to null (toggle off)");
+      onFolderSelect(null);
+    } else {
+      console.log("FolderDisplay: Setting activeFolderId to", folderId);
+      onFolderSelect(folderId);
     }
   };
 
