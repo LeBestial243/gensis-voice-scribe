@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +77,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   const renameFileMutation = useMutation({
     mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+      console.log("Renaming file", fileId, "to", newName);
       const { data, error } = await supabase
         .from('files')
         .update({ name: newName })
@@ -222,7 +224,11 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
-  const handleRenameFile = (file: FileType) => {
+  const handleRenameFile = (file: FileType, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    console.log("Opening rename dialog for file:", file.name);
     setFileToRename(file);
     setNewFileName(file.name);
     setIsRenameOpen(true);
@@ -230,6 +236,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   const confirmRename = () => {
     if (fileToRename && newFileName.trim()) {
+      console.log("Confirming rename of file:", fileToRename.id, "to", newFileName.trim());
       renameFileMutation.mutate({
         fileId: fileToRename.id,
         newName: newFileName.trim()
@@ -302,7 +309,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    onClick={() => handleRenameFile(file)}
+                    onClick={(e) => handleRenameFile(file, e)}
                     className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   >
                     <Pencil className="h-4 w-4" />
@@ -369,6 +376,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                 value={newFileName}
                 onChange={(e) => setNewFileName(e.target.value)}
                 placeholder="Entrez le nouveau nom du fichier"
+                autoFocus
               />
             </div>
           </div>
