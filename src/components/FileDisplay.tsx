@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import {
   File, 
   FileImage, 
   FileText, 
-  FilePdf as LucideFilePdf,
+  FileVideo,
   FileArchive,
   Download,
   Trash2, 
@@ -93,7 +94,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   const getFileIcon = (type: string) => {
     if (type.includes('pdf')) {
-      return <LucideFilePdf className="h-8 w-8 text-red-500" />;
+      return <FileText className="h-8 w-8 text-red-500" />;
     }
     if (type.includes('image')) {
       return <FileImage className="h-8 w-8 text-blue-500" />;
@@ -103,6 +104,9 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     }
     if (type.includes('document') || type.includes('word')) {
       return <FileText className="h-8 w-8 text-emerald-500" />;
+    }
+    if (type.includes('video')) {
+      return <FileVideo className="h-8 w-8 text-purple-500" />;
     }
     return <File className="h-8 w-8 text-gray-500" />;
   };
