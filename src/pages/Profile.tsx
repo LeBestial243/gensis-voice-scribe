@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardDescription
 } from "@/components/ui/card";
-import { FileDisplay } from "./FileDisplay"; // Importez le nouveau composant
+import { FileDisplay } from '@/components/FileDisplay'; // Importez le nouveau composant
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
