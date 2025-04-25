@@ -128,7 +128,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       // Error event handler for mediaRecorder
       mediaRecorder.addEventListener('error', (e) => {
         console.error("MediaRecorder error:", e);
-        const errorMessage = "Erreur avec l'enregistreur: " + (e.error?.message || "erreur inconnue");
+        const errorMessage = "Erreur avec l'enregistreur: " + (e instanceof Error ? e.message : "erreur inconnue");
         setError(errorMessage);
         setIsRecording(false);
         
