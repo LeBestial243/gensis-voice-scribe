@@ -1,17 +1,16 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  FileText, 
+  File, 
   FileImage, 
+  FileText, 
   FilePdf,
   FileArchive,
   Download,
   Trash2, 
-  Loader2, 
-  File 
+  Loader2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFileStorage } from "@/hooks/use-files-storage";
