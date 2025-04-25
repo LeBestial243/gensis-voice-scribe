@@ -55,10 +55,46 @@ export function FilePreviewDialog({
             return;
           }
           
-          // Si aucun contenu n'est disponible directement dans l'objet file, 
-          // on utilise seulement les propriétés qu'on sait exister
-          console.log("Aucun contenu trouvé dans l'objet fichier, affichage des informations basiques uniquement");
+          // Si pas de contenu disponible, essayer de récupérer depuis la base de données
+          const { data, error } = await supabase
+            .from('files')
+            .select('*')
+            .eq('id', file.id)
+            .single();
+            
+          if (error) {
+            console.error('Erreur lors de la récupération du fichier:', error);
+            throw error;
+          }
+          
+          // Vérifier s'il y a un contenu disponible dans la réponse
+          if (data) {
+            console.log('Données du fichier récupérées:', data);
+            // Noter que les colonnes 'content' et 'description' n'existent pas directement dans la table 'files'
+            // On pourrait avoir besoin de récupérer le contenu à partir du storage
+            if (data.path && typeof data.path === 'string') {
+              try {
+                const { data: fileData, error: downloadError } = await supabase.storage
+                  .from('files')
+                  .download(data.path);
+                  
+                if (downloadError) throw downloadError;
+                
+                if (fileData) {
+                  const text = await fileData.text();
+                  setFileContent(text);
+                  return;
+                }
+              } catch (downloadErr) {
+                console.error('Erreur lors du téléchargement du fichier:', downloadErr);
+                // On continue si le téléchargement échoue
+              }
+            }
+          }
+          
+          // Si on arrive ici, aucun contenu n'a été trouvé
           setFileContent(null);
+          
         } catch (error) {
           console.error('Erreur lors du chargement du contenu:', error);
           setFileContent(null);

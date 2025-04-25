@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2 } from "lucide-react";
 
 interface TemplatePreviewDialogProps {
   templateId: string;
@@ -61,20 +62,26 @@ export function TemplatePreviewDialog({
 
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-6">
-              {sections.map((section) => (
-                <div key={section.id} className="space-y-2">
-                  <h3 className="text-lg font-medium">{section.title}</h3>
-                  {section.instructions && (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{section.instructions}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+            {sections.length > 0 ? (
+              <div className="space-y-6">
+                {sections.map((section) => (
+                  <div key={section.id} className="space-y-2">
+                    <h3 className="text-lg font-medium">{section.title}</h3>
+                    {section.instructions && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{section.instructions}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucune section disponible pour ce template
+              </div>
+            )}
           </ScrollArea>
         )}
       </DialogContent>
