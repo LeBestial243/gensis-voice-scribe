@@ -15,6 +15,7 @@ import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { FileList } from '@/components/FileList';
 import { FolderDialog } from '@/components/FolderDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
+import { FolderDisplay } from '@/components/FolderDisplay';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
@@ -126,44 +127,9 @@ export default function Profiles() {
               className="pl-10 border-0 shadow-none bg-transparent"
             />
           </div>
-          <FolderDialog profileId={selectedProfileId} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => (
-            <Card 
-              key={folder.id} 
-              className={`cursor-pointer interactive ${
-                selectedFolderId === folder.id ? 'bg-accent/10 shadow-md' : ''
-              }`}
-              onClick={() => setSelectedFolderId(folder.id)}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-medium">
-                  {folder.title}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {selectedFolderId === folder.id && (
-                    <FileUploadDialog folderId={folder.id} />
-                  )}
-                  <Badge variant="outline">
-                    0 fichiers
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Dernière modification il y a 2 jours
-                </p>
-                {selectedFolderId === folder.id && (
-                  <div className="mt-4">
-                    <FileList folderId={folder.id} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <FolderDisplay profileId={selectedProfileId} searchQuery={searchQuery} />
       </main>
 
       <Button
