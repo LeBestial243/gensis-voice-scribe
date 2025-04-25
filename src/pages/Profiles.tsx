@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,22 @@ export default function Profiles() {
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
     }
   }, [selectedProfileId, queryClient]);
+
+  const { data: foldersList = [] } = useQuery({
+    queryKey: ['folders_list', selectedProfileId],
+    queryFn: async () => {
+      if (!selectedProfileId) return [];
+      
+      const { data, error } = await supabase
+        .from('folders')
+        .select('id,title')
+        .eq('profile_id', selectedProfileId);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedProfileId,
+  });
 
   const { data: selectedProfile } = useQuery({
     queryKey: ['profile', selectedProfileId],
@@ -148,7 +163,7 @@ export default function Profiles() {
         open={isRecorderOpen} 
         onOpenChange={setIsRecorderOpen} 
         profileId={selectedProfileId} 
-        folders={[]} // Pass an empty array instead of undefined 'folders'
+        folders={foldersList} 
       />
 
       <Button

@@ -12,11 +12,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface Folder {
+  id: string;
+  title: string;
+}
+
 interface TranscriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileId: string;
-  folders: { id: string; title: string }[];
+  folders: Folder[];
 }
 
 export function TranscriptionDialog({ 

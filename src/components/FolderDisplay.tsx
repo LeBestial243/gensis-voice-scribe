@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -253,10 +252,12 @@ export function FolderDisplay({
 
   const handleFolderClick = (folderId: string) => {
     console.log("Clicked folder:", folderId, "Current active:", activeFolderId);
-    // Only call onFolderSelect if the parent component provided it
     if (onFolderSelect) {
-      // Toggle the folder: set to null if already active, otherwise set to the clicked folder ID
-      onFolderSelect(folderId === activeFolderId ? null : folderId);
+      if (folderId === activeFolderId) {
+        onFolderSelect(null);
+      } else {
+        onFolderSelect(folderId);
+      }
     }
   };
 
