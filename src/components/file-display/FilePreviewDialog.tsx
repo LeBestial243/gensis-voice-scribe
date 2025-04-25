@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -55,17 +56,17 @@ export function FilePreviewDialog({
           }
           
           // Si aucun contenu n'est disponible directement, essayer de récupérer depuis la base de données
+          // Puisque le champ 'content' n'existe pas dans la table 'files', on récupère seulement 'description'
           const { data, error } = await supabase
             .from('files')
-            .select('content, description')
+            .select('description')
             .eq('id', file.id)
             .single();
             
           if (error) throw error;
           
           if (data) {
-            const content = data.content || data.description;
-            setFileContent(content || null);
+            setFileContent(data.description || null);
           }
         } catch (error) {
           console.error('Erreur lors du chargement du contenu:', error);
@@ -109,6 +110,9 @@ export function FilePreviewDialog({
               <span>{createdAt}</span>
             </div>
           </div>
+          <DialogDescription className="sr-only">
+            Aperçu du fichier {file.name}
+          </DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="flex-1 mt-6">
