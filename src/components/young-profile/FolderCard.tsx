@@ -31,8 +31,6 @@ export function FolderCard({
     onUploadClick(folder.id, event);
   };
 
-  console.log(`Rendering FolderCard ${folder.id} with isActive=${isActive}`);
-
   return (
     <Card 
       className={cn(
