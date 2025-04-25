@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ export default function Profiles() {
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Force refetch folder data and file counts when selecting a profile
   useEffect(() => {
     if (selectedProfileId) {
       console.log("Profiles: Selected profile changed, invalidating queries");
@@ -73,6 +71,10 @@ export default function Profiles() {
   const filteredFolders = folders.filter(folder =>
     folder.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleFolderSelect = (folderId: string | null) => {
+    setSelectedFolderId(folderId);
+  };
 
   if (!selectedProfileId) {
     return (
@@ -140,11 +142,12 @@ export default function Profiles() {
           </div>
         </div>
 
-        {/* Assurer que FolderDisplay a une key qui change lorsque le profileId change */}
         <FolderDisplay 
           key={`folder-display-${selectedProfileId}-${Date.now()}`} 
           profileId={selectedProfileId} 
           searchQuery={searchQuery} 
+          activeFolderId={selectedFolderId}
+          onFolderSelect={handleFolderSelect}
         />
       </main>
 
