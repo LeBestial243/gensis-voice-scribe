@@ -54,6 +54,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [fileToRename, setFileToRename] = useState<FileType | null>(null);
   const [newFileName, setNewFileName] = useState("");
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const { 
     data: files = [], 
@@ -184,6 +185,63 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
       });
     },
   });
+
+  const handleDownloadFile = async (file: FileType, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    try {
+      setIsDownloading(file.id);
+      
+      if (!file.path) {
+        toast({
+          title: "Erreur de téléchargement",
+          description: "Ce fichier ne peut pas être téléchargé (chemin manquant)",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Get download URL from Supabase storage
+      const { data, error } = await supabase
+        .storage
+        .from('files')
+        .createSignedUrl(file.path, 60); // URL valid for 60 seconds
+      
+      if (error || !data?.signedUrl) {
+        console.error("Error creating download URL:", error);
+        toast({
+          title: "Erreur de téléchargement",
+          description: "Impossible de générer le lien de téléchargement",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create an anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = data.signedUrl;
+      a.download = file.name; // Use the file name for download
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Téléchargement réussi",
+        description: `Le fichier "${file.name}" a été téléchargé`,
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Une erreur s'est produite lors du téléchargement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(null);
+    }
+  };
 
   const handleDeleteFile = (fileId: string, event?: React.MouseEvent) => {
     if (event) {
@@ -325,8 +383,14 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                     variant="ghost" 
                     size="icon"
                     className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={(e) => handleDownloadFile(file, e)}
+                    disabled={isDownloading === file.id}
                   >
-                    <Download className="h-4 w-4" />
+                    {isDownloading === file.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button 
                     variant="ghost" 
