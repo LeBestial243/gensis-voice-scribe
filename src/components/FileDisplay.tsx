@@ -53,21 +53,18 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center h-[200px]">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!files || files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center border-2 border-dashed border-muted rounded-xl bg-muted/5">
-        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Aucun fichier
-        </h3>
+      <div className="flex flex-col items-center justify-center h-[200px] p-6 text-center border border-border/30 rounded-xl bg-background">
+        <FileText className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
         <p className="text-sm text-muted-foreground">
-          Glissez et déposez des fichiers ici ou utilisez le bouton d'ajout
+          Aucun fichier dans ce dossier
         </p>
       </div>
     );
@@ -75,8 +72,8 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   return (
     <>
-      <ScrollArea className="h-[600px] w-full pr-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <ScrollArea className="h-auto max-h-[500px] w-full">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 py-4">
           {files.map((file: FileType) => (
             <FileCard
               key={file.id}
