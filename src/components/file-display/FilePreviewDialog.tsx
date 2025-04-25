@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -38,69 +37,55 @@ export function FilePreviewDialog({
   useEffect(() => {
     if (file && open) {
       const fetchContent = async () => {
-        // Réinitialiser l'état
         setLoading(true);
         setFileContent(null);
         
         try {
-          console.log('Fetching file content for:', file);
-          
-          // D'abord vérifier si le contenu est déjà disponible dans le fichier
           if (file.content) {
-            console.log('Using content from file object:', file.content.substring(0, 50) + '...');
             setFileContent(file.content);
             return;
           }
           
-          // Ensuite vérifier le champ description
           if (file.description) {
-            console.log('Using description from file object');
             setFileContent(file.description);
             return;
           }
           
-          // Si pas de contenu disponible, essayer de récupérer depuis la base de données
           const { data, error } = await supabase
             .from('files')
             .select('content')
             .eq('id', file.id)
-            .single();
+            .maybeSingle();
             
           if (error) {
-            console.error('Erreur lors de la récupération du fichier depuis la base de données:', error);
-          } else if (data && data.content) {
-            console.log('Retrieved content from database:', data.content.substring(0, 50) + '...');
+            console.error('Error fetching file from database:', error);
+          } else if (data?.content) {
             setFileContent(data.content);
             return;
           }
           
-          // Si toujours pas de contenu, essayer de le récupérer depuis le storage
           if (file.path && typeof file.path === 'string') {
             try {
-              console.log('Attempting to download from storage path:', file.path);
               const { data: fileData, error: downloadError } = await supabase.storage
                 .from('files')
                 .download(file.path);
                 
               if (downloadError) {
-                console.error('Erreur lors du téléchargement depuis le storage:', downloadError);
+                console.error('Error downloading from storage:', downloadError);
               } else if (fileData) {
                 const text = await fileData.text();
-                console.log('Downloaded content from storage:', text.substring(0, 50) + '...');
                 setFileContent(text);
                 return;
               }
             } catch (downloadErr) {
-              console.error('Exception lors du téléchargement du fichier:', downloadErr);
+              console.error('Exception during file download:', downloadErr);
             }
           }
           
-          // Si on arrive ici, aucun contenu n'a été trouvé
-          console.log('No content found by any method');
           setFileContent(null);
           
         } catch (error) {
-          console.error('Erreur générale lors du chargement du contenu:', error);
+          console.error('General error loading content:', error);
           setFileContent(null);
         } finally {
           setLoading(false);

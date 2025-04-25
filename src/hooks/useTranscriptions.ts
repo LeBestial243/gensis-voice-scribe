@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FileData } from "@/types/files";
@@ -27,7 +26,7 @@ export function useTranscriptions(profileId: string, folderId: string | null, se
     queryFn: async () => {
       let query = supabase
         .from('files')
-        .select('*'); // Inclut le champ "content"
+        .select('*');
       
       if (folderId) {
         query = query.eq('folder_id', folderId);
@@ -40,9 +39,6 @@ export function useTranscriptions(profileId: string, folderId: string | null, se
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
-      
-      console.log('Files fetched:', data.length, 'First file content present:', data[0]?.content ? 'Yes' : 'No');
-      
       return data as FileData[];
     },
     enabled: (folderIds.length > 0 || !!folderId),

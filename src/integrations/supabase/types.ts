@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       files: {
         Row: {
+          content: string | null
           created_at: string | null
           folder_id: string
           id: string
@@ -21,6 +22,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          content?: string | null
           created_at?: string | null
           folder_id: string
           id?: string
@@ -31,6 +33,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          content?: string | null
           created_at?: string | null
           folder_id?: string
           id?: string
