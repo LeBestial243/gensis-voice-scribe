@@ -32,6 +32,7 @@ export function FolderDisplay({
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   
   console.log("FolderDisplay: Rendering for profileId", profileId);
+  console.log("FolderDisplay: Current activeFolderId", activeFolderId);
   
   const { 
     data: folders = [], 
@@ -250,6 +251,7 @@ export function FolderDisplay({
   };
 
   const handleFolderClick = (folderId: string) => {
+    console.log("Clicked folder:", folderId, "Current active:", activeFolderId);
     onFolderSelect(folderId === activeFolderId ? null : folderId);
   };
 

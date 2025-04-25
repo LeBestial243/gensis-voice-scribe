@@ -1,11 +1,8 @@
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Folder, FolderOpen, UploadCloud, ChevronDown } from "lucide-react";
-import { formatDistanceToNow, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { FileDisplay } from '../FileDisplay';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +29,8 @@ export function FolderCard({
     event.stopPropagation();
     onUploadClick(folder.id, event);
   };
+
+  console.log("FolderCard rendering:", folder.id, "isActive:", isActive);
 
   return (
     <Card 

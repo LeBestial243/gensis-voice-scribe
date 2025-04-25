@@ -34,6 +34,10 @@ export default function Profiles() {
     }
   }, [selectedProfileId, queryClient]);
 
+  useEffect(() => {
+    setSelectedFolderId(null);
+  }, [selectedProfileId]);
+
   const { data: selectedProfile } = useQuery({
     queryKey: ['profile', selectedProfileId],
     queryFn: async () => {
@@ -73,6 +77,7 @@ export default function Profiles() {
   );
 
   const handleFolderSelect = (folderId: string | null) => {
+    console.log("Profiles: Setting selected folder ID to", folderId, "from", selectedFolderId);
     setSelectedFolderId(folderId);
   };
 
@@ -143,7 +148,7 @@ export default function Profiles() {
         </div>
 
         <FolderDisplay 
-          key={`folder-display-${selectedProfileId}-${Date.now()}`} 
+          key={`folder-display-${selectedProfileId}`}
           profileId={selectedProfileId} 
           searchQuery={searchQuery} 
           activeFolderId={selectedFolderId}
