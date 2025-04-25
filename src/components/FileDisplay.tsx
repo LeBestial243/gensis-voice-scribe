@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,12 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   
   console.log("FileDisplay: Rendering for folderId", folderId);
   
-  const { data: files = [], isLoading } = useQuery({
+  // Fetch files with refetch function
+  const { 
+    data: files = [], 
+    isLoading,
+    refetch
+  } = useQuery({
     queryKey: ['files', folderId],
     queryFn: async () => {
       console.log("FileDisplay: Fetching files for folder", folderId);
@@ -50,9 +55,10 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     enabled: !!folderId
   });
 
+  // Deletion mutation with improved error handling
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      console.log("FileDisplay: Deleting file with ID", fileId);
+      console.log("FileDisplay: Starting deletion of file with ID", fileId);
       try {
         // Get the file info first to get the path
         const { data: fileData, error: fileError } = await supabase
@@ -70,10 +76,25 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
           throw new Error('File not found');
         }
 
-        console.log("FileDisplay: File path to delete:", fileData.path);
+        console.log("FileDisplay: File to delete:", fileData);
+
+        // First delete from database to ensure it's gone even if storage deletion fails
+        const { error: dbError } = await supabase
+          .from('files')
+          .delete()
+          .eq('id', fileId);
+
+        if (dbError) {
+          console.error('Error deleting file from database:', dbError);
+          throw dbError;
+        }
+        
+        console.log("FileDisplay: Successfully deleted from database");
 
         // Only attempt to delete from storage if path exists and isn't empty
         if (fileData.path && fileData.path.trim() !== '') {
+          console.log("FileDisplay: Attempting to delete from storage:", fileData.path);
+          
           // Delete from storage
           const { error: storageError } = await supabase.storage
             .from('files')
@@ -81,24 +102,13 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
           if (storageError) {
             console.error('Error deleting file from storage:', storageError);
-            // We still want to delete the database record even if storage delete fails
+            // We don't throw here since the DB record is already deleted
+            // Just log the error
+          } else {
+            console.log("FileDisplay: Successfully deleted from storage");
           }
         }
-
-        console.log("FileDisplay: Deleting file record from database");
-        // Delete from database
-        const { data, error: dbError } = await supabase
-          .from('files')
-          .delete()
-          .eq('id', fileId)
-          .select();
-
-        if (dbError) {
-          console.error('Error deleting file from database:', dbError);
-          throw dbError;
-        }
         
-        console.log("FileDisplay: File successfully deleted", data);
         return fileId;
       } catch (error) {
         console.error('Error in delete mutation:', error);
@@ -113,6 +123,11 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
         title: "Fichier supprimé", 
         description: "Le fichier a été supprimé avec succès"
       });
+      
+      // Force refetch after successful deletion
+      setTimeout(() => {
+        refetch();
+      }, 500);
     },
     onError: (error) => {
       console.error('Delete error:', error);
@@ -128,12 +143,14 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     if (event) {
       event.stopPropagation();
     }
+    console.log("FileDisplay: Preparing to delete file:", fileId);
     setFileToDelete(fileId);
     setConfirmOpen(true);
   };
 
   const confirmDelete = () => {
     if (fileToDelete) {
+      console.log("FileDisplay: Confirming deletion of file:", fileToDelete);
       deleteFileMutation.mutate(fileToDelete);
       setConfirmOpen(false);
       setFileToDelete(null);
@@ -157,6 +174,14 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
+
+  // Refetch files on mount
+  useEffect(() => {
+    if (folderId) {
+      console.log("FileDisplay: Initial fetch for folder", folderId);
+      refetch();
+    }
+  }, [folderId, refetch]);
 
   if (isLoading) {
     return (
@@ -228,7 +253,10 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelDelete}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="bg-destructive text-destructive-foreground"
+            >
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>

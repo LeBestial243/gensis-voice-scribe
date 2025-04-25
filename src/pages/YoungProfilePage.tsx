@@ -22,6 +22,7 @@ export default function YoungProfilePage() {
   const { toast } = useToast();
 
   console.log('YoungProfilePage: Loading profile with ID:', profileId);
+  console.log('YoungProfilePage: Selected tab:', selectedTab);
   
   useEffect(() => {
     console.log('YoungProfilePage: isGenerateNoteOpen state updated:', isGenerateNoteOpen);
@@ -95,8 +96,13 @@ export default function YoungProfilePage() {
           selectedFolderId={selectedFolderId}
           onFolderSelect={setSelectedFolderId}
         />
+        
         {selectedTab === "files" && (
-          <FolderDisplay profileId={profileId} searchQuery={searchQuery} />
+          <FolderDisplay 
+            profileId={profileId} 
+            searchQuery={searchQuery} 
+            key={`folders-${profileId}-${searchQuery}`}
+          />
         )}
       </main>
 
