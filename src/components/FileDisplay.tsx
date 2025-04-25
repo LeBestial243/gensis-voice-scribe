@@ -85,10 +85,14 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error renaming file:", error);
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
+      // Invalidate and refetch files query to update UI with new name
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
       toast({ 
         title: "Fichier renommé", 
@@ -97,8 +101,11 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
       setIsRenameOpen(false);
       setFileToRename(null);
       setNewFileName("");
+      // Refetch files to ensure UI is updated
+      refetch();
     },
     onError: (error) => {
+      console.error("Rename error:", error);
       toast({
         title: "Erreur lors du renommage",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -377,6 +384,11 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                 onChange={(e) => setNewFileName(e.target.value)}
                 placeholder="Entrez le nouveau nom du fichier"
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    confirmRename();
+                  }
+                }}
               />
             </div>
           </div>
