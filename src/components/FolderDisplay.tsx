@@ -20,7 +20,7 @@ interface FolderDisplayProps {
 export function FolderDisplay({ 
   profileId, 
   searchQuery = "", 
-  activeFolderId,
+  activeFolderId = null,
   onFolderSelect
 }: FolderDisplayProps) {
   const { toast } = useToast();
