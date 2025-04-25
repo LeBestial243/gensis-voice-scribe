@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -11,19 +10,14 @@ import {
   FileArchive,
   Download,
   Trash2, 
-  Loader2 
+  Loader2,
+  Pencil 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useFileStorage } from "@/hooks/use-files-storage";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent,
-} from "@/components/ui/hover-card";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,6 +27,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 
 type FileDisplayProps = {
   folderId: string;
@@ -48,9 +46,13 @@ type FileType = {
 };
 
 export function FileDisplay({ folderId }: FileDisplayProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const { deleteFile } = useFileStorage(folderId);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [fileToRename, setFileToRename] = useState<FileType | null>(null);
+  const [newFileName, setNewFileName] = useState("");
 
   const { 
     data: files = [], 
@@ -72,6 +74,108 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     enabled: !!folderId,
   });
 
+  const renameFileMutation = useMutation({
+    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+      const { data, error } = await supabase
+        .from('files')
+        .update({ name: newName })
+        .eq('id', fileId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+      toast({ 
+        title: "Fichier renommé", 
+        description: "Le fichier a été renommé avec succès" 
+      });
+      setIsRenameOpen(false);
+      setFileToRename(null);
+      setNewFileName("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors du renommage",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      try {
+        // Get the file info first to get the path
+        const { data: fileData, error: fileError } = await supabase
+          .from('files')
+          .select('path, name')
+          .eq('id', fileId)
+          .single();
+
+        if (fileError) {
+          console.error('Error getting file data:', fileError);
+          throw fileError;
+        }
+
+        if (!fileData) {
+          throw new Error('File not found');
+        }
+
+        // Only attempt to delete from storage if path exists and isn't empty
+        if (fileData.path && fileData.path.trim() !== '') {
+          // Delete from storage
+          const { error: storageError } = await supabase.storage
+            .from('files')
+            .remove([fileData.path]);
+
+          if (storageError) {
+            console.error('Error deleting file from storage:', storageError);
+            // We don't throw here because we still want to delete the database record
+            // Just log the error
+          }
+        }
+
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('files')
+          .delete()
+          .eq('id', fileId);
+
+        if (dbError) {
+          console.error('Error deleting file from database:', dbError);
+          throw dbError;
+        }
+        
+        return {
+          id: fileId,
+          name: fileData.name
+        };
+      } catch (error) {
+        console.error('Error in delete mutation:', error);
+        throw error;
+      }
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+      queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
+      toast({ 
+        title: "Fichier supprimé", 
+        description: `Le fichier "${result.name}" a été supprimé avec succès`
+      });
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast({
+        title: "Erreur lors de la suppression",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteFile = (fileId: string, event?: React.MouseEvent) => {
     if (event) {
       event.stopPropagation();
@@ -82,11 +186,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
   const confirmDelete = () => {
     if (fileToDelete) {
-      deleteFile.mutate(fileToDelete, {
-        onSuccess: () => {
-          setTimeout(() => refetch(), 500);
-        }
-      });
+      deleteFileMutation.mutate(fileToDelete);
       setConfirmOpen(false);
       setFileToDelete(null);
     }
@@ -122,16 +222,31 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
+  const handleRenameFile = (file: FileType) => {
+    setFileToRename(file);
+    setNewFileName(file.name);
+    setIsRenameOpen(true);
+  };
+
+  const confirmRename = () => {
+    if (fileToRename && newFileName.trim()) {
+      renameFileMutation.mutate({
+        fileId: fileToRename.id,
+        newName: newFileName.trim()
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-xl p-4 shadow-md">
             <div className="flex items-start space-x-4">
-              <Skeleton className="h-10 w-10 rounded" />
+              {/* Placeholder for file icon */}
               <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+                <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                <div className="h-3 w-1/2 bg-gray-200 rounded"></div>
               </div>
             </div>
           </div>
@@ -187,6 +302,14 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                   <Button 
                     variant="ghost" 
                     size="icon"
+                    onClick={() => handleRenameFile(file)}
+                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
                     className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   >
                     <Download className="h-4 w-4" />
@@ -195,10 +318,10 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
                     variant="ghost" 
                     size="icon"
                     onClick={(e) => handleDeleteFile(file.id, e)}
-                    disabled={deleteFile.isPending && deleteFile.variables === file.id}
+                    disabled={deleteFileMutation.isPending && deleteFileMutation.variables === file.id}
                     className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    {deleteFile.isPending && deleteFile.variables === file.id ? (
+                    {deleteFileMutation.isPending && deleteFileMutation.variables === file.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Trash2 className="h-4 w-4" />
@@ -232,6 +355,48 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renommer le fichier</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="fileName">Nouveau nom</Label>
+              <Input
+                id="fileName"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                placeholder="Entrez le nouveau nom du fichier"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsRenameOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="button" 
+              onClick={confirmRename}
+              disabled={!newFileName.trim() || renameFileMutation.isPending}
+            >
+              {renameFileMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Renommage...
+                </>
+              ) : (
+                "Renommer"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
