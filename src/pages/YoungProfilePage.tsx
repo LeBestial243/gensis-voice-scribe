@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +10,8 @@ import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 import { useToast } from '@/hooks/use-toast';
 import { FolderDisplay } from '@/components/FolderDisplay';
+import { TranscriptionsList } from '@/components/TranscriptionsList';
+import { NotesList } from '@/components/young-profile/NotesList';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +57,22 @@ export default function YoungProfilePage() {
     enabled: !!profileId && profileId !== ':id',
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ['folders', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('id, title')
+        .eq('profile_id', profileId);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId && profileId !== ':id',
+  });
+
+  const folderIds = folders.map(folder => folder.id);
+
   const handleOpenGenerateNote = useCallback(() => {
     console.log('Opening note generation dialog');
     setIsGenerateNoteOpen(true);
@@ -96,6 +115,21 @@ export default function YoungProfilePage() {
           selectedFolderId={activeFolderId}
           onFolderSelect={setActiveFolderId}
         />
+        
+        {selectedTab === "transcriptions" && (
+          <TranscriptionsList 
+            profileId={profileId} 
+            searchQuery={searchQuery}
+            folderIds={activeFolderId ? [activeFolderId] : folderIds}
+          />
+        )}
+        
+        {selectedTab === "notes" && (
+          <NotesList 
+            profileId={profileId}
+            searchQuery={searchQuery}
+          />
+        )}
         
         {selectedTab === "files" && (
           <FolderDisplay 
