@@ -11,7 +11,8 @@ import { fr } from "date-fns/locale";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface TranscriptionPreviewDialogProps {
   file: {
@@ -79,11 +80,11 @@ export function TranscriptionPreviewDialog({
             }
           }
           
-          setFileContent(null);
+          setFileContent("Impossible de charger le contenu du fichier.");
           
         } catch (error) {
           console.error('General error loading content:', error);
-          setFileContent(null);
+          setFileContent("Une erreur s'est produite lors du chargement du contenu.");
         } finally {
           setLoading(false);
         }
@@ -120,9 +121,12 @@ export function TranscriptionPreviewDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-semibold">
-              {file.name}
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <DialogTitle className="text-xl font-semibold">
+                {file.name}
+              </DialogTitle>
+            </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
@@ -138,17 +142,24 @@ export function TranscriptionPreviewDialog({
         
         <ScrollArea className="flex-1 mt-6">
           <div className="space-y-4">
-            <div className="prose prose-gray max-w-none">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : !fileContent ? (
+              <Card className="bg-muted/50">
+                <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
+                  <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">Aucun contenu disponible</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="prose prose-gray max-w-none">
                 <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {fileContent || "Aucun contenu disponible"}
+                  {fileContent}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </DialogContent>

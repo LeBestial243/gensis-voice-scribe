@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,9 @@ import { ResultEditor } from "./ResultEditor";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNoteGeneration } from "@/hooks/use-note-generation";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText, Pencil, Save, Copy, Download } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface GenerateNoteDialogProps {
   open: boolean;
@@ -27,6 +29,8 @@ export function GenerateNoteDialog({
   profileId,
 }: GenerateNoteDialogProps) {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>("selection");
+  
   const {
     selectedTemplateId,
     setSelectedTemplateId,
@@ -49,8 +53,16 @@ export function GenerateNoteDialog({
   useEffect(() => {
     if (!open && generatedContent) {
       handleReset();
+      setActiveTab("selection");
     }
   }, [open, handleReset, generatedContent]);
+
+  useEffect(() => {
+    // Switch to the editing tab when content is generated
+    if (generatedContent && activeTab === "selection") {
+      setActiveTab("editing");
+    }
+  }, [generatedContent, activeTab]);
 
   const handleDialogClose = (isOpen: boolean) => {
     if (!isOpen && (generatedContent || selectedFiles.length > 0)) {
@@ -102,21 +114,50 @@ export function GenerateNoteDialog({
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    toast({
+      title: "Exporté !",
+      description: `Le fichier "${noteTitle}.txt" a été téléchargé`
+    });
+  };
+
+  const handleResetGeneration = () => {
+    if (confirm("Êtes-vous sûr de vouloir recommencer ? Le contenu généré sera perdu.")) {
+      setGeneratedContent("");
+      setActiveTab("selection");
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Génération de note IA</DialogTitle>
+          <DialogTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Génération de note IA
+          </DialogTitle>
           <DialogDescription>
             Utilisez l'IA pour générer une note structurée à partir de vos transcriptions
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-2 gap-6 overflow-hidden flex-1">
-          {!generatedContent ? (
-            <>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="selection" disabled={isGenerating}>
+              Sélection
+              {selectedFiles.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedFiles.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="editing" disabled={!generatedContent || isGenerating}>
+              Édition
+              <Pencil className="ml-2 h-3 w-3" />
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="selection" className="flex-1">
+            <div className="grid md:grid-cols-2 gap-6 overflow-hidden mt-4">
               <div className="space-y-4 overflow-y-auto">
                 <TemplateSelector
                   selectedTemplateId={selectedTemplateId}
@@ -130,21 +171,23 @@ export function GenerateNoteDialog({
                   onFileSelect={handleFileSelect}
                 />
               </div>
-            </>
-          ) : (
-            <div className="md:col-span-2">
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="editing" className="flex-1 mt-4">
+            {generatedContent && (
               <ResultEditor
                 noteTitle={noteTitle}
                 onTitleChange={setNoteTitle}
                 generatedContent={generatedContent}
                 onContentChange={setGeneratedContent}
               />
-            </div>
-          )}
-        </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
-        <div className="flex justify-end gap-2 mt-4">
-          {!generatedContent ? (
+        <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+          {activeTab === "selection" ? (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Annuler
@@ -152,6 +195,7 @@ export function GenerateNoteDialog({
               <Button 
                 onClick={handleGenerate} 
                 disabled={!selectedTemplateId || selectedFiles.length === 0 || isGenerating}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600"
               >
                 {isGenerating ? (
                   <>
@@ -165,23 +209,32 @@ export function GenerateNoteDialog({
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setGeneratedContent("")}>
-                Retour
+              <Button variant="outline" onClick={handleResetGeneration}>
+                Recommencer
               </Button>
-              <Button variant="outline" onClick={handleCopyContent}>
+              <Button variant="outline" onClick={handleCopyContent} className="gap-2">
+                <Copy className="h-4 w-4" />
                 Copier
               </Button>
-              <Button variant="outline" onClick={handleExportContent}>
-                Exporter (.txt)
+              <Button variant="outline" onClick={handleExportContent} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exporter
               </Button>
-              <Button onClick={handleSaveNote} disabled={saveNote.isPending}>
+              <Button 
+                onClick={handleSaveNote} 
+                disabled={saveNote.isPending}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 gap-2"
+              >
                 {saveNote.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Sauvegarde...
                   </>
                 ) : (
-                  "Sauvegarder"
+                  <>
+                    <Save className="h-4 w-4" />
+                    Sauvegarder
+                  </>
                 )}
               </Button>
             </>

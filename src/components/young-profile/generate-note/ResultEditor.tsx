@@ -20,23 +20,27 @@ export function ResultEditor({
   return (
     <div className="space-y-4">
       <div className="grid gap-2">
-        <Label htmlFor="note-title">Titre de la note</Label>
+        <Label htmlFor="note-title" className="text-base font-medium">Titre de la note</Label>
         <input
           id="note-title"
           value={noteTitle}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-base shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          placeholder="Entrez un titre pour la note"
         />
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="generated-content">Contenu généré</Label>
-        <Textarea
-          id="generated-content"
-          value={generatedContent}
-          onChange={(e) => onContentChange(e.target.value)}
-          className="min-h-[300px]"
-        />
+        <Label htmlFor="generated-content" className="text-base font-medium">Contenu de la note</Label>
+        <div className="relative">
+          <Textarea
+            id="generated-content"
+            value={generatedContent}
+            onChange={(e) => onContentChange(e.target.value)}
+            className="min-h-[400px] text-base p-4 rounded-lg"
+            placeholder="Le contenu généré apparaîtra ici. Vous pourrez le modifier avant de sauvegarder."
+          />
+        </div>
       </div>
     </div>
   );
