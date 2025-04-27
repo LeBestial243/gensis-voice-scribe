@@ -1,105 +1,207 @@
-
 import { useState } from "react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UseNoteGenerationProps } from "@/types/note-generation";
-import { useYoungProfile } from "./use-young-profile";
-import { useNoteFiles } from "./use-note-files";
-import { useSaveNote } from "./use-save-note";
+import { UseNoteGenerationProps, FileContent } from "@/types/note-generation";
+import { processSection } from "@/services/content-processor";
 
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedFolders, setSelectedFolders] = useState<string[]>([]); // Changed from selectedFiles
-  const [generatedContent, setGeneratedContent] = useState("");
-  const [noteTitle, setNoteTitle] = useState("Note IA - " + format(new Date(), "PPP", { locale: fr }));
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const { data: profile, error: profileError } = useYoungProfile(profileId);
-  // We're no longer using the selectedFilesData directly
-  const saveNote = useSaveNote(onSuccess);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<string>("");
+  const [noteTitle, setNoteTitle] = useState<string>(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = async () => {
-    setError(null);
+    console.log('Starting note generation. Selected folders:', selectedFolders);
     
-    if (!selectedTemplateId || selectedFolders.length === 0 || !profile) {
-      toast({
-        title: "Données manquantes",
-        description: "Veuillez sélectionner un template et au moins un dossier",
-        variant: "destructive"
-      });
+    if (selectedFolders.length === 0 || !selectedTemplateId) {
+      console.log('Missing required data:', { selectedFolders, selectedTemplateId });
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      const { data: templateSections, error: sectionsError } = await supabase
-        .from('template_sections')
-        .select('*')
-        .eq('template_id', selectedTemplateId)
-        .order('order_index');
+      // Fetch template and sections
+      const { data: template, error: templateError } = await supabase
+        .from("templates")
+        .select("*")
+        .eq("id", selectedTemplateId)
+        .single();
 
-      if (sectionsError) {
-        throw new Error(`Erreur de chargement des sections: ${sectionsError.message}`);
-      }
+      if (templateError) throw templateError;
 
-      // Now we pass the selectedFolders to the edge function instead of selectedFiles
-      const { data, error } = await supabase.functions.invoke('generate-note', {
-        body: {
-          youngProfile: profile,
-          templateSections,
-          selectedFolders
+      const { data: sections, error: sectionsError } = await supabase
+        .from("template_sections")
+        .select("*")
+        .eq("template_id", selectedTemplateId)
+        .order("order_index");
+
+      if (sectionsError) throw sectionsError;
+      console.log('Template and sections loaded:', { template, sectionsCount: sections?.length });
+
+      // Fetch all files for selected folders with folder information
+      console.log('Fetching files for folders:', selectedFolders);
+      const { data: filesWithFolders, error: filesError } = await supabase
+        .from("files")
+        .select(`
+          *,
+          folders:folder_id (
+            id,
+            title
+          )
+        `)
+        .in("folder_id", selectedFolders);
+
+      if (filesError) throw filesError;
+      console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });
+
+      const fileContents: FileContent[] = [];
+      
+      for (const file of filesWithFolders || []) {
+        if (file.type === "transcription" || file.type === "text" || file.type === "text/plain") {
+          console.log('Processing file:', { 
+            name: file.name, 
+            type: file.type, 
+            path: file.path,
+            folderTitle: file.folders?.title 
+          });
+          
+          try {
+            let content: string = '';
+            
+            if (file.content) {
+              console.log('Using database content for:', file.name);
+              content = file.content;
+            } else if (file.path) {
+              const { data: storageData, error: downloadError } = await supabase.storage
+                .from("files")
+                .download(file.path);
+              
+              if (downloadError) {
+                console.error('Error downloading file:', file.path, downloadError);
+                continue;
+              }
+              
+              content = await storageData.text();
+              console.log('Downloaded content for:', file.name, 'Content length:', content.length);
+            }
+            
+            if (content) {
+              fileContents.push({
+                id: file.id,
+                name: file.name,
+                content: content,
+                type: file.type,
+                folderName: file.folders?.title || ''
+              });
+            }
+          } catch (error) {
+            console.error('Error processing file:', file.name, error);
+          }
         }
+      }
+
+      console.log('File contents prepared:', { 
+        contentsCount: fileContents.length,
+        folders: fileContents.map(f => ({ name: f.name, folder: f.folderName }))
       });
 
-      if (error) {
-        throw new Error(`Erreur de la fonction de génération: ${error.message}`);
+      if (fileContents.length === 0) {
+        throw new Error("Aucun fichier texte trouvé dans les dossiers sélectionnés");
       }
 
-      if (!data || !data.content) {
-        throw new Error("La réponse de l'IA ne contient pas de contenu généré");
+      // Generate content based on template structure
+      let content = "";
+      content += `# ${template.title}\n\n`;
+
+      console.log('=== Starting to process template sections ===');
+      console.log('Sections to process:', sections?.map(s => s.title));
+
+      for (const section of sections || []) {
+        console.log(`\n=== PROCESSING SECTION: "${section.title}" ===`);
+        content += `## ${section.title}\n\n`;
+        
+        // Process content for this section
+        const sectionContent = await processSection(section, fileContents);
+        content += `${sectionContent}\n\n`;
+        
+        console.log(`Section "${section.title}" processed. Content: ${sectionContent.substring(0, 50)}...`);
       }
 
-      setGeneratedContent(data.content);
-      return "result";
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
-      setError(errorMessage);
+      setGeneratedContent(content);
+      setNoteTitle(`${template.title} - ${new Date().toLocaleDateString("fr-FR")}`);
+      
       toast({
-        title: "Erreur de génération",
-        description: errorMessage,
-        variant: "destructive"
+        title: "Note générée avec succès",
+        description: "Vous pouvez maintenant éditer et sauvegarder la note.",
       });
-      return undefined;
+
+    } catch (error) {
+      console.error("Error generating note:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer la note. Veuillez réessayer.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
+  const saveNote = useMutation({
+    mutationFn: async (data: { title: string; content: string }) => {
+      const { data: note, error } = await supabase
+        .from("profile_notes")
+        .insert({
+          profile_id: profileId,
+          title: data.title,
+          content: data.content,
+          type: "generated",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return note;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Note sauvegardée",
+        description: "La note a été sauvegardée avec succès",
+      });
+      handleReset();
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur de sauvegarde",
+        description: "Impossible de sauvegarder la note",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleReset = () => {
     setSelectedTemplateId("");
-    setSelectedFolders([]); // Changed from setSelectedFiles
+    setSelectedFolders([]);
     setGeneratedContent("");
-    setError(null);
-    setNoteTitle("Note IA - " + format(new Date(), "PPP", { locale: fr }));
+    setNoteTitle(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
+    setIsGenerating(false);
   };
 
   return {
     selectedTemplateId,
     setSelectedTemplateId,
-    selectedFolders, // Changed from selectedFiles
-    setSelectedFolders, // Changed from setSelectedFiles
+    selectedFolders,
+    setSelectedFolders,
     generatedContent,
     setGeneratedContent,
     noteTitle,
     setNoteTitle,
     isGenerating,
-    error,
-    profileError,
     handleGenerate,
     handleReset,
     saveNote,

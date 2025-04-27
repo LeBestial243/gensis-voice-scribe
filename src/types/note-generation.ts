@@ -4,24 +4,22 @@ export interface UseNoteGenerationProps {
   onSuccess?: () => void;
 }
 
-export interface NoteGenerationError {
-  message: string;
-  code?: string;
+export interface Section {
+  id: string;
+  title: string;
+  instructions: string | null;
+  order_index: number;
+}
+
+export interface FileContent {
+  id: string;
+  name: string;
+  content: string;
+  type: string;
+  folderName: string;
 }
 
 export interface SaveNoteParams {
   title: string;
   content: string;
-}
-
-export interface FileWithContent {
-  id: string;
-  name: string;
-  type: string;
-  created_at: string;
-  updated_at: string | null;
-  path: string;
-  size: number;
-  folder_id?: string; // Make folder_id optional
-  content?: string;
 }
