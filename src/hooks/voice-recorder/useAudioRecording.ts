@@ -22,21 +22,25 @@ export function useAudioRecording() {
 
   const startRecording = async () => {
     try {
-      console.log('Starting recording...');
+      console.log('🎙️ Demande de permission microphone...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      
+      console.log('✅ Permission accordée, création du MediaRecorder...');
       
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
       mediaRecorder.ondataavailable = (e) => {
+        console.log('📼 Données audio reçues:', e.data.size, 'bytes');
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
       };
       
       mediaRecorder.start();
+      console.log('⏺️ Enregistrement démarré');
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -44,10 +48,8 @@ export function useAudioRecording() {
         setRecordingTime(prevTime => prevTime + 1);
       }, 1000);
       
-      console.log('Recording started successfully');
-      
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error('❌ Erreur dans startRecording:', error);
       toast({
         title: "Erreur de microphone",
         description: "Impossible d'accéder au microphone. Veuillez vérifier vos permissions.",
@@ -57,7 +59,7 @@ export function useAudioRecording() {
   };
 
   const stopRecording = () => {
-    console.log('Stopping recording...', { 
+    console.log('⏹️ Tentative d\'arrêt de l\'enregistrement...', { 
       isRecording, 
       mediaRecorderState: mediaRecorderRef.current?.state 
     });
@@ -65,24 +67,30 @@ export function useAudioRecording() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
-        console.log('MediaRecorder stopped successfully');
+        console.log('✅ MediaRecorder arrêté avec succès');
       } catch (error) {
-        console.error('Error stopping MediaRecorder:', error);
+        console.error('❌ Erreur arrêt MediaRecorder:', error);
       }
     }
     
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         track.stop();
-        console.log('Audio track stopped');
+        console.log('✅ Piste audio arrêtée');
       });
       streamRef.current = null;
     }
 
     setIsRecording(false);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   };
 
   const getRecordedAudioBlob = (): Blob => {
+    console.log('💾 Création du blob audio...', audioChunksRef.current.length, 'chunks');
     return new Blob(audioChunksRef.current, { type: 'audio/webm' });
   };
 
