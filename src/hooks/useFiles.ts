@@ -108,7 +108,6 @@ export function useFiles(folderId: string) {
 
           if (storageError) {
             console.error('Storage removal error:', storageError);
-            // Continue with database deletion even if storage removal fails
           }
         }
 
