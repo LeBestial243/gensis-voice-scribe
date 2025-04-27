@@ -30,3 +30,15 @@ export interface NoteFormData {
   content: string;
   type: string;
 }
+
+export interface FileWithContent {
+  id: string;
+  name: string;
+  type: string;
+  created_at?: string;
+  updated_at?: string;
+  path?: string;
+  size?: number;
+  folder_id?: string;
+  content: string;
+}
