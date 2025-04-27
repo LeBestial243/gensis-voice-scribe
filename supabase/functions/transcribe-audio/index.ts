@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -40,6 +41,13 @@ async function reformulateTranscription(transcriptionText: string, youngProfile:
   try {
     console.log('Reformulating transcription with GPT-4o...');
     
+    // Vérifier que la clé API OpenAI est disponible
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      console.error('OpenAI API key not available for reformulation');
+      return transcriptionText; // Fallback: return original text
+    }
+    
     const systemPrompt = `Tu es un assistant d'écriture destiné aux éducateurs spécialisés.
 Tu aides à transformer une transcription vocale en une note professionnelle claire, synthétique et bien formulée.
 
@@ -54,7 +62,7 @@ Tu aides à transformer une transcription vocale en une note professionnelle cla
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -82,7 +90,8 @@ Consignes :
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`);
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const result = await response.json();
@@ -95,6 +104,7 @@ Consignes :
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }

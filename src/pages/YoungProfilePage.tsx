@@ -14,6 +14,7 @@ import { NotesList } from '@/components/young-profile/NotesList';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryCache } from '@/hooks/useQueryCache';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -186,10 +187,12 @@ export default function YoungProfilePage() {
         onGenerateNoteClick={handleOpenGenerateNote}
       />
 
-      <RecordingDialog 
-        open={isRecordingOpen} 
-        onOpenChange={setIsRecordingOpen} 
+      <TranscriptionDialog
+        open={isRecordingOpen}
+        onOpenChange={setIsRecordingOpen}
         profileId={profileId}
+        folders={folders}
+        youngProfile={profile}
       />
 
       <GenerateNoteDialog

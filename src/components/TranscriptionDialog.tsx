@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ interface TranscriptionDialogProps {
   onOpenChange: (open: boolean) => void;
   profileId: string;
   folders: Folder[];
-  youngProfile?: any; // Add youngProfile prop
+  youngProfile?: any;
 }
 
 export function TranscriptionDialog({ 
@@ -185,15 +185,15 @@ export function TranscriptionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enregistrer une observation</DialogTitle>
+        </DialogHeader>
         {!transcript ? (
-          <>
-            <h3 className="text-xl font-bold mb-4">Enregistrer une observation</h3>
-            <VoiceRecorder 
-              onTranscriptionComplete={handleTranscriptionComplete} 
-              onTranscriptionStart={handleTranscriptionStart}
-              youngProfile={youngProfile} // Pass youngProfile to VoiceRecorder
-            />
-          </>
+          <VoiceRecorder 
+            onTranscriptionComplete={handleTranscriptionComplete} 
+            onTranscriptionStart={handleTranscriptionStart}
+            youngProfile={youngProfile}
+          />
         ) : (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Transcription</h3>
