@@ -1,9 +1,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null) => void;
@@ -93,18 +94,25 @@ export function VoiceRecorder({
       mediaRecorderState: mediaRecorderRef.current?.state 
     });
     
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
+        console.log('MediaRecorder stopped successfully');
       } catch (error) {
         console.error('Error stopping MediaRecorder:', error);
       }
     }
     
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('Audio track stopped');
+      });
       streamRef.current = null;
     }
+
+    // Ensure state is updated even if there was an error
+    setIsRecording(false);
   };
   
   const processRecording = async (audioBlob: Blob, audioUrl: string) => {
@@ -176,7 +184,7 @@ export function VoiceRecorder({
     setIsProcessing(false);
     setError('Erreur lors du traitement de l\'enregistrement.');
     
-    onTranscriptionComplete("", null);
+    onTranscriptionComplete("", null, true, error instanceof Error ? error.message : "Erreur inconnue");
     
     toast({
       title: "Erreur de transcription",
@@ -201,11 +209,12 @@ export function VoiceRecorder({
   };
   
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
       {error && (
-        <div className="text-red-500 text-center mb-4 w-full">
-          {error}
-        </div>
+        <Alert variant="destructive" className="w-full">
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       
       <div className="relative w-20 h-20">
@@ -229,7 +238,7 @@ export function VoiceRecorder({
       </div>
       
       {isRecording && (
-        <div className="text-lg font-mono">
+        <div className="text-lg font-mono animate-pulse text-red-500">
           {formatTime(recordingTime)}
         </div>
       )}
@@ -243,13 +252,26 @@ export function VoiceRecorder({
       
       <div className="text-center text-sm text-muted-foreground">
         {isRecording ? (
-          "Appuyez sur le bouton pour terminer l'enregistrement"
+          <strong className="text-red-500">Appuyez sur le bouton pour terminer l'enregistrement</strong>
         ) : isProcessing ? (
           "Veuillez patienter pendant le traitement..."
         ) : (
           "Appuyez sur le bouton pour démarrer l'enregistrement"
         )}
       </div>
+      
+      {isRecording && (
+        <Button 
+          onClick={stopRecording} 
+          variant="destructive"
+          className="mt-2"
+          type="button"
+        >
+          <Square className="mr-2 h-4 w-4" />
+          Arrêter l'enregistrement
+        </Button>
+      )}
     </div>
   );
 }
+
