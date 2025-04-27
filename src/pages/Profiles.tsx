@@ -82,6 +82,10 @@ export default function Profiles() {
     setSelectedFolderId(folderId);
   };
 
+  const handleGenerateNoteClick = () => {
+    setIsGenerateNoteOpen(true);
+  };
+
   if (!selectedProfileId) {
     return (
       <div className="container mx-auto py-8 px-4 pb-24" id="profiles-container">
@@ -171,14 +175,10 @@ export default function Profiles() {
         />
       </main>
 
-      <Button
-        onClick={() => setIsRecorderOpen(true)}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 interactive"
-        size="icon"
-        aria-label="Enregistrer un audio"
-      >
-        <Mic className="h-6 w-6 text-white" aria-hidden="true" />
-      </Button>
+      <FloatingActions 
+        onRecordingClick={() => setIsRecorderOpen(true)}
+        onGenerateNoteClick={handleGenerateNoteClick}
+      />
 
       <TranscriptionDialog 
         open={isRecorderOpen} 

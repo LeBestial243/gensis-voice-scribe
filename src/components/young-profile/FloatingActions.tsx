@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { FileText, Mic } from "lucide-react";
 
 interface FloatingActionsProps {
   onRecordingClick: () => void;
@@ -7,26 +8,22 @@ interface FloatingActionsProps {
 }
 
 export function FloatingActions({ onRecordingClick, onGenerateNoteClick }: FloatingActionsProps) {
-  const handleGenerateNoteClick = () => {
-    console.log('Generate note button clicked in FloatingActions');
-    onGenerateNoteClick();
-  };
-  
   return (
     <>
       <Button
         onClick={onRecordingClick}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-primary"
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-primary hover:bg-primary/90"
         size="icon"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        <Mic className="h-6 w-6 text-white" />
       </Button>
 
       <Button
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 shadow-lg hover:shadow-lg interactive text-white"
+        onClick={onGenerateNoteClick}
+        className="fixed bottom-24 right-4 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2"
         size="lg"
-        onClick={handleGenerateNoteClick}
       >
+        <FileText className="h-5 w-5" />
         Générer une note IA
       </Button>
     </>
