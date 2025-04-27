@@ -4,11 +4,11 @@ import { AlertTriangle } from "lucide-react";
 import { InconsistencyCheck } from "@/types/inconsistency";
 
 interface InconsistenciesAlertProps {
-  inconsistencies: InconsistencyCheck[];
+  inconsistencies?: InconsistencyCheck[];
 }
 
-export function InconsistenciesAlert({ inconsistencies }: InconsistenciesAlertProps) {
-  if (!inconsistencies.length) return null;
+export function InconsistenciesAlert({ inconsistencies = [] }: InconsistenciesAlertProps) {
+  if (!inconsistencies || !inconsistencies.length) return null;
 
   const errors = inconsistencies.filter(i => i.severity === 'error');
   const warnings = inconsistencies.filter(i => i.severity === 'warning');

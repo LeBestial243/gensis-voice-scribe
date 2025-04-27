@@ -23,6 +23,7 @@ export function useTranscriptionProcessing({
 }: TranscriptionCallbacks) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inconsistencies, setInconsistencies] = useState<InconsistencyCheck[]>([]);
   const { toast } = useToast();
 
   const processRecording = async (audioBlob: Blob) => {
@@ -58,6 +59,8 @@ export function useTranscriptionProcessing({
           const hasError = data.hasError === true;
           const errorMessage = data.errorMessage || null;
           const detectedInconsistencies = data.inconsistencies || [];
+          
+          setInconsistencies(detectedInconsistencies);
           
           onTranscriptionComplete(
             data.text, 
@@ -101,6 +104,8 @@ export function useTranscriptionProcessing({
       severity: 'error'
     }];
     
+    setInconsistencies(errorInconsistency);
+    
     onTranscriptionComplete(
       "", 
       null, 
@@ -119,6 +124,7 @@ export function useTranscriptionProcessing({
   return {
     isProcessing,
     error,
+    inconsistencies,
     processRecording
   };
 }

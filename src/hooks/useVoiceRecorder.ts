@@ -31,6 +31,7 @@ export function useVoiceRecorder({
   const {
     isProcessing,
     error,
+    inconsistencies,
     processRecording
   } = useTranscriptionProcessing({
     onTranscriptionStart,
@@ -51,6 +52,7 @@ export function useVoiceRecorder({
     recordingTime,
     isProcessing,
     error,
+    inconsistencies,
     startRecording,
     stopRecording: handleStopRecording
   };
