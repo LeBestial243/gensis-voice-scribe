@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
@@ -19,11 +20,17 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [micPermission, setMicPermission] = useState<boolean | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
+
+  const addDebugInfo = (info: string) => {
+    setDebugInfo(prev => [...prev, `${new Date().toISOString()}: ${info}`]);
+    console.log(`[DEBUG] ${info}`);
+  };
 
   useEffect(() => {
     return () => {
@@ -41,13 +48,15 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
 
   const checkMicrophonePermission = async () => {
     try {
+      addDebugInfo("Vérification des permissions du microphone...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
       setMicPermission(true);
       setError(null);
+      addDebugInfo("Permission du microphone accordée");
       return true;
     } catch (err) {
-      console.error("Microphone permission error:", err);
+      addDebugInfo(`Erreur permission microphone: ${err instanceof Error ? err.message : 'erreur inconnue'}`);
       setMicPermission(false);
       setError("Accès au microphone refusé. Veuillez autoriser l'accès dans les paramètres de votre navigateur.");
       toast({
@@ -61,12 +70,13 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
 
   const startRecording = async () => {
     setError(null);
+    setDebugInfo([]);
     
     const hasPermission = await checkMicrophonePermission();
     if (!hasPermission) return;
     
     try {
-      console.log("Starting audio recording...");
+      addDebugInfo("Démarrage de l'enregistrement audio...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -75,7 +85,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
         } 
       });
       
-      console.log("Audio stream obtained:", stream.id);
+      addDebugInfo(`Stream audio obtenu: ${stream.id}`);
       
       const options = { mimeType: 'audio/webm' };
       const mediaRecorder = new MediaRecorder(stream, options);
@@ -84,14 +94,14 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       audioChunksRef.current = [];
       
       mediaRecorder.ondataavailable = (e) => {
-        console.log("Data available: chunk size:", e.data.size);
+        addDebugInfo(`Données disponibles: ${e.data.size} bytes`);
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
       };
       
       mediaRecorder.onstop = () => {
-        console.log("MediaRecorder stopped");
+        addDebugInfo("MediaRecorder arrêté");
         if (audioChunksRef.current.length === 0) {
           setError("Aucun son n'a été enregistré. Veuillez vérifier votre microphone.");
           toast({
@@ -103,7 +113,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
         }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log("Audio blob created:", audioBlob.size, "bytes");
+        addDebugInfo(`Blob audio créé: ${audioBlob.size} bytes`);
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
         setIsRecording(false);
@@ -120,8 +130,8 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       };
       
       mediaRecorder.addEventListener('error', (e) => {
-        console.error("MediaRecorder error:", e);
-        const errorMessage = "Erreur avec l'enregistreur: " + (e instanceof Error ? e.message : "erreur inconnue");
+        const errorMessage = `Erreur MediaRecorder: ${e instanceof Error ? e.message : 'erreur inconnue'}`;
+        addDebugInfo(errorMessage);
         setError(errorMessage);
         setIsRecording(false);
         
@@ -138,7 +148,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       });
       
       mediaRecorder.start(1000);
-      console.log("MediaRecorder started");
+      addDebugInfo("MediaRecorder démarré");
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -152,8 +162,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       });
       
     } catch (error) {
-      console.error('Error starting recording:', error);
-      setError("Erreur lors du démarrage de l'enregistrement: " + (error instanceof Error ? error.message : "erreur inconnue"));
+      const errorMessage = `Erreur démarrage enregistrement: ${error instanceof Error ? error.message : 'erreur inconnue'}`;
+      addDebugInfo(errorMessage);
+      setError(errorMessage);
       toast({
         title: "Erreur d'enregistrement",
         description: "Impossible de démarrer l'enregistrement. Veuillez vérifier votre microphone.",
@@ -165,15 +176,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       try {
-        console.log("Stopping MediaRecorder...");
+        addDebugInfo("Arrêt de l'enregistrement...");
         mediaRecorderRef.current.stop();
         mediaRecorderRef.current.stream.getTracks().forEach(track => {
-          console.log("Stopping track:", track.kind);
+          addDebugInfo(`Arrêt du track: ${track.kind}`);
           track.stop();
         });
       } catch (error) {
-        console.error('Error stopping recording:', error);
-        setError("Erreur lors de l'arrêt de l'enregistrement: " + (error instanceof Error ? error.message : "erreur inconnue"));
+        const errorMessage = `Erreur arrêt enregistrement: ${error instanceof Error ? error.message : 'erreur inconnue'}`;
+        addDebugInfo(errorMessage);
+        setError(errorMessage);
         toast({
           title: "Erreur",
           description: "Impossible d'arrêter l'enregistrement correctement.",
@@ -199,8 +211,12 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
     onTranscriptionStart();
 
     try {
+      addDebugInfo("Récupération du blob audio...");
       const response = await fetch(audioURL);
       const blob = await response.blob();
+      addDebugInfo(`Blob récupéré: ${blob.size} bytes, type: ${blob.type}`);
+      
+      addDebugInfo("Conversion en base64...");
       const reader = new FileReader();
       
       const base64Promise = new Promise<string>((resolve, reject) => {
@@ -208,6 +224,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
           try {
             const base64data = reader.result as string;
             const base64Audio = base64data.split(',')[1];
+            addDebugInfo(`Audio converti en base64, longueur: ${base64Audio.length}`);
             resolve(base64Audio);
           } catch (error) {
             reject(new Error("Erreur lors de la conversion de l'audio en base64"));
@@ -216,8 +233,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
         reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier audio"));
       });
       
+      reader.readAsDataURL(blob);
       const base64Audio = await base64Promise;
 
+      addDebugInfo("Appel de l'Edge Function pour la transcription...");
+      addDebugInfo(`youngProfile envoyé: ${youngProfile ? JSON.stringify({
+        first_name: youngProfile.first_name,
+        last_name: youngProfile.last_name,
+        birth_date: youngProfile.birth_date
+      }) : 'non défini'}`);
+      
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
         body: { 
           audio: base64Audio,
@@ -225,9 +250,13 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        addDebugInfo(`Erreur Edge Function: ${error.message}`);
+        throw error;
+      }
 
       if (data.error) {
+        addDebugInfo(`Erreur API transcription: ${data.error}`);
         if (data.code === 'insufficient_quota') {
           throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
         } else if (data.code === 'missing_api_key') {
@@ -238,9 +267,11 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       }
 
       if (!data.text) {
+        addDebugInfo("Réponse de transcription vide");
         throw new Error("Réponse de transcription invalide ou texte vide.");
       }
 
+      addDebugInfo(`Transcription réussie, longueur: ${data.text.length}`);
       setIsProcessing(false);
       onTranscriptionComplete(data.text, audioURL);
       
@@ -249,17 +280,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
         description: "Votre enregistrement a été transcrit et reformulé avec succès.",
       });
     } catch (error) {
-      console.error('Error processing recording:', error);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+      addDebugInfo(`Erreur traitement: ${errorMessage}`);
       setIsProcessing(false);
-      setError(error instanceof Error ? error.message : "Une erreur inconnue est survenue");
+      setError(errorMessage);
       
       toast({
         title: "Erreur de transcription",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
+        description: errorMessage,
         variant: "destructive",
       });
-      
-      onTranscriptionComplete("", audioURL);
     }
   };
 
@@ -282,6 +312,16 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
               <AlertTriangle className="h-4 w-4 mr-2" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+          
+          {/* Zone de débogage */}
+          {debugInfo.length > 0 && (
+            <div className="w-full mb-4 p-2 bg-gray-100 rounded text-xs max-h-40 overflow-y-auto">
+              <h4 className="font-bold mb-1">Debug Info:</h4>
+              {debugInfo.map((info, index) => (
+                <div key={index}>{info}</div>
+              ))}
+            </div>
           )}
           
           <div className="relative w-24 h-24 flex items-center justify-center">

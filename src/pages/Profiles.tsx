@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -31,20 +30,13 @@ export default function Profiles() {
   const { setupKeyboardNavigation } = useAccessibility();
   const { optimizeCacheConfig } = useQueryCache();
 
-  // Configure global cache settings
   useEffect(() => {
     optimizeCacheConfig();
   }, [optimizeCacheConfig]);
   
-  // Setup keyboard navigation for profile list
   useEffect(() => {
     setupKeyboardNavigation('profiles-container');
   }, [setupKeyboardNavigation]);
-
-  // Clear selected folder when profile changes
-  useEffect(() => {
-    setSelectedFolderId(null);
-  }, [selectedProfileId]);
 
   useEffect(() => {
     if (selectedProfileId) {
@@ -193,16 +185,8 @@ export default function Profiles() {
         onOpenChange={setIsRecorderOpen} 
         profileId={selectedProfileId} 
         folders={foldersList}
+        youngProfile={selectedProfile}
       />
-
-      <Button
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 interactive text-white shadow-lg"
-        size="lg"
-        onClick={() => setIsGenerateNoteOpen(true)}
-        aria-label="Générer une note avec l'IA"
-      >
-        Générer une note IA
-      </Button>
 
       {selectedProfileId && (
         <GenerateNoteDialog

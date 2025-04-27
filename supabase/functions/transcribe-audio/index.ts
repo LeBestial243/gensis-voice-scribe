@@ -40,6 +40,7 @@ function processBase64Chunks(base64String: string, chunkSize = 32768) {
 async function reformulateTranscription(transcriptionText: string, youngProfile: any) {
   try {
     console.log('Reformulating transcription with GPT-4o...');
+    console.log('Young profile data:', JSON.stringify(youngProfile || {}));
     
     // Vérifier que la clé API OpenAI est disponible
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -48,16 +49,26 @@ async function reformulateTranscription(transcriptionText: string, youngProfile:
       return transcriptionText; // Fallback: return original text
     }
     
+    // Calculer l'âge si la date de naissance est disponible
+    let age = 'Non renseigné';
+    if (youngProfile?.birth_date) {
+      const birthYear = new Date(youngProfile.birth_date).getFullYear();
+      const currentYear = new Date().getFullYear();
+      age = (currentYear - birthYear).toString();
+    }
+    
     const systemPrompt = `Tu es un assistant d'écriture destiné aux éducateurs spécialisés.
 Tu aides à transformer une transcription vocale en une note professionnelle claire, synthétique et bien formulée.
 
 🔎 Informations sur le jeune concerné :
 - Prénom : ${youngProfile?.first_name || 'Non renseigné'}
 - Nom : ${youngProfile?.last_name || 'Non renseigné'}
-- Âge : ${youngProfile?.birth_date ? new Date().getFullYear() - new Date(youngProfile.birth_date).getFullYear() : 'Non renseigné'} ans
+- Âge : ${age} ans
 - Date de naissance : ${youngProfile?.birth_date || 'Non renseignée'}
 - Structure : ${youngProfile?.structure || 'Non renseignée'}
 - Projet éducatif : ${youngProfile?.project || 'Non renseigné'}`;
+
+    console.log('System prompt:', systemPrompt);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -91,10 +102,12 @@ Consignes :
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
       throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('OpenAI response received, content length:', result.choices[0].message.content.length);
     return result.choices[0].message.content;
   } catch (error) {
     console.error('Error reformulating with GPT-4o:', error);
@@ -110,7 +123,13 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, youngProfile } = await req.json();
+    console.log('Request received');
+    
+    const requestData = await req.json();
+    const { audio, youngProfile } = requestData;
+    
+    console.log('Request data parsed, audio length:', audio?.length || 0);
+    console.log('Young profile present:', !!youngProfile);
     
     if (!audio) {
       return new Response(
@@ -167,11 +186,14 @@ serve(async (req) => {
 
       if (!whisperResponse.ok) {
         const errorText = await whisperResponse.text();
+        console.error('Whisper API error response:', errorText);
         throw new Error(`Whisper API error: ${errorText}`);
       }
 
       const whisperResult = await whisperResponse.json();
       const rawTranscription = whisperResult.text;
+      
+      console.log('Raw transcription received, length:', rawTranscription?.length || 0);
 
       if (!rawTranscription || rawTranscription.trim() === '') {
         return new Response(
