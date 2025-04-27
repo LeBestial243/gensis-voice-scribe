@@ -22,32 +22,46 @@ function calculateAge(birthDate: string) {
 
 function generatePromptFromTranscription({
   transcriptionText,
-  youngProfile
+  youngProfile,
+  sections
 }) {
   const age = calculateAge(youngProfile.birth_date);
 
   return `
-Tu es un assistant d'écriture destiné aux éducateurs spécialisés.  
-Tu aides à transformer une transcription vocale en une note professionnelle claire, synthétique et bien formulée.
+Tu es un assistant d'écriture pour éducateurs spécialisés. Tu dois générer une note qui respecte EXACTEMENT la structure du template fourni.
 
-🔎 Informations sur le jeune concerné :
+🔎 Profil du jeune :
 - Prénom : ${youngProfile.first_name}
 - Nom : ${youngProfile.last_name}
 - Âge : ${age} ans
-- Date de naissance : ${youngProfile.birth_date}
 - Structure : ${youngProfile.structure || 'Non renseignée'}
-- Projet éducatif : ${youngProfile.project || 'Non renseigné'}
+- Date de naissance : ${youngProfile.birth_date}
 
-🎙️ Voici la transcription brute de l'observation orale :
-"""${transcriptionText}"""
+🎙️ Transcription à structurer :
+"""
+${transcriptionText}
+"""
 
-📝 Consignes :
-- Reformule le contenu pour qu'il soit lisible et professionnel
-- Supprime les hésitations, répétitions ou formulations orales
-- Garde le sens exact des propos de l'éducateur
-- Écris au présent de manière neutre et concise
-- Ne déforme rien : reformule sans interpréter
-`;
+🧩 STRUCTURE OBLIGATOIRE - TU DOIS GÉNÉRER EXACTEMENT CE FORMAT :
+
+${sections
+  .sort((a, b) => a.order_index - b.order_index)
+  .map((section) =>
+    `### ${section.title}
+${section.instructions ? `[Instructions: ${section.instructions}]` : ''}
+
+[Contenu à générer pour cette section en utilisant la transcription ci-dessus]
+`)
+  .join('\n\n')}
+
+✍️ RÈGLES ABSOLUES :
+1. La note DOIT contenir TOUTES les sections du template, avec leurs titres EXACTS
+2. Chaque section DOIT commencer par son titre en format ### 
+3. Si la transcription ne contient pas d'information pour une section, écris "Pas d'information disponible pour cette section"
+4. N'ajoute AUCUNE section qui n'est pas dans le template
+5. Respecte l'ordre exact des sections
+6. Utilise un ton professionnel et neutre
+7. Ne mets pas d'informations personnelles dans le corps de la note`;
 }
 
 function generatePromptFromNotes({
@@ -58,7 +72,7 @@ function generatePromptFromNotes({
   const age = calculateAge(youngProfile.birth_date);
 
   const header = `
-Tu es un assistant d'écriture destiné aux professionnels du secteur éducatif. Tu aides à générer une note STRUCTURÉE en suivant EXACTEMENT le template fourni.
+Tu es un assistant d'écriture pour éducateurs spécialisés. Tu dois générer une note qui respecte EXACTEMENT la structure du template fourni.
 
 🔎 Profil du jeune :
 - Prénom : ${youngProfile.first_name}
@@ -67,76 +81,44 @@ Tu es un assistant d'écriture destiné aux professionnels du secteur éducatif.
 - Date de naissance : ${youngProfile.birth_date}
 - Structure : ${youngProfile.structure || 'Non renseignée'}
 - Projet éducatif : ${youngProfile.project || 'Non renseigné'}
-- Date d'arrivée : ${youngProfile.arrival_date || 'Non renseignée'}
 `;
 
   const corpus = `
-📝 Notes sélectionnées par l'éducateur :
-${selectedNotes.map((n) => `• ${n.content}`).join('\n')}
+📝 Contenu des observations :
+${selectedNotes.map((n, i) => `[Note ${i + 1}] ${n.content}`).join('\n\n')}
 `;
 
-  const structure = sections && sections.length > 0 ? `
-🧩 STRUCTURE OBLIGATOIRE À RESPECTER :
-
-Tu dois OBLIGATOIREMENT suivre cette structure pour la note finale. Chaque section doit être présente dans l'ordre exact ci-dessous :
+  const structure = `
+🧩 STRUCTURE OBLIGATOIRE - TU DOIS GÉNÉRER EXACTEMENT CE FORMAT :
 
 ${sections
   .sort((a, b) => a.order_index - b.order_index)
-  .map((section, i) =>
-    `${i + 1}. ${section.title}\n-------------------\n${section.instructions ? `Instructions spécifiques : ${section.instructions}` : 'Développe cette section en utilisant les notes fournies.'}\n`)
+  .map((section) =>
+    `### ${section.title}
+${section.instructions ? `[Instructions: ${section.instructions}]` : ''}
+
+[Contenu à générer pour cette section en utilisant les observations ci-dessus]
+`)
   .join('\n\n')}
-` : `
-🧩 STRUCTURE OBLIGATOIRE À RESPECTER :
-
-Tu dois OBLIGATOIREMENT suivre cette structure pour la note finale :
-
-1. Introduction
--------------------
-Présente la situation et le contexte
-
-2. Observations principales
--------------------
-Résume les points clés des observations
-
-3. Analyse
--------------------
-Propose une analyse des éléments observés
-
-4. Conclusion et recommandations
--------------------
-Synthétise et propose des pistes d'action
 `;
 
   const guidelines = `
-✍️ CONSIGNES IMPÉRATIVES :
-1. Tu DOIS créer une section pour CHAQUE titre listé ci-dessus
-2. Chaque section DOIT commencer par son titre exact suivi d'une ligne de séparation
-3. Ne JAMAIS omettre une section, même si peu d'informations sont disponibles
-4. Si une section manque d'informations, indique "Informations insuffisantes pour cette section"
-5. Reformuler intelligemment, ne jamais copier/coller
-6. Employer un ton professionnel, neutre et synthétique
-7. Utiliser les informations des notes pour remplir les sections appropriées
-
-FORMAT ATTENDU :
-=============
-[Titre de section 1]
--------------------
-[Contenu de la section 1]
-
-[Titre de section 2]
--------------------
-[Contenu de la section 2]
-
-etc.
+✍️ RÈGLES ABSOLUES :
+1. La note DOIT contenir TOUTES les sections du template, avec leurs titres EXACTS
+2. Chaque section DOIT commencer par son titre en format ### 
+3. Si les observations ne contiennent pas d'information pour une section, écris "Pas d'information disponible pour cette section"
+4. N'ajoute AUCUNE section qui n'est pas dans le template
+5. Respecte l'ordre exact des sections
+6. Utilise un ton professionnel et neutre
+7. Ne mets pas d'informations personnelles dans le corps de la note
 `;
 
   return `${header}\n${corpus}\n${structure}\n${guidelines}`;
 }
 
 serve(async (req) => {
-  // CORS pre-flight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -164,19 +146,19 @@ serve(async (req) => {
 
     // Generate the appropriate prompt based on input data
     const systemPrompt = transcriptionText ? 
-      generatePromptFromTranscription({ transcriptionText, youngProfile }) :
+      generatePromptFromTranscription({ transcriptionText, youngProfile, sections: templateSections }) :
       generatePromptFromNotes({ youngProfile, sections: templateSections, selectedNotes });
 
     console.log("Longueur du prompt système:", systemPrompt.length);
 
-    // Ajout d'instructions plus strictes pour GPT-4o
-    const userPrompt = transcriptionText ?
-      'Génère une note professionnelle reformulée à partir de ces informations.' :
-      `Génère une note structurée en respectant EXACTEMENT la structure du template fourni.
-      
-      TRÈS IMPORTANT : Tu DOIS créer une section pour CHAQUE titre du template, dans l'ordre exact.
-      Chaque section doit commencer par son titre exact suivi d'une ligne de séparation.
-      NE PAS omettre de sections, même si peu d'informations sont disponibles.`;
+    const userPrompt = `
+Génère maintenant une note professionnelle en respectant EXACTEMENT la structure du template.
+TRÈS IMPORTANT : 
+- Utilise UNIQUEMENT les sections définies dans le template
+- Chaque section doit commencer par ### suivi du titre exact
+- Ne crée pas d'autres sections que celles du template
+- Respecte l'ordre des sections
+`;
 
     // Call the OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -191,10 +173,10 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3, // Réduit pour plus de précision
+        temperature: 0.1,
         max_tokens: 2000,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1
+        presence_penalty: 0.0,
+        frequency_penalty: 0.0
       }),
     });
 
