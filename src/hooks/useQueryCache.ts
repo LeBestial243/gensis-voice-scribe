@@ -59,7 +59,7 @@ export function useQueryCache() {
     queryClient.setDefaultOptions({
       queries: {
         staleTime: 30 * 1000, // 30 secondes par défaut
-        cacheTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 5 * 60 * 1000, // 5 minutes (anciennement cacheTime)
         retry: 1, // Limite les tentatives de réessai
         refetchOnWindowFocus: false, // Désactive le rechargement automatique lors du focus
       },
