@@ -34,7 +34,11 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
             id,
             name,
             type,
+            size,
+            path,
+            folder_id,
             created_at,
+            updated_at,
             content
           )
         `)
