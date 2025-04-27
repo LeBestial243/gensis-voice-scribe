@@ -93,6 +93,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     queryFn: async () => {
       if (selectedFiles.length === 0) return [];
 
+      // D'abord, récupérer les fichiers avec leur contenu depuis la base de données
       const { data: filesData, error } = await supabase
         .from('files')
         .select(`
@@ -102,7 +103,8 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
           created_at,
           updated_at,
           path,
-          size
+          size,
+          content
         `)
         .in('id', selectedFiles);
       
@@ -112,11 +114,29 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       }
       if (!filesData) return [];
 
-      // For each file, try to get its content
+      // Pour chaque fichier, vérifier si le contenu est déjà disponible
       const filesWithContent: FileWithContent[] = [];
       
       for (const file of filesData) {
+        // Si le contenu est déjà dans la base de données, l'utiliser directement
+        if (file.content) {
+          filesWithContent.push({ 
+            ...file, 
+            content: file.content
+          });
+          continue;
+        }
+
+        // Sinon, essayer de le récupérer depuis le storage
         try {
+          if (!file.path) {
+            filesWithContent.push({ 
+              ...file, 
+              content: `[Erreur: Chemin du fichier manquant]`
+            });
+            continue;
+          }
+
           const { data: fileContent, error: downloadError } = await supabase
             .storage
             .from('files')
@@ -150,10 +170,16 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   });
 
   const handleGenerate = async () => {
+    console.log("Début génération de note...");
     // Reset previous errors
     setError(null);
     
     if (!selectedTemplateId || selectedFiles.length === 0 || !profile) {
+      console.log("Données manquantes:", { 
+        selectedTemplateId, 
+        selectedFilesCount: selectedFiles.length,
+        profileExists: !!profile 
+      });
       toast({
         title: "Données manquantes",
         description: "Veuillez sélectionner un template et au moins un fichier",
@@ -165,6 +191,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     setIsGenerating(true);
 
     try {
+      console.log("Récupération des sections du template...");
       const { data: templateSections, error: sectionsError } = await supabase
         .from('template_sections')
         .select('*')
@@ -174,23 +201,44 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       if (sectionsError) {
         throw new Error(`Erreur de chargement des sections: ${sectionsError.message}`);
       }
+      
+      console.log("Sections récupérées:", templateSections);
 
       // Vérifier si le contenu des fichiers sélectionnés est disponible
       if (!selectedFilesData || selectedFilesData.length === 0) {
+        console.error("Aucun fichier avec contenu trouvé");
         throw new Error("Impossible de récupérer le contenu des fichiers");
       }
 
+      console.log("Fichiers sélectionnés avec contenu:", selectedFilesData.map(f => f.name));
+
+      // Filtrer et nettoyer les données de transcription
+      const validFiles = selectedFilesData.filter(file => 
+        file.content && typeof file.content === 'string' && !file.content.startsWith('[Erreur')
+      );
+
+      if (validFiles.length === 0) {
+        console.error("Aucun fichier valide trouvé parmi les fichiers sélectionnés");
+        throw new Error("Aucun contenu valide trouvé dans les fichiers sélectionnés");
+      }
+
       // Extraire le contenu des transcriptions
-      const transcriptionText = selectedFilesData
-        .filter(file => file.content)
+      const transcriptionText = validFiles
         .map(file => `--- ${file.name} ---\n${file.content || ''}`)
         .join('\n\n');
+
+      console.log("Envoi à la fonction generate-note avec données:", {
+        profileId: profile.id,
+        templateId: selectedTemplateId,
+        sectionsCount: templateSections.length,
+        transcriptionLength: transcriptionText.length,
+      });
 
       const { data, error } = await supabase.functions.invoke('generate-note', {
         body: {
           youngProfile: profile,
           templateSections,
-          selectedNotes: selectedFilesData.map(file => ({
+          selectedNotes: validFiles.map(file => ({
             id: file.id,
             content: file.content
           })),
@@ -203,10 +251,14 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         throw new Error(`Erreur de la fonction de génération: ${error.message}`);
       }
 
+      console.log("Réponse de la fonction generate-note:", data);
+
       if (!data || !data.content) {
+        console.error("Réponse invalide de l'API:", data);
         throw new Error("La réponse de l'IA ne contient pas de contenu généré");
       }
 
+      console.log("Contenu généré avec succès");
       setGeneratedContent(data.content);
       return "result";
     } catch (error) {
