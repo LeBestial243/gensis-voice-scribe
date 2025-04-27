@@ -40,7 +40,7 @@ export function useSaveNote(onSuccess?: () => void) {
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
       toast({
-        title: "Erreur",
+        title: "Erreur de sauvegarde",
         description: "Impossible de sauvegarder la note: " + errorMessage,
         variant: "destructive"
       });

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UseNoteGenerationProps, FileContent } from "@/types/note-generation";
@@ -9,6 +8,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const { toast } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [generatedContent, setGeneratedContent] = useState<string>("");
   const [noteTitle, setNoteTitle] = useState<string>(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,11 +53,13 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
             title
           )
         `)
-        .in("folder_id", selectedFolders);
+        .in("folder_id", selectedFolders)
+        .in("id", selectedFiles); // Only get selected files
 
       if (filesError) throw filesError;
       console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });
 
+      // Fetch content from storage for text files
       const fileContents: FileContent[] = [];
       
       for (const file of filesWithFolders || []) {
@@ -90,13 +92,21 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
             }
             
             if (content) {
-              fileContents.push({
+              const fileContent = {
                 id: file.id,
                 name: file.name,
                 content: content,
                 type: file.type,
                 folderName: file.folders?.title || ''
+              };
+              
+              console.log('Adding file to fileContents:', {
+                name: fileContent.name,
+                folderName: fileContent.folderName,
+                contentPreview: fileContent.content.substring(0, 100) + '...'
               });
+              
+              fileContents.push(fileContent);
             }
           } catch (error) {
             console.error('Error processing file:', file.name, error);
@@ -134,6 +144,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       setGeneratedContent(content);
       setNoteTitle(`${template.title} - ${new Date().toLocaleDateString("fr-FR")}`);
       
+      console.log('Note generation completed');
       toast({
         title: "Note générée avec succès",
         description: "Vous pouvez maintenant éditer et sauvegarder la note.",
@@ -151,42 +162,10 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     }
   };
 
-  const saveNote = useMutation({
-    mutationFn: async (data: { title: string; content: string }) => {
-      const { data: note, error } = await supabase
-        .from("profile_notes")
-        .insert({
-          profile_id: profileId,
-          title: data.title,
-          content: data.content,
-          type: "generated",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return note;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Note sauvegardée",
-        description: "La note a été sauvegardée avec succès",
-      });
-      handleReset();
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur de sauvegarde",
-        description: "Impossible de sauvegarder la note",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleReset = () => {
     setSelectedTemplateId("");
     setSelectedFolders([]);
+    setSelectedFiles([]);
     setGeneratedContent("");
     setNoteTitle(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
     setIsGenerating(false);
@@ -197,13 +176,14 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     setSelectedTemplateId,
     selectedFolders,
     setSelectedFolders,
+    selectedFiles,
+    setSelectedFiles,
     generatedContent,
     setGeneratedContent,
     noteTitle,
     setNoteTitle,
     isGenerating,
     handleGenerate,
-    handleReset,
-    saveNote,
+    handleReset
   };
 }

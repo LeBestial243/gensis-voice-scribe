@@ -23,3 +23,10 @@ export interface SaveNoteParams {
   title: string;
   content: string;
 }
+
+export interface NoteFormData {
+  profileId: string;
+  title: string;
+  content: string;
+  type: string;
+}
