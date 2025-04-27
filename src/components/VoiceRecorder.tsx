@@ -1,10 +1,9 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, AlertTriangle, AlertCircle } from "lucide-react";
+import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: string[]) => void;
@@ -134,8 +133,6 @@ export function VoiceRecorder({
         }
         
         try {
-          console.log('Sending audio to transcribe function with profile data...');
-          // Call the Edge Function with young profile data
           const { data, error } = await supabase.functions.invoke('transcribe-audio', {
             body: { 
               audio: base64Audio,
@@ -151,14 +148,10 @@ export function VoiceRecorder({
             throw new Error(data.error);
           }
           
-          console.log("Transcription received:", data);
-          
-          // Check for errors and inconsistencies
           const hasError = data.hasError === true;
           const errorMessage = data.errorMessage || null;
           const detectedInconsistencies = data.inconsistencies || [];
           
-          // Store inconsistencies for UI display
           setInconsistencies(detectedInconsistencies);
           
           onTranscriptionComplete(
@@ -230,22 +223,24 @@ export function VoiceRecorder({
   return (
     <div className="flex flex-col items-center space-y-4 w-full max-w-md mx-auto">
       {error && (
-        <Alert variant="destructive" className="w-full">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4 mr-2" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
       {inconsistencies.length > 0 && (
-        <Alert variant="warning" className="w-full border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <AlertTitle>Incohérences potentielles</AlertTitle>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4 mr-2" />
           <AlertDescription>
-            <ul className="list-disc pl-4 mt-2 text-sm">
-              {inconsistencies.map((inconsistency, index) => (
-                <li key={index}>{inconsistency}</li>
-              ))}
-            </ul>
+            <div className="space-y-2">
+              <p className="font-medium">Incohérences détectées:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                {inconsistencies.map((inconsistency, index) => (
+                  <li key={index}>{inconsistency}</li>
+                ))}
+              </ul>
+            </div>
           </AlertDescription>
         </Alert>
       )}
