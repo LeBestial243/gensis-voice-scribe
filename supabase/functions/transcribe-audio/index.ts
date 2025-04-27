@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -37,6 +36,25 @@ function processBase64Chunks(base64String: string, chunkSize = 32768) {
   return result;
 }
 
+// Add professional formatting to the transcription
+function formatTranscription(text: string) {
+  // Remove filler words and informal expressions
+  let formatted = text
+    .replace(/ben|euh|bah|enfin bon|quoi|voilà quoi/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Capitalize first letter
+  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+  // Add proper punctuation if missing
+  if (!formatted.endsWith('.') && !formatted.endsWith('?') && !formatted.endsWith('!')) {
+    formatted += '.';
+  }
+
+  return formatted;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -68,7 +86,7 @@ serve(async (req) => {
           code: "missing_api_key" 
         }),
         {
-          status: 400, // Changed from 500 to 400 for better client handling
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
@@ -126,7 +144,7 @@ serve(async (req) => {
             code: errorCode
           }),
           {
-            status: 200, // Return 200 with error in body for better client handling
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
@@ -144,14 +162,17 @@ serve(async (req) => {
             code: "empty_transcription" 
           }),
           {
-            status: 200, // Not an error, just empty
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
       }
 
+      // Format the transcription professionally
+      const formattedText = formatTranscription(result.text)
+
       return new Response(
-        JSON.stringify({ text: result.text }),
+        JSON.stringify({ text: formattedText }),
         { 
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -166,7 +187,7 @@ serve(async (req) => {
           code: "audio_processing_error"
         }),
         {
-          status: 200, // Return 200 with error in body for better client handling
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
@@ -181,7 +202,7 @@ serve(async (req) => {
         code: "transcription_error"
       }),
       {
-        status: 200, // Return 200 with error in body for better client handling
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
