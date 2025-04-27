@@ -24,13 +24,15 @@ interface TranscriptionDialogProps {
   onOpenChange: (open: boolean) => void;
   profileId: string;
   folders: Folder[];
+  youngProfile?: any; // Add youngProfile prop
 }
 
 export function TranscriptionDialog({ 
   open, 
   onOpenChange, 
   profileId, 
-  folders 
+  folders,
+  youngProfile 
 }: TranscriptionDialogProps) {
   const [transcript, setTranscript] = useState<string>("");
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -189,6 +191,7 @@ export function TranscriptionDialog({
             <VoiceRecorder 
               onTranscriptionComplete={handleTranscriptionComplete} 
               onTranscriptionStart={handleTranscriptionStart}
+              youngProfile={youngProfile} // Pass youngProfile to VoiceRecorder
             />
           </>
         ) : (
