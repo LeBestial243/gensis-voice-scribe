@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -61,66 +60,31 @@ async function validateTranscriptionCoherence(transcriptionText: string, youngPr
   const hasBasicErrors = errorKeywords.some(keyword => 
     transcriptionText.toLowerCase().includes(keyword.toLowerCase())
   );
-
-  // Vérifications contextuelles avancées si un profil est fourni
-  const inconsistencies: string[] = [];
+  
+  const inconsistencies: InconsistencyCheck[] = [];
   
   if (hasBasicErrors) {
-    inconsistencies.push("Des termes indiquant des incohérences ont été détectés dans le texte");
+    inconsistencies.push({
+      type: 'other',
+      message: "Des termes indiquant des problèmes potentiels ont été détectés dans le texte",
+      severity: 'warning'
+    });
   }
   
   // Vérification avancée avec le profil si disponible
-  if (youngProfile && Object.keys(youngProfile).length > 0) {
-    // Vérifier les mentions de dates
-    if (youngProfile.birth_date) {
-      const birthDate = new Date(youngProfile.birth_date);
-      const birthYear = birthDate.getFullYear();
-      
-      // Recherche de dates potentiellement incohérentes par rapport à l'âge
-      const yearRegex = /\b(19\d{2}|20\d{2})\b/g;
-      const mentionedYears = [...transcriptionText.matchAll(yearRegex)].map(match => parseInt(match[0]));
-      
-      mentionedYears.forEach(year => {
-        if (year < birthYear && transcriptionText.toLowerCase().includes("particip") || 
-            transcriptionText.toLowerCase().includes("présent")) {
-          inconsistencies.push(
-            `La date ${year} mentionnée est antérieure à la naissance (${birthYear})`
-          );
-        }
-      });
-    }
-    
-    // Vérification des noms (si le prénom est disponible)
-    if (youngProfile.first_name) {
-      const firstName = youngProfile.first_name;
-      // Recherche de prénoms qui semblent être utilisés pour désigner le jeune
-      const nameRegex = /\b[A-Z][a-z]{2,}\b/g;
-      const possibleNames = [...transcriptionText.matchAll(nameRegex)].map(match => match[0]);
-      
-      // Filtrer pour ne garder que les noms qui semblent être des prénoms mais ne sont pas celui du jeune
-      const commonWords = ["Le", "La", "Les", "Un", "Une", "Des", "Ce", "Cette", "Ces", "Mon", "Ma", "Mes", "Son", "Sa", "Ses"];
-      const suspiciousNames = possibleNames.filter(name => 
-        !commonWords.includes(name) && 
-        name !== firstName && 
-        name !== (youngProfile.last_name || "") && 
-        !["Monsieur", "Madame", "Mademoiselle"].includes(name)
-      );
-      
-      if (suspiciousNames.length > 0) {
-        const uniqueNames = [...new Set(suspiciousNames)];
-        if (uniqueNames.length > 0) {
-          inconsistencies.push(
-            `Noms différents de celui du jeune détectés: ${uniqueNames.join(", ")}`
-          );
-        }
-      }
+  if (youngProfile) {
+    try {
+      const detectedInconsistencies = detectInconsistencies(transcriptionText, youngProfile);
+      inconsistencies.push(...detectedInconsistencies);
+    } catch (error) {
+      console.error('Error detecting inconsistencies:', error);
     }
   }
   
   return {
     isValid: inconsistencies.length === 0,
     message: inconsistencies.length > 0 ? 
-      `La transcription présente des incohérences potentielles: ${inconsistencies.join(". ")}` : 
+      `La transcription présente des incohérences potentielles` : 
       "Transcription valide",
     inconsistencies
   };
