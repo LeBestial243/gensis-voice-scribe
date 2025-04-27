@@ -39,18 +39,13 @@ export function FolderDisplay({
   } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
-      console.log("FolderDisplay: Fetching folders for profile", profileId);
       const { data, error } = await supabase
         .from('folders')
         .select('*')
         .eq('profile_id', profileId)
         .order('title', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching folders:', error);
-        throw error;
-      }
-      console.log("FolderDisplay: Fetched folders:", data);
+      if (error) throw error;
       return data || [];
     },
     enabled: !!profileId
@@ -62,8 +57,6 @@ export function FolderDisplay({
       const folderIds = folders.map(folder => folder.id);
       if (!folderIds.length) return {};
       
-      console.log("FolderDisplay: Fetching file counts for folders", folderIds);
-      
       const { data, error } = await supabase
         .from('files')
         .select('folder_id')
@@ -74,8 +67,6 @@ export function FolderDisplay({
         throw error;
       }
       
-      console.log("FolderDisplay: Raw file data for counts:", data);
-      
       const counts: Record<string, number> = {};
       folderIds.forEach(id => { counts[id] = 0; });
       
@@ -85,7 +76,6 @@ export function FolderDisplay({
         });
       }
       
-      console.log("FolderDisplay: Calculated folder counts:", counts);
       return counts;
     },
     enabled: folders.length > 0
@@ -93,7 +83,6 @@ export function FolderDisplay({
 
   const createFolder = useMutation({
     mutationFn: async (title: string) => {
-      console.log("FolderDisplay: Creating folder with title", title);
       const { data, error } = await supabase
         .from('folders')
         .insert({ title, profile_id: profileId })
@@ -104,7 +93,6 @@ export function FolderDisplay({
         console.error('Error creating folder:', error);
         throw error;
       }
-      console.log("FolderDisplay: Created folder:", data);
       return data;
     },
     onSuccess: (data) => {
@@ -129,8 +117,6 @@ export function FolderDisplay({
 
   const uploadFile = useMutation({
     mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
-      console.log("FolderDisplay: Uploading file", file.name, "to folder", folderId);
-      
       const fileName = file.name;
       const filePath = `${folderId}/${Date.now()}_${fileName}`;
       
@@ -250,16 +236,7 @@ export function FolderDisplay({
   };
 
   const handleFolderClick = (folderId: string) => {
-    console.log("FolderDisplay: handleFolderClick called with", folderId);
-    console.log("FolderDisplay: Current activeFolderId is", activeFolderId);
-    
-    if (folderId === activeFolderId) {
-      console.log("FolderDisplay: Setting activeFolderId to null (toggle off)");
-      onFolderSelect(null);
-    } else {
-      console.log("FolderDisplay: Setting activeFolderId to", folderId);
-      onFolderSelect(folderId);
-    }
+    onFolderSelect(folderId === activeFolderId ? null : folderId);
   };
 
   if (foldersLoading) {

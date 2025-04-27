@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,18 +23,13 @@ export function useFiles(folderId: string) {
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['files', folderId],
     queryFn: async () => {
-      console.log("Fetching files for folder:", folderId);
       const { data, error } = await supabase
         .from('files')
         .select('*')
         .eq('folder_id', folderId)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching files:", error);
-        throw error;
-      }
-      console.log("Files fetched:", data?.length);
+      if (error) throw error;
       return data || [];
     },
   });
@@ -60,7 +56,6 @@ export function useFiles(folderId: string) {
         throw new Error("Impossible de générer le lien de téléchargement");
       }
       
-      // Create and trigger download
       const a = document.createElement('a');
       a.href = data.signedUrl;
       a.download = file.name;
@@ -73,7 +68,6 @@ export function useFiles(folderId: string) {
         description: `Le fichier "${file.name}" a été téléchargé`,
       });
     } catch (error) {
-      console.error("Download error:", error);
       toast({
         title: "Erreur de téléchargement",
         description: "Une erreur s'est produite lors du téléchargement",
@@ -86,20 +80,15 @@ export function useFiles(folderId: string) {
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      console.log("Starting file deletion process for:", fileId);
-      setDeletingFileId(fileId); // Track which file is being deleted
+      setDeletingFileId(fileId);
       
       try {
-        // Get file path first
         const { data: fileData } = await supabase
           .from('files')
           .select('path')
           .eq('id', fileId)
           .single();
 
-        console.log("File data for deletion:", fileData);
-
-        // Remove from storage if path exists
         if (fileData?.path) {
           try {
             const { error: storageError } = await supabase.storage
@@ -107,34 +96,26 @@ export function useFiles(folderId: string) {
               .remove([fileData.path]);
 
             if (storageError) {
-              console.error('Storage removal error:', storageError);
               // Continue with database deletion even if storage removal fails
             }
           } catch (storageErr) {
-            console.error('Storage operation exception:', storageErr);
             // Continue with database deletion even if storage operation fails
           }
         }
 
-        // Delete from database
         const { error: dbError } = await supabase
           .from('files')
           .delete()
           .eq('id', fileId);
 
-        if (dbError) {
-          console.error('Database deletion error:', dbError);
-          throw dbError;
-        }
+        if (dbError) throw dbError;
         
         return fileId;
       } catch (error) {
-        console.error("Complete deletion error:", error);
         throw error;
       }
     },
     onSuccess: (deletedFileId) => {
-      console.log("File deleted successfully:", deletedFileId);
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
       toast({ 
         title: "Fichier supprimé", 
@@ -142,7 +123,6 @@ export function useFiles(folderId: string) {
       });
     },
     onError: (error) => {
-      console.error("Delete mutation error:", error);
       toast({
         title: "Erreur lors de la suppression",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
@@ -150,7 +130,6 @@ export function useFiles(folderId: string) {
       });
     },
     onSettled: () => {
-      // Always clear the deleting state when operation completes (success or error)
       setDeletingFileId(null);
     }
   });
@@ -188,10 +167,7 @@ export function useFiles(folderId: string) {
     isLoading,
     isDownloading,
     handleDownload,
-    deleteFile: (fileId: string) => {
-      console.log("Delete file requested for:", fileId);
-      deleteMutation.mutate(fileId);
-    },
+    deleteFile: (fileId: string) => deleteMutation.mutate(fileId),
     isDeleting: deleteMutation.isPending,
     isDeletingFile: (fileId: string) => deletingFileId === fileId,
     renameFile: renameMutation.mutate,

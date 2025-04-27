@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,6 @@ import { SearchTabs } from '@/components/young-profile/SearchTabs';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
-import { useToast } from '@/hooks/use-toast';
 import { FolderDisplay } from '@/components/FolderDisplay';
 import { TranscriptionsList } from '@/components/TranscriptionsList';
 import { NotesList } from '@/components/young-profile/NotesList';
@@ -18,24 +16,13 @@ export default function YoungProfilePage() {
   const profileId = id || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('transcriptions');
-
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [isRecordingOpen, setIsRecordingOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
-  const { toast } = useToast();
-
-  console.log('YoungProfilePage: Loading profile with ID:', profileId);
-  console.log('YoungProfilePage: Selected tab:', selectedTab);
-  
-  useEffect(() => {
-    console.log('YoungProfilePage: isGenerateNoteOpen state updated:', isGenerateNoteOpen);
-  }, [isGenerateNoteOpen]);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['young_profile', profileId],
     queryFn: async () => {
-      console.log('Fetching profile with ID:', profileId);
-
       if (!profileId || profileId === ':id') {
         throw new Error('ID de profil invalide');
       }
@@ -46,12 +33,7 @@ export default function YoungProfilePage() {
         .eq('id', profileId)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-      
-      console.log('Profile data:', data);
+      if (error) throw error;
       return data;
     },
     enabled: !!profileId && profileId !== ':id',
@@ -74,7 +56,6 @@ export default function YoungProfilePage() {
   const folderIds = folders.map(folder => folder.id);
 
   const handleOpenGenerateNote = useCallback(() => {
-    console.log('Opening note generation dialog');
     setIsGenerateNoteOpen(true);
   }, []);
 
