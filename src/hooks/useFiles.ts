@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,12 +101,18 @@ export function useFiles(folderId: string) {
 
         // Remove from storage if path exists
         if (fileData?.path) {
-          const { error: storageError } = await supabase.storage
-            .from('files')
-            .remove([fileData.path]);
+          try {
+            const { error: storageError } = await supabase.storage
+              .from('files')
+              .remove([fileData.path]);
 
-          if (storageError) {
-            console.error('Storage removal error:', storageError);
+            if (storageError) {
+              console.error('Storage removal error:', storageError);
+              // Continue with database deletion even if storage removal fails
+            }
+          } catch (storageErr) {
+            console.error('Storage operation exception:', storageErr);
+            // Continue with database deletion even if storage operation fails
           }
         }
 

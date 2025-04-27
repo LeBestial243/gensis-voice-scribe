@@ -71,6 +71,24 @@ export function TranscriptionDialog({
       
       // 2. Aussi stocker le contenu dans le stockage Supabase pour la redondance
       try {
+        // Créer le chemin du dossier avant de tenter l'upload
+        const folderPath = `transcriptions/${folderId}`;
+        
+        // Vérifier si le dossier existe et le créer si nécessaire
+        try {
+          const { data: folderExists } = await supabase.storage.from('files').list(folderPath);
+          if (!folderExists || folderExists.length === 0) {
+            // Le dossier n'existe pas, on crée un fichier placeholder pour créer le dossier
+            await supabase.storage.from('files').upload(`${folderPath}/.placeholder`, new Blob(['']), {
+              contentType: 'text/plain',
+              upsert: true
+            });
+          }
+        } catch (folderErr) {
+          console.warn('Error checking folder, will attempt to create it:', folderErr);
+        }
+        
+        // Maintenant on peut uploader le fichier
         const { error: storageError } = await supabase
           .storage
           .from('files')
