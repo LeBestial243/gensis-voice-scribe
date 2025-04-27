@@ -7,7 +7,6 @@ interface FloatingActionsProps {
 }
 
 export function FloatingActions({ onRecordingClick, onGenerateNoteClick }: FloatingActionsProps) {
-  // Add a wrapper function to log and call the original function
   const handleGenerateNoteClick = () => {
     console.log('Generate note button clicked in FloatingActions');
     onGenerateNoteClick();
