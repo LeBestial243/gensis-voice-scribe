@@ -49,13 +49,13 @@ export function GenerateNoteDialog({
     onSuccess: () => onOpenChange(false)
   });
 
-  // Reset state when dialog is closed - with proper dependency array to prevent infinite loop
+  // Reset state when dialog is closed
   useEffect(() => {
-    if (!open && generatedContent) {
+    if (!open) {
       handleReset();
       setActiveTab("selection");
     }
-  }, [open, handleReset, generatedContent]);
+  }, [open, handleReset]);
 
   useEffect(() => {
     // Switch to the editing tab when content is generated
@@ -126,6 +126,15 @@ export function GenerateNoteDialog({
       setActiveTab("selection");
     }
   };
+
+  // Ajouter des logs de débogage pour identifier le problème
+  console.log("Dialog state:", { 
+    activeTab, 
+    selectedTemplateId, 
+    selectedFilesCount: selectedFiles.length,
+    generatedContent: generatedContent ? "Present" : "Not present",
+    isGenerating
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
