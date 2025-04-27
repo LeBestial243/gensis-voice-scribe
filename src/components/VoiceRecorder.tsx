@@ -1,82 +1,47 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { Mic, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/use-toast";
 
 interface VoiceRecorderProps {
-  onTranscriptionComplete: (text: string, audioURL: string | null) => void;
+  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null) => void;
   onTranscriptionStart: () => void;
   youngProfile?: any;
 }
 
-export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, youngProfile }: VoiceRecorderProps) {
+export function VoiceRecorder({ 
+  onTranscriptionComplete, 
+  onTranscriptionStart,
+  youngProfile 
+}: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [micPermission, setMicPermission] = useState<boolean | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
-
+  
   useEffect(() => {
     return () => {
+      stopRecording();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-      }
-      if (audioURL) {
-        URL.revokeObjectURL(audioURL);
-      }
     };
-  }, [isRecording, audioURL]);
-
-  const checkMicrophonePermission = async () => {
+  }, []);
+  
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop());
-      setMicPermission(true);
-      setError(null);
-      return true;
-    } catch (err) {
-      console.error("Microphone permission error:", err);
-      setMicPermission(false);
-      setError("Accès au microphone refusé. Veuillez autoriser l'accès dans les paramètres de votre navigateur.");
-      toast({
-        title: "Permission refusée",
-        description: "Accès au microphone refusé. Veuillez vérifier les paramètres de votre navigateur.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const startRecording = async () => {
-    setError(null);
-    
-    const hasPermission = await checkMicrophonePermission();
-    if (!hasPermission) return;
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
-      });
+      streamRef.current = stream;
       
-      const options = { mimeType: 'audio/webm' };
-      const mediaRecorder = new MediaRecorder(stream, options);
-      
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
@@ -87,68 +52,33 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
       };
       
       mediaRecorder.onstop = () => {
-        if (audioChunksRef.current.length === 0) {
-          setError("Aucun son n'a été enregistré. Veuillez vérifier votre microphone.");
-          toast({
-            title: "Enregistrement vide",
-            description: "Aucun son n'a été enregistré. Veuillez vérifier votre microphone.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioURL(url);
+        const audioUrl = URL.createObjectURL(audioBlob);
         setIsRecording(false);
-        
-        toast({
-          title: "Enregistrement terminé",
-          description: "Vous pouvez maintenant écouter ou transcrire votre enregistrement.",
-        });
         
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+        
+        processRecording(audioBlob, audioUrl);
       };
       
-      mediaRecorder.addEventListener('error', (e) => {
-        const errorMessage = `Erreur MediaRecorder: ${e instanceof Error ? e.message : 'erreur inconnue'}`;
-        setError(errorMessage);
-        setIsRecording(false);
-        
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        
-        toast({
-          title: "Erreur d'enregistrement",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      });
-      
-      mediaRecorder.start(1000);
+      mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
+      setError(null);
       
       timerRef.current = window.setInterval(() => {
-        setRecordingTime((prevTime) => prevTime + 1);
+        setRecordingTime(prevTime => prevTime + 1);
       }, 1000);
       
-      toast({
-        title: "Enregistrement en cours",
-        description: "Parlez clairement dans votre microphone.",
-      });
-      
     } catch (error) {
-      const errorMessage = `Erreur démarrage enregistrement: ${error instanceof Error ? error.message : 'erreur inconnue'}`;
-      setError(errorMessage);
+      console.error('Error accessing microphone:', error);
+      setError('Impossible d\'accéder au microphone. Veuillez vérifier vos permissions.');
       toast({
-        title: "Erreur d'enregistrement",
-        description: "Impossible de démarrer l'enregistrement. Veuillez vérifier votre microphone.",
+        title: "Erreur de microphone",
+        description: "Impossible d'accéder au microphone. Veuillez vérifier vos permissions.",
         variant: "destructive",
       });
     }
@@ -156,227 +86,147 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, y
   
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      try {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => {
-          track.stop();
-        });
-      } catch (error) {
-        const errorMessage = `Erreur arrêt enregistrement: ${error instanceof Error ? error.message : 'erreur inconnue'}`;
-        setError(errorMessage);
-        toast({
-          title: "Erreur",
-          description: "Impossible d'arrêter l'enregistrement correctement.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const processRecording = async () => {
-    if (!audioURL) {
-      setError("Aucun enregistrement audio à traiter.");
-      toast({
-        title: "Erreur",
-        description: "Aucun enregistrement audio à traiter.",
-        variant: "destructive",
-      });
-      return;
+      mediaRecorderRef.current.stop();
     }
     
-    setError(null);
-    setIsProcessing(true);
-    onTranscriptionStart();
-
-    try {
-      const response = await fetch(audioURL);
-      const blob = await response.blob();
-      const reader = new FileReader();
-      
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          try {
-            const base64data = reader.result as string;
-            const base64Audio = base64data.split(',')[1];
-            resolve(base64Audio);
-          } catch (error) {
-            reject(new Error("Erreur lors de la conversion de l'audio en base64"));
-          }
-        };
-        reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier audio"));
-      });
-      
-      reader.readAsDataURL(blob);
-      const base64Audio = await base64Promise;
-
-      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { 
-          audio: base64Audio,
-          youngProfile
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.error) {
-        if (data.code === 'insufficient_quota') {
-          throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
-        } else if (data.code === 'missing_api_key') {
-          throw new Error("Clé API OpenAI manquante. Veuillez configurer la clé API dans les paramètres du projet.");
-        } else {
-          throw new Error(data.error);
-        }
-      }
-
-      if (!data.text) {
-        throw new Error("Réponse de transcription invalide ou texte vide.");
-      }
-
-      setIsProcessing(false);
-      onTranscriptionComplete(data.text, audioURL);
-      
-      toast({
-        title: "Transcription terminée",
-        description: "Votre enregistrement a été transcrit et reformulé avec succès.",
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
-      setIsProcessing(false);
-      setError(errorMessage);
-      
-      toast({
-        title: "Erreur de transcription",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
   };
-
+  
+  const processRecording = async (audioBlob: Blob, audioUrl: string) => {
+    try {
+      setIsProcessing(true);
+      onTranscriptionStart();
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        const base64Audio = reader.result?.toString().split(',')[1];
+        
+        if (!base64Audio) {
+          throw new Error("Failed to convert audio to base64");
+        }
+        
+        try {
+          // Call the Edge Function
+          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+            body: { 
+              audio: base64Audio,
+              youngProfile: youngProfile
+            }
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          console.log("Transcription received:", data);
+          
+          // Check for errors
+          const hasError = data.hasError === true;
+          const errorMessage = data.errorMessage || null;
+          
+          onTranscriptionComplete(data.text, audioUrl, hasError, errorMessage);
+          setIsProcessing(false);
+          
+          if (hasError) {
+            toast({
+              title: "Attention",
+              description: "La transcription contient possiblement des erreurs ou incohérences.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          handleTranscriptionError(error);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        handleTranscriptionError(error);
+      };
+      
+    } catch (error) {
+      handleTranscriptionError(error);
+    }
+  };
+  
+  const handleTranscriptionError = (error: any) => {
+    console.error('Error processing recording:', error);
+    setIsProcessing(false);
+    setError('Erreur lors du traitement de l\'enregistrement.');
+    
+    onTranscriptionComplete("", null);
+    
+    toast({
+      title: "Erreur de transcription",
+      description: error instanceof Error ? error.message : "Une erreur est survenue lors de la transcription",
+      variant: "destructive",
+    });
+  };
+  
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
-
-  useEffect(() => {
-    checkMicrophonePermission();
-  }, []);
-
+  
   return (
-    <Card className="w-full">
-      <CardContent className="pt-6">
-        <div className="flex flex-col items-center gap-4">
-          {error && (
-            <Alert variant="destructive" className="mb-4 w-full">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="relative w-24 h-24 flex items-center justify-center">
-            {isRecording ? (
-              <div className="absolute inset-0 bg-red-100 dark:bg-red-900 rounded-full animate-pulse"></div>
-            ) : null}
-            <div 
-              className={`
-                w-20 h-20 rounded-full flex items-center justify-center
-                ${isRecording 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-secondary border-2 border-primary text-primary'}
-              `}
-            >
-              {isRecording ? (
-                <Square className="h-8 w-8" />
-              ) : (
-                <Mic className="h-8 w-8" />
-              )}
-            </div>
-          </div>
-          
-          {isRecording && (
-            <div className="text-lg font-semibold animate-pulse">
-              Enregistrement en cours... {formatTime(recordingTime)}
-            </div>
-          )}
-          
-          {audioURL && !isRecording && (
-            <>
-              <div className="text-sm text-muted-foreground mb-1">Écoutez votre enregistrement</div>
-              <audio 
-                controls 
-                src={audioURL} 
-                className="w-full mt-2"
-                onError={() => {
-                  console.error("Audio playback error");
-                  setError("Impossible de lire l'enregistrement audio.");
-                  URL.revokeObjectURL(audioURL);
-                  setAudioURL(null);
-                }}
-              />
-            </>
-          )}
-          
-          <div className="flex flex-col sm:flex-row gap-2 w-full">
-            {!isRecording && !audioURL && (
-              <Button 
-                onClick={startRecording} 
-                className="w-full"
-                disabled={micPermission === false}
-              >
-                <Mic className="mr-2 h-4 w-4" />
-                Commencer l'enregistrement
-              </Button>
-            )}
-            
-            {isRecording && (
-              <Button 
-                onClick={stopRecording} 
-                variant="destructive"
-                className="w-full"
-              >
-                <Square className="mr-2 h-4 w-4" />
-                Arrêter l'enregistrement
-              </Button>
-            )}
-            
-            {audioURL && !isProcessing && (
-              <>
-                <Button 
-                  onClick={startRecording} 
-                  variant="outline"
-                  className="w-full"
-                >
-                  Nouvel enregistrement
-                </Button>
-                <Button 
-                  onClick={processRecording} 
-                  className="w-full"
-                >
-                  Transcrire
-                </Button>
-              </>
-            )}
-            
-            {isProcessing && (
-              <Button disabled className="w-full">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Traitement en cours...
-              </Button>
-            )}
-          </div>
-          
-          {micPermission === false && (
-            <Alert className="mt-4">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              <AlertDescription>
-                Pour utiliser cette fonction, veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.
-              </AlertDescription>
-            </Alert>
-          )}
+    <div className="flex flex-col items-center space-y-4">
+      {error && (
+        <div className="text-red-500 text-center mb-4 w-full">
+          {error}
         </div>
-      </CardContent>
-    </Card>
+      )}
+      
+      <div className="relative w-20 h-20">
+        {isRecording && (
+          <div className="absolute inset-0 rounded-full bg-red-100 dark:bg-red-900 animate-ping opacity-75"></div>
+        )}
+        <Button
+          variant={isRecording ? "destructive" : "outline"}
+          size="icon"
+          className={`w-20 h-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`}
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isProcessing}
+        >
+          {isRecording ? (
+            <Square className="w-8 h-8" />
+          ) : (
+            <Mic className="w-8 h-8" />
+          )}
+        </Button>
+      </div>
+      
+      {isRecording && (
+        <div className="text-lg font-mono">
+          {formatTime(recordingTime)}
+        </div>
+      )}
+      
+      {isProcessing && (
+        <div className="flex flex-col items-center space-y-2">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+          <p className="text-sm text-muted-foreground">Transcription en cours...</p>
+        </div>
+      )}
+      
+      <div className="text-center text-sm text-muted-foreground">
+        {isRecording ? (
+          "Appuyez sur le bouton pour terminer l'enregistrement"
+        ) : isProcessing ? (
+          "Veuillez patienter pendant le traitement..."
+        ) : (
+          "Appuyez sur le bouton pour démarrer l'enregistrement"
+        )}
+      </div>
+    </div>
   );
 }

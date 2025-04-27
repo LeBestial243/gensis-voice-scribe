@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -40,31 +39,13 @@ export function TranscriptionDialog({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasTranscriptionError, setHasTranscriptionError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const currentDate = format(new Date(), "PPP 'à' HH:mm", { locale: fr });
-
-  // Détecter les erreurs potentielles dans la transcription
-  useEffect(() => {
-    if (transcript) {
-      const errorKeywords = [
-        "erreur", "incohérence", "impossible", "incorrect", "vérifier", 
-        "problème", "confusion", "incompréhensible", "mots manquants",
-        "incertain", "ne comprend pas", "inaudible", "interférence"
-      ];
-      
-      const hasError = errorKeywords.some(keyword => 
-        transcript.toLowerCase().includes(keyword.toLowerCase())
-      );
-      
-      setHasTranscriptionError(hasError);
-    } else {
-      setHasTranscriptionError(false);
-    }
-  }, [transcript]);
-
+  
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
@@ -158,11 +139,13 @@ export function TranscriptionDialog({
     },
   });
 
-  const handleTranscriptionComplete = (text: string, audioUrl: string | null) => {
+  const handleTranscriptionComplete = (text: string, audioUrl: string | null, hasError: boolean = false, errorMsg: string | null = null) => {
     setTranscript(text);
     setAudioURL(audioUrl);
     setIsTranscribing(false);
     setError(null);
+    setHasTranscriptionError(hasError);
+    setErrorMessage(errorMsg);
   };
 
   const handleTranscriptionStart = () => {
@@ -211,6 +194,7 @@ export function TranscriptionDialog({
     setSelectedFolderId("");
     setError(null);
     setHasTranscriptionError(false);
+    setErrorMessage(null);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -250,8 +234,9 @@ export function TranscriptionDialog({
               <Alert variant="destructive" className="border-red-500 bg-red-50">
                 <AlertCircle className="h-4 w-4 mr-2" />
                 <AlertDescription>
-                  Attention : Cette transcription semble contenir des erreurs ou des incohérences. 
-                  Veuillez vérifier le contenu avant de sauvegarder.
+                  Attention : Cette transcription contient des incohérences ou erreurs. 
+                  {errorMessage && <p className="mt-2 font-medium">{errorMessage}</p>}
+                  Veuillez vérifier et corriger le contenu avant de sauvegarder.
                 </AlertDescription>
               </Alert>
             )}
@@ -260,7 +245,11 @@ export function TranscriptionDialog({
               <CardContent className="pt-6">
                 <Textarea
                   value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
+                  onChange={(e) => {
+                    setTranscript(e.target.value);
+                    // Keep error flag if manually edited but was previously flagged
+                    // (we don't automatically remove error state on edit)
+                  }}
                   className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
                     hasTranscriptionError ? 'text-red-600' : ''
                   }`}
