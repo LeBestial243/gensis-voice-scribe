@@ -4,10 +4,10 @@ import { Mic, Square } from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { RecordingStatus } from "@/components/recording/RecordingStatus";
 import { InconsistenciesAlert } from "@/components/recording/InconsistenciesAlert";
-import { supabase } from "@/integrations/supabase/client";
+import { InconsistencyCheck } from "@/types/inconsistency";
 
 interface VoiceRecorderProps {
-  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: string[]) => void;
+  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: InconsistencyCheck[]) => void;
   onTranscriptionStart: () => void;
   youngProfile?: any;
 }

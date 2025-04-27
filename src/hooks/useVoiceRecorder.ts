@@ -1,10 +1,12 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InconsistencyCheck } from "@/types/inconsistency";
 
 export interface UseVoiceRecorderProps {
   onTranscriptionStart: () => void;
-  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: string[]) => void;
+  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: InconsistencyCheck[]) => void;
   youngProfile?: any;
 }
 
@@ -17,7 +19,7 @@ export function useVoiceRecorder({
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inconsistencies, setInconsistencies] = useState<string[]>([]);
+  const [inconsistencies, setInconsistencies] = useState<InconsistencyCheck[]>([]);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -183,12 +185,19 @@ export function useVoiceRecorder({
     setIsProcessing(false);
     setError('Erreur lors du traitement de l\'enregistrement.');
     
+    // Create a properly typed array for error case
+    const errorInconsistency: InconsistencyCheck[] = [{
+      type: 'other',
+      message: error instanceof Error ? error.message : "Erreur technique lors du traitement",
+      severity: 'error'
+    }];
+    
     onTranscriptionComplete(
       "", 
       null, 
       true, 
       error instanceof Error ? error.message : "Erreur inconnue",
-      ["Erreur technique lors du traitement"]
+      errorInconsistency
     );
     
     toast({
