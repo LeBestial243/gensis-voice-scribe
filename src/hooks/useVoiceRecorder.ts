@@ -1,6 +1,6 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface UseVoiceRecorderProps {
   onTranscriptionStart: () => void;
