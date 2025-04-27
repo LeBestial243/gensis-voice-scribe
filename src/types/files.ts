@@ -10,3 +10,5 @@ export interface FileData {
   updated_at: string | null;
   content?: string;
 }
+
+export type FileType = FileData;
