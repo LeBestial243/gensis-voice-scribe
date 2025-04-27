@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Folder, ChevronDown, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { FolderFileList } from "./FolderFileList";
+import { FileType } from "@/types/files";
 
 interface FolderSelectorProps {
   profileId: string;
@@ -16,8 +17,21 @@ interface FolderSelectorProps {
   onFolderSelect: (folderId: string) => void;
 }
 
+interface FolderWithFiles {
+  id: string;
+  title: string;
+  created_at: string;
+  files: FileType[];
+}
+
+interface FolderWithStats extends FolderWithFiles {
+  fileCount: number;
+  relevantContent: number;
+}
+
 export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: FolderSelectorProps) {
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
+  const [folderStats, setFolderStats] = useState<FolderWithStats[]>([]);
 
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders', profileId],
@@ -51,20 +65,42 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
       }
 
       console.log('FolderSelector: Fetched folders', data?.length || 0);
-      return data || [];
+      return data as FolderWithFiles[] || [];
     },
   });
 
-  const folderStats = folders.map(folder => ({
-    ...folder,
-    fileCount: folder.files?.length || 0,
-    relevantContent: folder.files?.filter(file => 
-      file.type === 'transcription' || 
-      file.type === 'text' || 
-      file.type === 'text/plain' ||
-      file.name.toLowerCase().includes('transcription')
-    ).length || 0
-  }));
+  // Update folderStats when folders data changes
+  useEffect(() => {
+    if (folders && folders.length > 0) {
+      const stats = folders.map(folder => {
+        // Make sure files is always an array
+        const files = folder.files || [];
+        
+        // Count all files
+        const fileCount = files.length;
+        
+        // Count only relevant content (transcriptions or text files)
+        const relevantContent = files.filter(file => 
+          file.type === 'transcription' || 
+          file.type === 'text' || 
+          file.type === 'text/plain' ||
+          (file.name && file.name.toLowerCase().includes('transcription'))
+        ).length;
+
+        console.log(`Folder ${folder.title}: ${fileCount} files, ${relevantContent} relevant`);
+        
+        return {
+          ...folder,
+          fileCount,
+          relevantContent
+        };
+      });
+      
+      setFolderStats(stats);
+    } else {
+      setFolderStats([]);
+    }
+  }, [folders]);
 
   const handleFolderClick = (folderId: string) => {
     console.log('FolderSelector: Folder clicked', folderId);
