@@ -1,9 +1,21 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Interface pour le profil du jeune
+interface YoungProfile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  birth_date?: string;
+  arrival_date?: string;
+  structure?: string;
+  project?: string;
 }
 
 // Process base64 in chunks to prevent memory issues
@@ -36,7 +48,9 @@ function processBase64Chunks(base64String: string, chunkSize = 32768) {
   return result;
 }
 
-async function validateTranscriptionCoherence(transcriptionText: string) {
+// Fonction pour valider la cohérence de la transcription
+async function validateTranscriptionCoherence(transcriptionText: string, youngProfile?: YoungProfile) {
+  // Liste étendue de mots-clés indiquant des problèmes potentiels
   const errorKeywords = [
     "incohérence", "impossible", "incorrect", "invalide", 
     "erreur", "problème", "incompréhensible", "confusion",
@@ -44,25 +58,101 @@ async function validateTranscriptionCoherence(transcriptionText: string) {
     "vérifier", "incomplet", "incertain"
   ];
   
-  const hasErrors = errorKeywords.some(keyword => 
+  const hasBasicErrors = errorKeywords.some(keyword => 
     transcriptionText.toLowerCase().includes(keyword.toLowerCase())
   );
+
+  // Vérifications contextuelles avancées si un profil est fourni
+  const inconsistencies: string[] = [];
+  
+  if (hasBasicErrors) {
+    inconsistencies.push("Des termes indiquant des incohérences ont été détectés dans le texte");
+  }
+  
+  // Vérification avancée avec le profil si disponible
+  if (youngProfile && Object.keys(youngProfile).length > 0) {
+    // Vérifier les mentions de dates
+    if (youngProfile.birth_date) {
+      const birthDate = new Date(youngProfile.birth_date);
+      const birthYear = birthDate.getFullYear();
+      
+      // Recherche de dates potentiellement incohérentes par rapport à l'âge
+      const yearRegex = /\b(19\d{2}|20\d{2})\b/g;
+      const mentionedYears = [...transcriptionText.matchAll(yearRegex)].map(match => parseInt(match[0]));
+      
+      mentionedYears.forEach(year => {
+        if (year < birthYear && transcriptionText.toLowerCase().includes("particip") || 
+            transcriptionText.toLowerCase().includes("présent")) {
+          inconsistencies.push(
+            `La date ${year} mentionnée est antérieure à la naissance (${birthYear})`
+          );
+        }
+      });
+    }
+    
+    // Vérification des noms (si le prénom est disponible)
+    if (youngProfile.first_name) {
+      const firstName = youngProfile.first_name;
+      // Recherche de prénoms qui semblent être utilisés pour désigner le jeune
+      const nameRegex = /\b[A-Z][a-z]{2,}\b/g;
+      const possibleNames = [...transcriptionText.matchAll(nameRegex)].map(match => match[0]);
+      
+      // Filtrer pour ne garder que les noms qui semblent être des prénoms mais ne sont pas celui du jeune
+      const commonWords = ["Le", "La", "Les", "Un", "Une", "Des", "Ce", "Cette", "Ces", "Mon", "Ma", "Mes", "Son", "Sa", "Ses"];
+      const suspiciousNames = possibleNames.filter(name => 
+        !commonWords.includes(name) && 
+        name !== firstName && 
+        name !== (youngProfile.last_name || "") && 
+        !["Monsieur", "Madame", "Mademoiselle"].includes(name)
+      );
+      
+      if (suspiciousNames.length > 0) {
+        const uniqueNames = [...new Set(suspiciousNames)];
+        if (uniqueNames.length > 0) {
+          inconsistencies.push(
+            `Noms différents de celui du jeune détectés: ${uniqueNames.join(", ")}`
+          );
+        }
+      }
+    }
+  }
   
   return {
-    isValid: !hasErrors,
-    message: hasErrors ? 
-      "La transcription semble contenir des incohérences. Veuillez vérifier le contenu." : 
-      "Transcription valide"
+    isValid: inconsistencies.length === 0,
+    message: inconsistencies.length > 0 ? 
+      `La transcription présente des incohérences potentielles: ${inconsistencies.join(". ")}` : 
+      "Transcription valide",
+    inconsistencies
   };
 }
 
-async function reformulateTranscription(transcriptionText: string, youngProfile: any) {
+// Fonction pour calculer l'âge à partir d'une date de naissance
+function calculateAge(birthDateString: string): number {
+  try {
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  } catch (e) {
+    console.error("Erreur dans le calcul de l'âge:", e);
+    return 0;
+  }
+}
+
+// Fonction principale pour transformer et valider la transcription
+async function reformulateTranscription(transcriptionText: string, youngProfile?: YoungProfile) {
   try {
     console.log('Reformulating transcription with GPT-4o...');
     console.log('Young profile data:', JSON.stringify(youngProfile || {}));
     
     // Vérifier la cohérence avant la reformulation
-    const coherenceCheck = await validateTranscriptionCoherence(transcriptionText);
+    const coherenceCheck = await validateTranscriptionCoherence(transcriptionText, youngProfile);
     let finalText = transcriptionText;
     
     // Vérifier que la clé API OpenAI est disponible
@@ -72,16 +162,15 @@ async function reformulateTranscription(transcriptionText: string, youngProfile:
       return { 
         text: transcriptionText,
         hasError: !coherenceCheck.isValid,
-        errorMessage: coherenceCheck.message
+        errorMessage: coherenceCheck.message,
+        inconsistencies: coherenceCheck.inconsistencies
       }; // Fallback: return original text
     }
     
     // Calculer l'âge si la date de naissance est disponible
     let age = 'Non renseigné';
     if (youngProfile?.birth_date) {
-      const birthYear = new Date(youngProfile.birth_date).getFullYear();
-      const currentYear = new Date().getFullYear();
-      age = (currentYear - birthYear).toString();
+      age = calculateAge(youngProfile.birth_date).toString();
     }
     
     const systemPrompt = `Tu es un assistant d'écriture pour éducateurs spécialisés.
@@ -134,6 +223,7 @@ Consignes :
 - Supprime les hésitations, répétitions ou formulations orales
 - Si le contenu est incohérent ou incompréhensible, signale-le clairement avec "[INCOHÉRENCE DÉTECTÉE]" au début
 - Écris au présent de manière neutre et concise
+- Remplace "le jeune" par le prénom du jeune concerné (${youngProfile?.first_name || 'Non renseigné'})
 - Garde le sens exact des propos de l'éducateur, ne déforme rien`
           }
         ],
@@ -154,19 +244,27 @@ Consignes :
     // Re-check the reformulated text for errors marked by the AI
     const hasMarkedError = finalText.includes("[INCOHÉRENCE DÉTECTÉE]");
     
+    // Vérifier à nouveau si la reformulation contient des incohérences
+    const finalCoherenceCheck = await validateTranscriptionCoherence(finalText, youngProfile);
+    
     return {
       text: finalText,
-      hasError: !coherenceCheck.isValid || hasMarkedError,
+      raw_text: transcriptionText,
+      hasError: !coherenceCheck.isValid || hasMarkedError || !finalCoherenceCheck.isValid,
       errorMessage: hasMarkedError ? 
-        "Le modèle AI a détecté des incohérences dans le contenu." : coherenceCheck.message
+        "Le modèle AI a détecté des incohérences dans le contenu." : 
+        !finalCoherenceCheck.isValid ? finalCoherenceCheck.message : coherenceCheck.message,
+      inconsistencies: [...coherenceCheck.inconsistencies, ...finalCoherenceCheck.inconsistencies]
     };
   } catch (error) {
     console.error('Error reformulating with GPT-4o:', error);
     // Fallback : return original text with error status
     return { 
       text: transcriptionText, 
+      raw_text: transcriptionText,
       hasError: true,
-      errorMessage: `Erreur lors de la reformulation: ${error.message}`
+      errorMessage: `Erreur lors de la reformulation: ${error.message}`,
+      inconsistencies: ["Erreur technique lors de la reformulation"]
     };
   }
 }
@@ -270,9 +368,10 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           text: reformulationResult.text,
-          raw_text: rawTranscription,
+          raw_text: reformulationResult.raw_text || rawTranscription,
           hasError: reformulationResult.hasError,
-          errorMessage: reformulationResult.errorMessage
+          errorMessage: reformulationResult.errorMessage,
+          inconsistencies: reformulationResult.inconsistencies || []
         }),
         { 
           status: 200,

@@ -11,7 +11,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Folder {
   id: string;
@@ -34,12 +35,15 @@ export function TranscriptionDialog({
   youngProfile 
 }: TranscriptionDialogProps) {
   const [transcript, setTranscript] = useState<string>("");
+  const [rawTranscript, setRawTranscript] = useState<string>("");
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasTranscriptionError, setHasTranscriptionError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [inconsistencies, setInconsistencies] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("professional");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,7 +51,7 @@ export function TranscriptionDialog({
   const currentDate = format(new Date(), "PPP 'à' HH:mm", { locale: fr });
   
   const saveTranscriptionMutation = useMutation({
-    mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
+    mutationFn: async ({ text, folderId, originalText }: { text: string; folderId: string; originalText?: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
       console.log('Has transcription error:', hasTranscriptionError);
       
@@ -63,7 +67,9 @@ export function TranscriptionDialog({
           type: hasTranscriptionError ? "transcription_error" : "transcription",
           size: new Blob([text]).size,
           path: filePath,
-          content: text // Stocker directement le contenu dans la colonne content
+          content: text, // Texte reformulé
+          // Ici, on pourrait également stocker le texte original et les incohérences
+          // si la structure de la base de données le permet
         })
         .select()
         .single();
@@ -139,18 +145,31 @@ export function TranscriptionDialog({
     },
   });
 
-  const handleTranscriptionComplete = (text: string, audioUrl: string | null, hasError: boolean = false, errorMsg: string | null = null) => {
+  const handleTranscriptionComplete = (
+    text: string, 
+    audioUrl: string | null, 
+    hasError: boolean = false, 
+    errorMsg: string | null = null,
+    detectedInconsistencies: string[] = []
+  ) => {
     setTranscript(text);
     setAudioURL(audioUrl);
     setIsTranscribing(false);
     setError(null);
     setHasTranscriptionError(hasError);
     setErrorMessage(errorMsg);
+    setInconsistencies(detectedInconsistencies || []);
+    
+    // Si nous avons reçu un texte brut et un texte traité
+    if (text && text !== rawTranscript) {
+      setRawTranscript(text); // Par défaut, mettre le même texte
+    }
   };
 
   const handleTranscriptionStart = () => {
     setIsTranscribing(true);
     setError(null);
+    setInconsistencies([]);
   };
 
   const handleSaveTranscription = () => {
@@ -184,17 +203,21 @@ export function TranscriptionDialog({
 
     saveTranscriptionMutation.mutate({ 
       text: transcript, 
-      folderId: selectedFolderId
+      folderId: selectedFolderId,
+      originalText: rawTranscript !== transcript ? rawTranscript : undefined
     });
   };
 
   const handleReset = () => {
     setTranscript("");
+    setRawTranscript("");
     setAudioURL(null);
     setSelectedFolderId("");
     setError(null);
     setHasTranscriptionError(false);
     setErrorMessage(null);
+    setInconsistencies([]);
+    setActiveTab("professional");
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -212,6 +235,7 @@ export function TranscriptionDialog({
         <DialogHeader>
           <DialogTitle>Enregistrer une observation</DialogTitle>
         </DialogHeader>
+        
         {!transcript ? (
           <VoiceRecorder 
             onTranscriptionComplete={handleTranscriptionComplete} 
@@ -231,32 +255,65 @@ export function TranscriptionDialog({
             )}
             
             {hasTranscriptionError && (
-              <Alert variant="destructive" className="border-red-500 bg-red-50">
+              <Alert variant="destructive" className="border-red-500 bg-red-50 dark:bg-red-900/20">
                 <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertTitle>Attention : Incohérences détectées</AlertTitle>
                 <AlertDescription>
-                  Attention : Cette transcription contient des incohérences ou erreurs. 
+                  {inconsistencies.length > 0 ? (
+                    <ul className="list-disc pl-4 mt-2 text-sm">
+                      {inconsistencies.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Cette transcription contient des incohérences ou erreurs.</p>
+                  )}
                   {errorMessage && <p className="mt-2 font-medium">{errorMessage}</p>}
-                  Veuillez vérifier et corriger le contenu avant de sauvegarder.
+                  <p className="mt-2">Veuillez vérifier et corriger le contenu avant de sauvegarder.</p>
                 </AlertDescription>
               </Alert>
             )}
             
-            <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
-              <CardContent className="pt-6">
-                <Textarea
-                  value={transcript}
-                  onChange={(e) => {
-                    setTranscript(e.target.value);
-                    // Keep error flag if manually edited but was previously flagged
-                    // (we don't automatically remove error state on edit)
-                  }}
-                  className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
-                    hasTranscriptionError ? 'text-red-600' : ''
-                  }`}
-                  placeholder="Votre transcription apparaîtra ici..."
-                />
-              </CardContent>
-            </Card>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full">
+                <TabsTrigger value="professional" className="flex-1">Texte professionnel</TabsTrigger>
+                {rawTranscript && rawTranscript !== transcript && (
+                  <TabsTrigger value="original" className="flex-1">Texte brut</TabsTrigger>
+                )}
+              </TabsList>
+              
+              <TabsContent value="professional">
+                <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
+                  <CardContent className="pt-6">
+                    <Textarea
+                      value={transcript}
+                      onChange={(e) => {
+                        setTranscript(e.target.value);
+                        // Keep error flag if manually edited but was previously flagged
+                      }}
+                      className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
+                        hasTranscriptionError ? 'text-red-600' : ''
+                      }`}
+                      placeholder="Votre transcription apparaîtra ici..."
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {rawTranscript && rawTranscript !== transcript && (
+                <TabsContent value="original">
+                  <Card className="neumorphic opacity-80">
+                    <CardContent className="pt-6">
+                      <Textarea
+                        value={rawTranscript}
+                        readOnly
+                        className="min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none text-muted-foreground"
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+            </Tabs>
             
             {audioURL && (
               <div className="space-y-2">

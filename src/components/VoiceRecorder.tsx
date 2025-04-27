@@ -1,13 +1,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
+import { Mic, Square, Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface VoiceRecorderProps {
-  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null) => void;
+  onTranscriptionComplete: (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: string[]) => void;
   onTranscriptionStart: () => void;
   youngProfile?: any;
 }
@@ -21,6 +21,7 @@ export function VoiceRecorder({
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inconsistencies, setInconsistencies] = useState<string[]>([]);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -70,6 +71,7 @@ export function VoiceRecorder({
       setIsRecording(true);
       setRecordingTime(0);
       setError(null);
+      setInconsistencies([]);
       
       timerRef.current = window.setInterval(() => {
         setRecordingTime(prevTime => prevTime + 1);
@@ -132,8 +134,8 @@ export function VoiceRecorder({
         }
         
         try {
-          console.log('Sending audio to transcribe function...');
-          // Call the Edge Function
+          console.log('Sending audio to transcribe function with profile data...');
+          // Call the Edge Function with young profile data
           const { data, error } = await supabase.functions.invoke('transcribe-audio', {
             body: { 
               audio: base64Audio,
@@ -151,17 +153,28 @@ export function VoiceRecorder({
           
           console.log("Transcription received:", data);
           
-          // Check for errors
+          // Check for errors and inconsistencies
           const hasError = data.hasError === true;
           const errorMessage = data.errorMessage || null;
+          const detectedInconsistencies = data.inconsistencies || [];
           
-          onTranscriptionComplete(data.text, audioUrl, hasError, errorMessage);
+          // Store inconsistencies for UI display
+          setInconsistencies(detectedInconsistencies);
+          
+          onTranscriptionComplete(
+            data.text, 
+            audioUrl, 
+            hasError, 
+            errorMessage, 
+            detectedInconsistencies
+          );
+          
           setIsProcessing(false);
           
           if (hasError) {
             toast({
               title: "Attention",
-              description: "La transcription contient possiblement des erreurs ou incohérences.",
+              description: "La transcription contient des incohérences potentielles.",
               variant: "destructive",
             });
           }
@@ -184,7 +197,13 @@ export function VoiceRecorder({
     setIsProcessing(false);
     setError('Erreur lors du traitement de l\'enregistrement.');
     
-    onTranscriptionComplete("", null, true, error instanceof Error ? error.message : "Erreur inconnue");
+    onTranscriptionComplete(
+      "", 
+      null, 
+      true, 
+      error instanceof Error ? error.message : "Erreur inconnue",
+      ["Erreur technique lors du traitement"]
+    );
     
     toast({
       title: "Erreur de transcription",
@@ -217,6 +236,20 @@ export function VoiceRecorder({
         </Alert>
       )}
       
+      {inconsistencies.length > 0 && (
+        <Alert variant="warning" className="w-full border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertTitle>Incohérences potentielles</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4 mt-2 text-sm">
+              {inconsistencies.map((inconsistency, index) => (
+                <li key={index}>{inconsistency}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="relative w-20 h-20">
         {isRecording && (
           <div className="absolute inset-0 rounded-full bg-red-100 dark:bg-red-900 animate-ping opacity-75"></div>
@@ -246,7 +279,7 @@ export function VoiceRecorder({
       {isProcessing && (
         <div className="flex flex-col items-center space-y-2">
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
-          <p className="text-sm text-muted-foreground">Transcription en cours...</p>
+          <p className="text-sm text-muted-foreground">Transcription et analyse en cours...</p>
         </div>
       )}
       
@@ -274,4 +307,3 @@ export function VoiceRecorder({
     </div>
   );
 }
-
