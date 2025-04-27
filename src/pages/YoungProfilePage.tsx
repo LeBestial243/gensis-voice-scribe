@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileHeader } from '@/components/young-profile/ProfileHeader';
 import { SearchTabs } from '@/components/young-profile/SearchTabs';
@@ -26,29 +26,39 @@ export default function YoungProfilePage() {
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const { toast } = useToast();
   const { invalidateProfile } = useQueryCache();
+  const queryClient = useQueryClient();
 
-  // Optimise le rechargement des données après des actions importantes
+  const refreshData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['young_profile', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['folders', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['files'] });
+    queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
+    queryClient.invalidateQueries({ queryKey: ['notes'] });
+  }, [profileId, queryClient]);
+
   useEffect(() => {
     const handleProfileDataChange = () => {
       if (profileId) {
-        invalidateProfile(profileId);
+        refreshData();
       }
     };
 
-    // Écouter les événements qui indiquent des modifications de données
     window.addEventListener('profile:data-changed', handleProfileDataChange);
-    
-    return () => {
-      window.removeEventListener('profile:data-changed', handleProfileDataChange);
-    };
-  }, [profileId, invalidateProfile]);
+    return () => window.removeEventListener('profile:data-changed', handleProfileDataChange);
+  }, [profileId, refreshData]);
+
+  useEffect(() => {
+    setSearchQuery('');
+    setSelectedTab('transcriptions');
+    setActiveFolderId(null);
+    setIsRecordingOpen(false);
+    setIsGenerateNoteOpen(false);
+  }, [profileId]);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['young_profile', profileId],
     queryFn: async () => {
-      if (!profileId) {
-        throw new Error('ID de profil manquant');
-      }
+      if (!profileId) throw new Error('ID de profil manquant');
 
       const { data, error } = await supabase
         .from('young_profiles')
@@ -67,6 +77,7 @@ export default function YoungProfilePage() {
       return data;
     },
     enabled: !!profileId,
+    staleTime: 5000,
   });
 
   const { data: folders = [] } = useQuery({
@@ -88,6 +99,7 @@ export default function YoungProfilePage() {
       return data;
     },
     enabled: !!profileId,
+    staleTime: 5000,
   });
 
   const folderIds = folders.map(folder => folder.id);
@@ -96,9 +108,18 @@ export default function YoungProfilePage() {
     setIsGenerateNoteOpen(true);
   }, []);
 
+  const handleCloseRecordingDialog = useCallback(() => {
+    setIsRecordingOpen(false);
+    refreshData();
+  }, [refreshData]);
+
+  const handleCloseGenerateNoteDialog = useCallback(() => {
+    setIsGenerateNoteOpen(false);
+    refreshData();
+  }, [refreshData]);
+
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
-    // Réinitialiser la recherche lors du changement d'onglet
     setSearchQuery('');
   };
 
@@ -188,16 +209,18 @@ export default function YoungProfilePage() {
       />
 
       <TranscriptionDialog
+        key={`transcription-dialog-${isRecordingOpen}`}
         open={isRecordingOpen}
-        onOpenChange={setIsRecordingOpen}
+        onOpenChange={handleCloseRecordingDialog}
         profileId={profileId}
         folders={folders}
         youngProfile={profile}
       />
 
       <GenerateNoteDialog
+        key={`generate-note-dialog-${isGenerateNoteOpen}`}
         open={isGenerateNoteOpen}
-        onOpenChange={setIsGenerateNoteOpen}
+        onOpenChange={handleCloseGenerateNoteDialog}
         profileId={profileId}
       />
     </div>
