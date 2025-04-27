@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { TemplateSelector } from "./TemplateSelector";
-import { FileSelector } from "./FileSelector";
+import { FolderSelector } from "./FolderSelector";
 import { ResultEditor } from "./ResultEditor";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +34,8 @@ export function GenerateNoteDialog({
   const {
     selectedTemplateId,
     setSelectedTemplateId,
-    selectedFiles,
-    setSelectedFiles,
+    selectedFolders,
+    setSelectedFolders,
     generatedContent,
     setGeneratedContent,
     noteTitle,
@@ -65,7 +65,7 @@ export function GenerateNoteDialog({
   }, [generatedContent, activeTab]);
 
   const handleDialogClose = (isOpen: boolean) => {
-    if (!isOpen && (generatedContent || selectedFiles.length > 0)) {
+    if (!isOpen && (generatedContent || selectedFolders.length > 0)) {
       if (confirm("Êtes-vous sûr de vouloir fermer ? Toutes les modifications seront perdues.")) {
         onOpenChange(false);
       }
@@ -74,11 +74,11 @@ export function GenerateNoteDialog({
     onOpenChange(isOpen);
   };
 
-  const handleFileSelect = (fileId: string) => {
-    if (selectedFiles.includes(fileId)) {
-      setSelectedFiles(selectedFiles.filter(id => id !== fileId));
+  const handleFolderSelect = (folderId: string) => {
+    if (selectedFolders.includes(folderId)) {
+      setSelectedFolders(selectedFolders.filter(id => id !== folderId));
     } else {
-      setSelectedFiles([...selectedFiles, fileId]);
+      setSelectedFolders([...selectedFolders, folderId]);
     }
   };
 
@@ -131,7 +131,7 @@ export function GenerateNoteDialog({
   console.log("Dialog state:", { 
     activeTab, 
     selectedTemplateId, 
-    selectedFilesCount: selectedFiles.length,
+    selectedFoldersCount: selectedFolders.length,
     generatedContent: generatedContent ? "Present" : "Not present",
     isGenerating
   });
@@ -145,7 +145,7 @@ export function GenerateNoteDialog({
             Génération de note IA
           </DialogTitle>
           <DialogDescription>
-            Utilisez l'IA pour générer une note structurée à partir de vos transcriptions
+            Utilisez l'IA pour générer une note structurée à partir de vos dossiers
           </DialogDescription>
         </DialogHeader>
 
@@ -153,9 +153,9 @@ export function GenerateNoteDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="selection" disabled={isGenerating}>
               Sélection
-              {selectedFiles.length > 0 && (
+              {selectedFolders.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {selectedFiles.length}
+                  {selectedFolders.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -175,10 +175,10 @@ export function GenerateNoteDialog({
                   />
                 </div>
                 <div className="space-y-4">
-                  <FileSelector
+                  <FolderSelector
                     profileId={profileId}
-                    selectedFiles={selectedFiles}
-                    onFileSelect={handleFileSelect}
+                    selectedFolders={selectedFolders}
+                    onFolderSelect={handleFolderSelect}
                   />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export function GenerateNoteDialog({
               </Button>
               <Button 
                 onClick={handleGenerate} 
-                disabled={!selectedTemplateId || selectedFiles.length === 0 || isGenerating}
+                disabled={!selectedTemplateId || selectedFolders.length === 0 || isGenerating}
                 className="bg-gradient-to-r from-purple-500 to-indigo-600"
               >
                 {isGenerating ? (

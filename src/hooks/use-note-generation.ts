@@ -11,7 +11,7 @@ import { useSaveNote } from "./use-save-note";
 
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]); // Changed from selectedFiles
   const [generatedContent, setGeneratedContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("Note IA - " + format(new Date(), "PPP", { locale: fr }));
   const [isGenerating, setIsGenerating] = useState(false);
@@ -19,16 +19,16 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const { toast } = useToast();
 
   const { data: profile, error: profileError } = useYoungProfile(profileId);
-  const { selectedFilesData, filesError } = useNoteFiles(selectedFiles);
+  // We're no longer using the selectedFilesData directly
   const saveNote = useSaveNote(onSuccess);
 
   const handleGenerate = async () => {
     setError(null);
     
-    if (!selectedTemplateId || selectedFiles.length === 0 || !profile) {
+    if (!selectedTemplateId || selectedFolders.length === 0 || !profile) {
       toast({
         title: "Données manquantes",
-        description: "Veuillez sélectionner un template et au moins un fichier",
+        description: "Veuillez sélectionner un template et au moins un dossier",
         variant: "destructive"
       });
       return;
@@ -47,28 +47,12 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         throw new Error(`Erreur de chargement des sections: ${sectionsError.message}`);
       }
 
-      if (!selectedFilesData || selectedFilesData.length === 0) {
-        throw new Error("Impossible de récupérer le contenu des fichiers");
-      }
-
-      const transcriptionText = selectedFilesData
-        .filter(file => file.content && !file.content.startsWith('[Erreur'))
-        .map(file => `--- ${file.name} ---\n${file.content || ''}`)
-        .join('\n\n');
-
-      if (!transcriptionText) {
-        throw new Error("Aucun contenu valide trouvé dans les fichiers sélectionnés");
-      }
-
+      // Now we pass the selectedFolders to the edge function instead of selectedFiles
       const { data, error } = await supabase.functions.invoke('generate-note', {
         body: {
           youngProfile: profile,
           templateSections,
-          selectedNotes: selectedFilesData.map(file => ({
-            id: file.id,
-            content: file.content
-          })),
-          transcriptionText
+          selectedFolders
         }
       });
 
@@ -98,7 +82,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
 
   const handleReset = () => {
     setSelectedTemplateId("");
-    setSelectedFiles([]);
+    setSelectedFolders([]); // Changed from setSelectedFiles
     setGeneratedContent("");
     setError(null);
     setNoteTitle("Note IA - " + format(new Date(), "PPP", { locale: fr }));
@@ -107,8 +91,8 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   return {
     selectedTemplateId,
     setSelectedTemplateId,
-    selectedFiles,
-    setSelectedFiles,
+    selectedFolders, // Changed from selectedFiles
+    setSelectedFolders, // Changed from setSelectedFiles
     generatedContent,
     setGeneratedContent,
     noteTitle,
@@ -116,7 +100,6 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     isGenerating,
     error,
     profileError,
-    filesError,
     handleGenerate,
     handleReset,
     saveNote,
