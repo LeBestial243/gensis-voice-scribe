@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SaveNoteParams } from "@/types/note-generation";
 
-export function useSaveNote(templateId: string | null, onSuccess?: () => void) {
+export function useSaveNote(onSuccess?: () => void) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -18,8 +18,7 @@ export function useSaveNote(templateId: string | null, onSuccess?: () => void) {
         .insert([{ 
           title, 
           content,
-          user_id: user.id,
-          template_id: templateId || null
+          user_id: user.id
         }])
         .select()
         .single();

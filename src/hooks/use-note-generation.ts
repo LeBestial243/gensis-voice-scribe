@@ -20,7 +20,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
 
   const { data: profile, error: profileError } = useYoungProfile(profileId);
   const { selectedFilesData, filesError } = useNoteFiles(selectedFiles);
-  const saveNote = useSaveNote(selectedTemplateId, onSuccess);
+  const saveNote = useSaveNote(onSuccess);
 
   const handleGenerate = async () => {
     setError(null);
