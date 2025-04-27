@@ -17,6 +17,8 @@ import { FileList } from '@/components/FileList';
 import { FolderDialog } from '@/components/FolderDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 import { FolderDisplay } from '@/components/FolderDisplay';
+import { useAccessibility } from '@/hooks/useAccessibility';
+import { useQueryCache } from '@/hooks/useQueryCache';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
@@ -26,16 +28,26 @@ export default function Profiles() {
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
   const [isGenerateNoteOpen, setIsGenerateNoteOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { setupKeyboardNavigation } = useAccessibility();
+  const { optimizeCacheConfig } = useQueryCache();
+
+  // Configure global cache settings
+  useEffect(() => {
+    optimizeCacheConfig();
+  }, [optimizeCacheConfig]);
+  
+  // Setup keyboard navigation for profile list
+  useEffect(() => {
+    setupKeyboardNavigation('profiles-container');
+  }, [setupKeyboardNavigation]);
 
   // Clear selected folder when profile changes
   useEffect(() => {
-    console.log("Profiles: Profile changed, resetting selected folder");
     setSelectedFolderId(null);
   }, [selectedProfileId]);
 
   useEffect(() => {
     if (selectedProfileId) {
-      console.log("Profiles: Selected profile changed, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['folders', selectedProfileId] });
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
     }
@@ -52,7 +64,6 @@ export default function Profiles() {
         .eq('profile_id', selectedProfileId);
 
       if (error) throw error;
-      console.log("Profiles: Fetched folders list:", data);
       return data || [];
     },
     enabled: !!selectedProfileId,
@@ -76,19 +87,21 @@ export default function Profiles() {
   });
 
   const handleFolderSelect = (folderId: string | null) => {
-    console.log("Profiles: Setting selected folder ID to", folderId, "from", selectedFolderId);
     setSelectedFolderId(folderId);
   };
 
   if (!selectedProfileId) {
     return (
-      <div className="container mx-auto py-8 px-4 pb-24">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-title">Mes profils</h1>
+      <div className="container mx-auto py-8 px-4 pb-24" id="profiles-container">
+        <div className="flex justify-between items-center mb-8" role="banner">
+          <h1 className="text-3xl font-bold text-title" tabIndex={0}>Mes profils</h1>
           <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button 
+                className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out"
+                aria-label="Créer un nouveau profil"
+              >
+                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                 Créer un profil
               </Button>
             </DialogTrigger>
@@ -109,10 +122,14 @@ export default function Profiles() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm shadow-md rounded-xl mx-4 my-2">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm shadow-md rounded-xl mx-4 my-2" role="banner">
         <div className="container flex items-center justify-between h-16">
           {selectedProfile && (
-            <h1 className="text-2xl font-bold text-title">
+            <h1 
+              className="text-2xl font-bold text-title"
+              tabIndex={0}
+              aria-label={`Profil de ${selectedProfile.first_name} ${selectedProfile.last_name}`}
+            >
               {selectedProfile.first_name} {selectedProfile.last_name}
             </h1>
           )}
@@ -122,26 +139,33 @@ export default function Profiles() {
               size="icon"
               onClick={() => setSelectedProfileId(null)}
               className="interactive"
+              aria-label="Retour à la liste des profils"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left text-accent"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left text-accent" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             </Button>
-            <Button variant="ghost" size="icon" className="interactive">
-              <Edit className="h-4 w-4 text-accent" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="interactive"
+              aria-label="Modifier le profil"
+            >
+              <Edit className="h-4 w-4 text-accent" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container py-6 space-y-6">
+      <main className="container py-6 space-y-6" role="main">
         <div className="flex justify-between items-center">
           <div className="relative flex-1 max-w-sm bg-muted rounded-xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
               type="search"
               placeholder="Rechercher un dossier..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 border-0 shadow-none bg-transparent"
+              aria-label="Rechercher un dossier"
             />
           </div>
         </div>
@@ -159,8 +183,9 @@ export default function Profiles() {
         onClick={() => setIsRecorderOpen(true)}
         className="fixed bottom-24 left-1/2 transform -translate-x-1/2 rounded-full h-16 w-16 shadow-lg flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 interactive"
         size="icon"
+        aria-label="Enregistrer un audio"
       >
-        <Mic className="h-6 w-6 text-white" />
+        <Mic className="h-6 w-6 text-white" aria-hidden="true" />
       </Button>
 
       <TranscriptionDialog 
@@ -173,10 +198,8 @@ export default function Profiles() {
       <Button
         className="fixed bottom-24 right-4 bg-gradient-to-r from-accent to-purple-700 hover:bg-purple-700 interactive text-white shadow-lg"
         size="lg"
-        onClick={() => {
-          console.log('Generate note button clicked in Profiles');
-          setIsGenerateNoteOpen(true);
-        }}
+        onClick={() => setIsGenerateNoteOpen(true)}
+        aria-label="Générer une note avec l'IA"
       >
         Générer une note IA
       </Button>

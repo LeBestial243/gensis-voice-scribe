@@ -1,155 +1,154 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileText, Clock, Edit, Download, Trash2, Eye } from "lucide-react";
-import { TranscriptionPreviewDialog } from "./TranscriptionPreviewDialog";
-import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { FileText, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useTranscriptions } from "@/hooks/useTranscriptions";
+import { TranscriptionCard } from "./young-profile/transcriptions/TranscriptionCard";
+import { CustomPagination } from "./CustomPagination";
+import type { FileData } from "@/types/files";
 
 interface TranscriptionsListProps {
   profileId: string;
+  folderId?: string | null;
   searchQuery?: string;
   folderIds?: string[];
 }
 
-export function TranscriptionsList({ profileId, searchQuery = "", folderIds = [] }: TranscriptionsListProps) {
-  const [selectedFile, setSelectedFile] = useState<any>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+const PAGE_SIZE = 5; // Number of transcriptions per page
 
-  const { data: transcriptions = [], isLoading } = useQuery({
-    queryKey: ['transcriptions', profileId, folderIds, searchQuery],
-    queryFn: async () => {
-      let query = supabase
+export function TranscriptionsList({ 
+  profileId, 
+  folderId, 
+  searchQuery = "", 
+  folderIds = [] 
+}: TranscriptionsListProps) {
+  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Get folder IDs to filter by
+  const filterFolderIds = folderId ? [folderId] : folderIds;
+  
+  const { files, isLoading, totalCount } = useTranscriptions(
+    profileId, 
+    folderId, 
+    searchQuery, 
+    {
+      page: currentPage,
+      pageSize: PAGE_SIZE
+    }
+  );
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
         .from('files')
-        .select('*')
-        .eq('type', 'transcription');
-      
-      if (folderIds.length > 0) {
-        query = query.in('folder_id', folderIds);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .delete()
+        .eq('id', id);
       
       if (error) throw error;
       
-      // Filter by search query if provided
-      const filtered = searchQuery
-        ? data.filter(file => 
-            file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (file.content && file.content.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        : data;
-        
-      return filtered;
-    },
-  });
-
-  const handleViewTranscription = (transcription: any) => {
-    setSelectedFile(transcription);
-    setPreviewOpen(true);
-  };
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "";
-    try {
-      return format(parseISO(dateStr), "d MMMM yyyy", { locale: fr });
+      toast({
+        title: "Fichier supprimé",
+        description: "Le fichier a été supprimé avec succès."
+      });
     } catch (error) {
-      return dateStr;
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le fichier.",
+        variant: "destructive"
+      });
     }
   };
 
+  const handleDownload = async (file: FileData) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('files')
+        .createSignedUrl(file.path, 60);
+        
+      if (error || !data?.signedUrl) throw error;
+      
+      const a = document.createElement('a');
+      a.href = data.signedUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Fichier téléchargé",
+        description: "Le fichier a été téléchargé avec succès."
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Une erreur s'est produite lors du téléchargement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (filterFolderIds.length === 0) {
+    return (
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
+          <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground">Aucun dossier trouvé</p>
+          <p className="text-sm text-muted-foreground">Créez d'abord un dossier pour y ajouter des fichiers</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold">Vos transcriptions</h2>
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6 flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  if (files.length === 0) {
+    return (
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
+          <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground">Aucun fichier trouvé</p>
+          {searchQuery && (
+            <p className="text-sm text-muted-foreground">Aucun résultat pour "{searchQuery}"</p>
+          )}
+          <p className="text-sm text-muted-foreground mt-2">
+            Utilisez le bouton d'enregistrement pour créer votre première transcription
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">Vos transcriptions</h2>
-      
-      {transcriptions.length === 0 ? (
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
-            <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">Aucune transcription disponible</p>
-            <p className="text-sm text-muted-foreground">Enregistrez votre voix pour créer votre première transcription</p>
-          </CardContent>
-        </Card>
-      ) : (
+    <div>
+      <ScrollArea className="max-h-[600px]">
         <div className="space-y-3">
-          {transcriptions.map((transcription) => {
-            const previewText = transcription.content 
-              ? (transcription.content.length > 150 
-                ? transcription.content.substring(0, 150) + "..." 
-                : transcription.content)
-              : "Contenu non disponible";
-              
-            return (
-              <Card key={transcription.id} className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-base">{transcription.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatDate(transcription.created_at)}</span>
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm line-clamp-2">{previewText}</p>
-                </CardContent>
-                <CardFooter className="border-t bg-muted/30 py-2 px-6">
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-medium">
-                      <span className="text-green-600 dark:text-green-400">
-                        Document complet
-                      </span>
-                    </span>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="text-xs h-auto p-0 flex items-center gap-1"
-                      onClick={() => handleViewTranscription(transcription)}
-                    >
-                      <Eye className="h-3 w-3" />
-                      Voir le document
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            );
-          })}
+          {files.map((file) => (
+            <TranscriptionCard
+              key={file.id}
+              file={file}
+              onDelete={handleDelete}
+              onDownload={handleDownload}
+            />
+          ))}
         </div>
-      )}
+      </ScrollArea>
       
-      <TranscriptionPreviewDialog 
-        file={selectedFile}
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
+      <CustomPagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
       />
     </div>
   );
