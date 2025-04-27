@@ -9,7 +9,7 @@ interface TranscriptionFormProps {
   transcript: string;
   onTranscriptChange: (text: string) => void;
   error: string | null;
-  transcriptionError: boolean;
+  hasError: boolean;
   currentDate: string;
 }
 
@@ -17,7 +17,7 @@ export function TranscriptionForm({
   transcript,
   onTranscriptChange,
   error,
-  transcriptionError,
+  hasError,
   currentDate
 }: TranscriptionFormProps) {
   return (
@@ -32,7 +32,7 @@ export function TranscriptionForm({
         </Alert>
       )}
       
-      {transcriptionError && (
+      {hasError && (
         <Alert variant="destructive" className="border-red-500">
           <AlertCircle className="h-4 w-4 mr-2" />
           <AlertDescription>
@@ -42,13 +42,13 @@ export function TranscriptionForm({
         </Alert>
       )}
       
-      <Card className={`neumorphic ${getErrorStyleClass(transcriptionError)}`}>
+      <Card className={`neumorphic ${getErrorStyleClass(hasError)}`}>
         <CardContent className="pt-6">
           <Textarea
             value={transcript}
             onChange={(e) => onTranscriptChange(e.target.value)}
             className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none
-              ${transcriptionError ? 'text-red-600' : ''}`}
+              ${hasError ? 'text-red-600' : ''}`}
             placeholder="Votre transcription apparaîtra ici..."
           />
         </CardContent>

@@ -7,6 +7,8 @@ import { FolderSelector } from "./FolderSelector";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useTranscription } from "@/hooks/use-transcription";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface Folder {
   id: string;
