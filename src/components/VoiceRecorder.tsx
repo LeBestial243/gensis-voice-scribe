@@ -38,6 +38,7 @@ export function VoiceRecorder({
   
   const startRecording = async () => {
     try {
+      console.log('Starting recording...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
@@ -73,6 +74,8 @@ export function VoiceRecorder({
         setRecordingTime(prevTime => prevTime + 1);
       }, 1000);
       
+      console.log('Recording started successfully');
+      
     } catch (error) {
       console.error('Error accessing microphone:', error);
       setError('Impossible d\'accéder au microphone. Veuillez vérifier vos permissions.');
@@ -85,8 +88,17 @@ export function VoiceRecorder({
   };
   
   const stopRecording = () => {
+    console.log('Stopping recording...', { 
+      isRecording, 
+      mediaRecorderState: mediaRecorderRef.current?.state 
+    });
+    
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping MediaRecorder:', error);
+      }
     }
     
     if (streamRef.current) {
@@ -112,6 +124,7 @@ export function VoiceRecorder({
         }
         
         try {
+          console.log('Sending audio to transcribe function...');
           // Call the Edge Function
           const { data, error } = await supabase.functions.invoke('transcribe-audio', {
             body: { 
@@ -178,6 +191,15 @@ export function VoiceRecorder({
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
+  const handleRecordButtonClick = () => {
+    console.log('Record button clicked, current state:', { isRecording });
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+  
   return (
     <div className="flex flex-col items-center space-y-4">
       {error && (
@@ -194,8 +216,9 @@ export function VoiceRecorder({
           variant={isRecording ? "destructive" : "outline"}
           size="icon"
           className={`w-20 h-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`}
-          onClick={isRecording ? stopRecording : startRecording}
+          onClick={handleRecordButtonClick}
           disabled={isProcessing}
+          type="button"
         >
           {isRecording ? (
             <Square className="w-8 h-8" />
