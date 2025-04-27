@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText } from "lucide-react";
@@ -28,6 +27,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   } = useFiles(folderId);
 
   const handleDeleteClick = (fileId: string) => {
+    console.log("Delete click for file:", fileId);
     setFileToDelete(fileId);
   };
 
@@ -37,8 +37,16 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   };
 
   const confirmDelete = () => {
+    console.log("Confirming delete for file:", fileToDelete);
     if (fileToDelete) {
       deleteFile(fileToDelete);
+      // Keep the dialog open until the deletion is complete
+      // It will be closed automatically by the onSettled callback in the mutation
+    }
+  };
+
+  const cancelDelete = () => {
+    if (!isDeleting) {
       setFileToDelete(null);
     }
   };
@@ -90,8 +98,9 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
       <DeleteDialog
         isOpen={fileToDelete !== null}
-        onClose={() => setFileToDelete(null)}
+        onClose={cancelDelete}
         onConfirm={confirmDelete}
+        isDeleting={isDeleting}
       />
 
       <RenameDialog

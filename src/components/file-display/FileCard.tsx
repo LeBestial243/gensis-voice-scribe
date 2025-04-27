@@ -42,6 +42,13 @@ export function FileCard({
     setShowPreview(true);
   };
 
+  // Ensure deletion doesn't cause event propagation issues
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete(file.id);
+  };
+
   return (
     <>
       <Card 
@@ -96,12 +103,12 @@ export function FileCard({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(file.id);
-                  }}
+                  onClick={handleDelete}
                 >
-                  Supprimer
+                  {isDeleting ? 
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 
+                    "Supprimer"
+                  }
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

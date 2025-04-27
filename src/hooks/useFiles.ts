@@ -11,24 +11,31 @@ export type FileType = {
   size: number;
   path: string;
   created_at: string;
+  content?: string | null;
 };
 
 export function useFiles(folderId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['files', folderId],
     queryFn: async () => {
+      console.log("Fetching files for folder:", folderId);
       const { data, error } = await supabase
         .from('files')
         .select('*')
         .eq('folder_id', folderId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching files:", error);
+        throw error;
+      }
+      console.log("Files fetched:", data?.length);
+      return data || [];
     },
   });
 
@@ -54,6 +61,7 @@ export function useFiles(folderId: string) {
         throw new Error("Impossible de générer le lien de téléchargement");
       }
       
+      // Create and trigger download
       const a = document.createElement('a');
       a.href = data.signedUrl;
       a.download = file.name;
@@ -79,27 +87,49 @@ export function useFiles(folderId: string) {
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const { data: fileData } = await supabase
-        .from('files')
-        .select('path')
-        .eq('id', fileId)
-        .single();
-
-      if (fileData?.path) {
-        await supabase.storage
+      console.log("Starting file deletion process for:", fileId);
+      setDeletingFileId(fileId); // Track which file is being deleted
+      
+      try {
+        // Get file path first
+        const { data: fileData } = await supabase
           .from('files')
-          .remove([fileData.path]);
+          .select('path')
+          .eq('id', fileId)
+          .single();
+
+        console.log("File data for deletion:", fileData);
+
+        // Remove from storage if path exists
+        if (fileData?.path) {
+          const { error: storageError } = await supabase.storage
+            .from('files')
+            .remove([fileData.path]);
+
+          if (storageError) {
+            console.error('Storage removal error:', storageError);
+          }
+        }
+
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('files')
+          .delete()
+          .eq('id', fileId);
+
+        if (dbError) {
+          console.error('Database deletion error:', dbError);
+          throw dbError;
+        }
+        
+        return fileId;
+      } catch (error) {
+        console.error("Complete deletion error:", error);
+        throw error;
       }
-
-      const { error: dbError } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', fileId);
-
-      if (dbError) throw dbError;
-      return fileId;
     },
-    onSuccess: () => {
+    onSuccess: (deletedFileId) => {
+      console.log("File deleted successfully:", deletedFileId);
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
       toast({ 
         title: "Fichier supprimé", 
@@ -107,12 +137,17 @@ export function useFiles(folderId: string) {
       });
     },
     onError: (error) => {
+      console.error("Delete mutation error:", error);
       toast({
         title: "Erreur lors de la suppression",
         description: error instanceof Error ? error.message : "Une erreur s'est produite",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Always clear the deleting state when operation completes (success or error)
+      setDeletingFileId(null);
+    }
   });
 
   const renameMutation = useMutation({
@@ -148,10 +183,13 @@ export function useFiles(folderId: string) {
     isLoading,
     isDownloading,
     handleDownload,
-    deleteFile: deleteMutation.mutate,
+    deleteFile: (fileId: string) => {
+      console.log("Delete file requested for:", fileId);
+      deleteMutation.mutate(fileId);
+    },
     isDeleting: deleteMutation.isPending,
+    isDeletingFile: (fileId: string) => deletingFileId === fileId,
     renameFile: renameMutation.mutate,
     isRenaming: renameMutation.isPending,
   };
 }
-
