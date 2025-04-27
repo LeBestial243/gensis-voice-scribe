@@ -18,6 +18,7 @@ import { GenerateNoteDialog } from '@/components/young-profile/generate-note/Gen
 import { FolderDisplay } from '@/components/FolderDisplay';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { useQueryCache } from '@/hooks/useQueryCache';
+import { FloatingActions } from '@/components/young-profile/FloatingActions';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
