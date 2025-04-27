@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Folder {
@@ -39,17 +39,38 @@ export function TranscriptionDialog({
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasTranscriptionError, setHasTranscriptionError] = useState<boolean>(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const currentDate = format(new Date(), "PPP 'à' HH:mm", { locale: fr });
 
+  // Détecter les erreurs potentielles dans la transcription
+  useEffect(() => {
+    if (transcript) {
+      const errorKeywords = [
+        "erreur", "incohérence", "impossible", "incorrect", "vérifier", 
+        "problème", "confusion", "incompréhensible", "mots manquants",
+        "incertain", "ne comprend pas", "inaudible", "interférence"
+      ];
+      
+      const hasError = errorKeywords.some(keyword => 
+        transcript.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      setHasTranscriptionError(hasError);
+    } else {
+      setHasTranscriptionError(false);
+    }
+  }, [transcript]);
+
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId }: { text: string; folderId: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
+      console.log('Has transcription error:', hasTranscriptionError);
       
-      const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}`;
+      const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}${hasTranscriptionError ? ' (À VÉRIFIER)' : ''}`;
       const filePath = `transcriptions/${folderId}/${Date.now()}.txt`;
       
       // 1. Insérer le fichier de métadonnées dans la base de données
@@ -58,7 +79,7 @@ export function TranscriptionDialog({
         .insert({
           folder_id: folderId,
           name: fileName,
-          type: "transcription",
+          type: hasTranscriptionError ? "transcription_error" : "transcription",
           size: new Blob([text]).size,
           path: filePath,
           content: text // Stocker directement le contenu dans la colonne content
@@ -112,7 +133,17 @@ export function TranscriptionDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', selectedFolderId] });
       queryClient.invalidateQueries({ queryKey: ['folders_file_count'] }); 
-      toast({ title: "Transcription enregistrée avec succès" });
+      
+      const message = hasTranscriptionError 
+        ? "Transcription enregistrée avec indicateur d'erreur"
+        : "Transcription enregistrée avec succès";
+        
+      toast({ 
+        title: message,
+        description: hasTranscriptionError ? "Veuillez vérifier et corriger si nécessaire" : undefined,
+        variant: hasTranscriptionError ? "destructive" : "default"
+      });
+      
       handleReset();
       onOpenChange(false);
     },
@@ -160,9 +191,17 @@ export function TranscriptionDialog({
       return;
     }
 
+    // Si une erreur de transcription est détectée, demander confirmation
+    if (hasTranscriptionError) {
+      const confirmed = confirm("Cette transcription semble contenir des erreurs ou des incohérences. Voulez-vous quand même l'enregistrer ?");
+      if (!confirmed) {
+        return;
+      }
+    }
+
     saveTranscriptionMutation.mutate({ 
       text: transcript, 
-      folderId: selectedFolderId 
+      folderId: selectedFolderId
     });
   };
 
@@ -171,6 +210,7 @@ export function TranscriptionDialog({
     setAudioURL(null);
     setSelectedFolderId("");
     setError(null);
+    setHasTranscriptionError(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -206,12 +246,24 @@ export function TranscriptionDialog({
               </Alert>
             )}
             
-            <Card className="neumorphic">
+            {hasTranscriptionError && (
+              <Alert variant="destructive" className="border-red-500 bg-red-50">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  Attention : Cette transcription semble contenir des erreurs ou des incohérences. 
+                  Veuillez vérifier le contenu avant de sauvegarder.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
               <CardContent className="pt-6">
                 <Textarea
                   value={transcript}
                   onChange={(e) => setTranscript(e.target.value)}
-                  className="min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none"
+                  className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
+                    hasTranscriptionError ? 'text-red-600' : ''
+                  }`}
                   placeholder="Votre transcription apparaîtra ici..."
                 />
               </CardContent>
@@ -227,7 +279,7 @@ export function TranscriptionDialog({
             <div className="space-y-2">
               <label className="text-sm font-medium">Sélectionner un dossier</label>
               <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-                <SelectTrigger>
+                <SelectTrigger className={hasTranscriptionError ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Choisir un dossier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,6 +303,7 @@ export function TranscriptionDialog({
               <Button 
                 onClick={handleSaveTranscription}
                 disabled={saveTranscriptionMutation.isPending || !selectedFolderId}
+                variant={hasTranscriptionError ? "destructive" : "default"}
               >
                 {saveTranscriptionMutation.isPending ? (
                   <>
@@ -258,7 +311,9 @@ export function TranscriptionDialog({
                     Enregistrement...
                   </>
                 ) : (
-                  "Valider et classer"
+                  hasTranscriptionError ? 
+                    "Valider malgré l'erreur" : 
+                    "Valider et classer"
                 )}
               </Button>
             </div>
