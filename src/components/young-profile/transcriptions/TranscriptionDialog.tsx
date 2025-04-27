@@ -1,13 +1,14 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { TranscriptionForm } from "./TranscriptionForm";
 import { AudioPreview } from "./AudioPreview";
 import { FolderSelector } from "./FolderSelector";
@@ -48,7 +49,7 @@ export function TranscriptionDialog({
     mutationFn: async ({ text, folderId, hasError }: { text: string; folderId: string; hasError: boolean }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length, 'hasError:', hasError);
       
-      const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}${hasError ? ' (ERREUR)' : ''}`;
+      const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}${hasError ? ' (À VÉRIFIER)' : ''}`;
       const filePath = `transcriptions/${folderId}/${Date.now()}.txt`;
       
       // Insérer le fichier de métadonnées dans la base de données
@@ -158,7 +159,7 @@ export function TranscriptionDialog({
 
     // Si la transcription contient une erreur, demander confirmation
     if (transcriptionError) {
-      if (!confirm("Cette transcription semble contenir des erreurs. Voulez-vous quand même la sauvegarder ?")) {
+      if (!confirm("Cette transcription semble contenir des erreurs ou des incohérences. Voulez-vous quand même la sauvegarder ?")) {
         return;
       }
     }
@@ -214,12 +215,13 @@ export function TranscriptionDialog({
               currentDate={currentDate}
             />
             
-            <AudioPreview audioURL={audioURL} />
+            <AudioPreview audioURL={audioURL} hasError={transcriptionError} />
             
             <FolderSelector
               folders={folders}
               selectedFolderId={selectedFolderId}
               onFolderSelect={setSelectedFolderId}
+              hasError={transcriptionError}
             />
             
             <div className="flex justify-end gap-2">
