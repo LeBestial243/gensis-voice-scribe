@@ -13,7 +13,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { InconsistencyCheck } from "@/types/inconsistency";
 
 interface Folder {
   id: string;
@@ -43,7 +42,7 @@ export function TranscriptionDialog({
   const [error, setError] = useState<string | null>(null);
   const [hasTranscriptionError, setHasTranscriptionError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [inconsistencies, setInconsistencies] = useState<InconsistencyCheck[]>([]);
+  const [inconsistencies, setInconsistencies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("professional");
   
   const { toast } = useToast();
@@ -151,7 +150,7 @@ export function TranscriptionDialog({
     audioUrl: string | null, 
     hasError: boolean = false, 
     errorMsg: string | null = null,
-    detectedInconsistencies: InconsistencyCheck[] = []
+    detectedInconsistencies: string[] = []
   ) => {
     setTranscript(text);
     setAudioURL(audioUrl);
@@ -263,7 +262,7 @@ export function TranscriptionDialog({
                   {inconsistencies.length > 0 ? (
                     <ul className="list-disc pl-4 mt-2 text-sm">
                       {inconsistencies.map((item, index) => (
-                        <li key={index}>{item.message}</li>
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
                   ) : (

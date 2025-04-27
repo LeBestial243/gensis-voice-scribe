@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -15,13 +16,6 @@ interface YoungProfile {
   arrival_date?: string;
   structure?: string;
   project?: string;
-}
-
-// Interface pour les vérifications d'incohérence
-interface InconsistencyCheck {
-  type: 'name' | 'date' | 'age' | 'location' | 'other';
-  message: string;
-  severity: 'error' | 'warning';
 }
 
 // Process base64 in chunks to prevent memory issues
@@ -67,31 +61,66 @@ async function validateTranscriptionCoherence(transcriptionText: string, youngPr
   const hasBasicErrors = errorKeywords.some(keyword => 
     transcriptionText.toLowerCase().includes(keyword.toLowerCase())
   );
-  
-  const inconsistencies: InconsistencyCheck[] = [];
+
+  // Vérifications contextuelles avancées si un profil est fourni
+  const inconsistencies: string[] = [];
   
   if (hasBasicErrors) {
-    inconsistencies.push({
-      type: 'other',
-      message: "Des termes indiquant des problèmes potentiels ont été détectés dans le texte",
-      severity: 'warning'
-    });
+    inconsistencies.push("Des termes indiquant des incohérences ont été détectés dans le texte");
   }
   
   // Vérification avancée avec le profil si disponible
-  if (youngProfile) {
-    try {
-      const detectedInconsistencies = detectInconsistencies(transcriptionText, youngProfile);
-      inconsistencies.push(...detectedInconsistencies);
-    } catch (error) {
-      console.error('Error detecting inconsistencies:', error);
+  if (youngProfile && Object.keys(youngProfile).length > 0) {
+    // Vérifier les mentions de dates
+    if (youngProfile.birth_date) {
+      const birthDate = new Date(youngProfile.birth_date);
+      const birthYear = birthDate.getFullYear();
+      
+      // Recherche de dates potentiellement incohérentes par rapport à l'âge
+      const yearRegex = /\b(19\d{2}|20\d{2})\b/g;
+      const mentionedYears = [...transcriptionText.matchAll(yearRegex)].map(match => parseInt(match[0]));
+      
+      mentionedYears.forEach(year => {
+        if (year < birthYear && transcriptionText.toLowerCase().includes("particip") || 
+            transcriptionText.toLowerCase().includes("présent")) {
+          inconsistencies.push(
+            `La date ${year} mentionnée est antérieure à la naissance (${birthYear})`
+          );
+        }
+      });
+    }
+    
+    // Vérification des noms (si le prénom est disponible)
+    if (youngProfile.first_name) {
+      const firstName = youngProfile.first_name;
+      // Recherche de prénoms qui semblent être utilisés pour désigner le jeune
+      const nameRegex = /\b[A-Z][a-z]{2,}\b/g;
+      const possibleNames = [...transcriptionText.matchAll(nameRegex)].map(match => match[0]);
+      
+      // Filtrer pour ne garder que les noms qui semblent être des prénoms mais ne sont pas celui du jeune
+      const commonWords = ["Le", "La", "Les", "Un", "Une", "Des", "Ce", "Cette", "Ces", "Mon", "Ma", "Mes", "Son", "Sa", "Ses"];
+      const suspiciousNames = possibleNames.filter(name => 
+        !commonWords.includes(name) && 
+        name !== firstName && 
+        name !== (youngProfile.last_name || "") && 
+        !["Monsieur", "Madame", "Mademoiselle"].includes(name)
+      );
+      
+      if (suspiciousNames.length > 0) {
+        const uniqueNames = [...new Set(suspiciousNames)];
+        if (uniqueNames.length > 0) {
+          inconsistencies.push(
+            `Noms différents de celui du jeune détectés: ${uniqueNames.join(", ")}`
+          );
+        }
+      }
     }
   }
   
   return {
     isValid: inconsistencies.length === 0,
     message: inconsistencies.length > 0 ? 
-      `La transcription présente des incohérences potentielles` : 
+      `La transcription présente des incohérences potentielles: ${inconsistencies.join(". ")}` : 
       "Transcription valide",
     inconsistencies
   };
@@ -113,86 +142,6 @@ function calculateAge(birthDateString: string): number {
   } catch (e) {
     console.error("Erreur dans le calcul de l'âge:", e);
     return 0;
-  }
-}
-
-// Fonction pour détecter les incohérences
-function detectInconsistencies(text: string, profile: YoungProfile): InconsistencyCheck[] {
-  const inconsistencies: InconsistencyCheck[] = [];
-  
-  if (!profile || !text) return inconsistencies;
-
-  try {
-    const birthDate = profile.birth_date ? new Date(profile.birth_date) : null;
-    const arrivalDate = profile.arrival_date ? new Date(profile.arrival_date) : null;
-    
-    // Détection des noms incorrects
-    const commonWords = ['jeune', 'enfant', 'adolescent', 'personne', 'il', 'elle'];
-    const words = text.split(/\s+/);
-    const properNouns = words.filter(word => 
-      /^[A-Z][a-z]+$/.test(word) && !commonWords.includes(word.toLowerCase())
-    );
-    
-    properNouns.forEach(noun => {
-      if (noun !== profile.first_name && 
-          noun !== profile.last_name && 
-          !['France', 'Paris', 'Monsieur', 'Madame'].includes(noun)) {
-        inconsistencies.push({
-          type: 'name',
-          message: `Nom différent de celui du jeune détecté: ${noun}`,
-          severity: 'warning'
-        });
-      }
-    });
-    
-    // Détection des dates incohérentes
-    const yearRegex = /\b(19|20)\d{2}\b/g;
-    const mentionedYears = text.match(yearRegex) || [];
-    
-    mentionedYears.forEach(year => {
-      const yearNum = parseInt(year);
-      if (birthDate && yearNum < birthDate.getFullYear() && text.toLowerCase().includes('arrivé')) {
-        inconsistencies.push({
-          type: 'date',
-          message: `La déclaration indique une arrivée en ${year}, ce qui est incompatible avec la date de naissance`,
-          severity: 'error'
-        });
-      }
-    });
-
-    // Vérification de la cohérence des dates d'arrivée
-    if (arrivalDate && birthDate) {
-      if (arrivalDate < birthDate) {
-        inconsistencies.push({
-          type: 'date',
-          message: `La date d'arrivée est antérieure à la date de naissance`,
-          severity: 'error'
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Error in detectInconsistencies:', error);
-    inconsistencies.push({
-      type: 'other',
-      message: `Erreur lors de l'analyse des incohérences: ${error instanceof Error ? error.message : 'erreur inconnue'}`,
-      severity: 'error'
-    });
-  }
-  
-  return inconsistencies;
-}
-
-// Fonction pour formater une date
-function formatDate(date: Date): string {
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(date);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Date invalide';
   }
 }
 
@@ -314,12 +263,8 @@ Consignes :
       text: transcriptionText, 
       raw_text: transcriptionText,
       hasError: true,
-      errorMessage: `Erreur lors de la reformulation: ${error instanceof Error ? error.message : 'erreur inconnue'}`,
-      inconsistencies: [{
-        type: 'other',
-        message: "Erreur technique lors de la reformulation",
-        severity: 'error'
-      }]
+      errorMessage: `Erreur lors de la reformulation: ${error.message}`,
+      inconsistencies: ["Erreur technique lors de la reformulation"]
     };
   }
 }
@@ -407,12 +352,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: "Aucun texte détecté dans l'enregistrement. Veuillez parler plus fort ou vous rapprocher du microphone.",
-            code: "empty_transcription",
-            inconsistencies: [{
-              type: 'other',
-              message: "Aucun texte détecté dans l'enregistrement",
-              severity: 'error'
-            }]
+            code: "empty_transcription" 
           }),
           {
             status: 200,
@@ -459,12 +399,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: "Erreur de transcription: " + (error instanceof Error ? error.message : "erreur inconnue"), 
-        code: "transcription_error",
-        inconsistencies: [{
-          type: 'other',
-          message: "Erreur technique lors de la transcription",
-          severity: 'error'
-        }]
+        code: "transcription_error"
       }),
       {
         status: 200,
