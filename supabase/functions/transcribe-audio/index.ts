@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -48,79 +47,49 @@ function processBase64Chunks(base64String: string, chunkSize = 32768) {
   return result;
 }
 
+// Add helper function for date formatting
+const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
 // Fonction pour valider la cohérence de la transcription
 async function validateTranscriptionCoherence(transcriptionText: string, youngProfile?: YoungProfile) {
-  // Liste étendue de mots-clés indiquant des problèmes potentiels
-  const errorKeywords = [
-    "incohérence", "impossible", "incorrect", "invalide", 
-    "erreur", "problème", "incompréhensible", "confusion",
-    "inaudible", "interférence", "ne comprend pas", "mots manquants",
-    "vérifier", "incomplet", "incertain"
-  ];
-  
-  const hasBasicErrors = errorKeywords.some(keyword => 
-    transcriptionText.toLowerCase().includes(keyword.toLowerCase())
-  );
+  const inconsistencies: { type: string; message: string; severity: 'error' | 'warning' }[] = [];
 
-  // Vérifications contextuelles avancées si un profil est fourni
-  const inconsistencies: string[] = [];
-  
-  if (hasBasicErrors) {
-    inconsistencies.push("Des termes indiquant des incohérences ont été détectés dans le texte");
-  }
-  
-  // Vérification avancée avec le profil si disponible
   if (youngProfile && Object.keys(youngProfile).length > 0) {
-    // Vérifier les mentions de dates
-    if (youngProfile.birth_date) {
-      const birthDate = new Date(youngProfile.birth_date);
-      const birthYear = birthDate.getFullYear();
-      
-      // Recherche de dates potentiellement incohérentes par rapport à l'âge
-      const yearRegex = /\b(19\d{2}|20\d{2})\b/g;
-      const mentionedYears = [...transcriptionText.matchAll(yearRegex)].map(match => parseInt(match[0]));
-      
-      mentionedYears.forEach(year => {
-        if (year < birthYear && transcriptionText.toLowerCase().includes("particip") || 
-            transcriptionText.toLowerCase().includes("présent")) {
-          inconsistencies.push(
-            `La date ${year} mentionnée est antérieure à la naissance (${birthYear})`
-          );
-        }
-      });
-    }
+    const birthDate = new Date(youngProfile.birth_date);
+    const yearRegex = /\b(19|20)\d{2}\b/g;
+    const mentionedYears = [...transcriptionText.matchAll(yearRegex)].map(match => parseInt(match[0]));
     
-    // Vérification des noms (si le prénom est disponible)
-    if (youngProfile.first_name) {
-      const firstName = youngProfile.first_name;
-      // Recherche de prénoms qui semblent être utilisés pour désigner le jeune
-      const nameRegex = /\b[A-Z][a-z]{2,}\b/g;
-      const possibleNames = [...transcriptionText.matchAll(nameRegex)].map(match => match[0]);
-      
-      // Filtrer pour ne garder que les noms qui semblent être des prénoms mais ne sont pas celui du jeune
-      const commonWords = ["Le", "La", "Les", "Un", "Une", "Des", "Ce", "Cette", "Ces", "Mon", "Ma", "Mes", "Son", "Sa", "Ses"];
-      const suspiciousNames = possibleNames.filter(name => 
-        !commonWords.includes(name) && 
-        name !== firstName && 
-        name !== (youngProfile.last_name || "") && 
-        !["Monsieur", "Madame", "Mademoiselle"].includes(name)
-      );
-      
-      if (suspiciousNames.length > 0) {
-        const uniqueNames = [...new Set(suspiciousNames)];
-        if (uniqueNames.length > 0) {
-          inconsistencies.push(
-            `Noms différents de celui du jeune détectés: ${uniqueNames.join(", ")}`
-          );
+    mentionedYears.forEach(year => {
+      if (year < birthDate.getFullYear()) {
+        if (transcriptionText.toLowerCase().includes('arrivé')) {
+          inconsistencies.push({
+            type: 'date',
+            message: `La déclaration indique que ${youngProfile.first_name} ${youngProfile.last_name} est arrivé en ${year}, ce qui est incompatible avec sa date de naissance, le ${formatDate(birthDate)}`,
+            severity: 'error'
+          });
+        }
+        
+        if (transcriptionText.toLowerCase().includes('marié')) {
+          inconsistencies.push({
+            type: 'date',
+            message: `La déclaration indique un mariage en ${year}, ce qui est impossible car ${youngProfile.first_name} est né(e) en ${birthDate.getFullYear()}`,
+            severity: 'error'
+          });
         }
       }
-    }
+    });
   }
-  
+
   return {
     isValid: inconsistencies.length === 0,
     message: inconsistencies.length > 0 ? 
-      `La transcription présente des incohérences potentielles: ${inconsistencies.join(". ")}` : 
+      `La transcription présente des incohérences temporelles: ${inconsistencies.map(i => i.message).join(". ")}` : 
       "Transcription valide",
     inconsistencies
   };
@@ -177,12 +146,12 @@ async function reformulateTranscription(transcriptionText: string, youngProfile?
 Ta mission est de transformer une transcription vocale en une note professionnelle structurée.
 
 RÈGLES IMPÉRATIVES :
-1. Utilise un vocabulaire professionnel de l'éducation spécialisée
-2. Structure le texte avec des paragraphes clairs
-3. Corrige toute incohérence ou erreur de langage
-4. Si le contenu est incohérent, signale-le clairement avec "[INCOHÉRENCE DÉTECTÉE]" au début et explique pourquoi
-5. Maintiens un ton neutre et factuel
-6. Organise les informations de manière logique et chronologique
+1. Si l'orateur dit "le jeune", "il", "elle", "l'enfant", "l'adolescent" sans mentionner de nom, c'est TOUJOURS ${youngProfile?.first_name} dont on parle
+2. Ne signale PAS d'incohérence si d'autres noms sont mentionnés (ils peuvent être des amis, de la famille, etc.)
+3. Corrige les erreurs de grammaire et de syntaxe
+4. Structure le texte avec des paragraphes clairs
+5. Utilise un vocabulaire professionnel de l'éducation spécialisée
+6. Garde le sens original mais améliore la formulation
 
 STYLE D'ÉCRITURE :
 - Phrases courtes et précises
@@ -193,10 +162,8 @@ STYLE D'ÉCRITURE :
 🔎 Informations sur le jeune concerné :
 - Prénom : ${youngProfile?.first_name || 'Non renseigné'}
 - Nom : ${youngProfile?.last_name || 'Non renseigné'}
-- Âge : ${age} ans
 - Date de naissance : ${youngProfile?.birth_date || 'Non renseignée'}
-- Structure : ${youngProfile?.structure || 'Non renseignée'}
-- Projet éducatif : ${youngProfile?.project || 'Non renseigné'}`;
+- Structure : ${youngProfile?.structure || 'Non renseignée'}`;
 
     console.log('System prompt:', systemPrompt);
 
