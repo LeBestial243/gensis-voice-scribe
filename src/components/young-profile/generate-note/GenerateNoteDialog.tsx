@@ -127,7 +127,7 @@ export function GenerateNoteDialog({
     }
   };
 
-  // Ajouter des logs de débogage pour identifier le problème
+  // Logs de débogage pour identifier le problème
   console.log("Dialog state:", { 
     activeTab, 
     selectedTemplateId, 
@@ -138,7 +138,7 @@ export function GenerateNoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -149,7 +149,7 @@ export function GenerateNoteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="selection" disabled={isGenerating}>
               Sélection
@@ -165,37 +165,39 @@ export function GenerateNoteDialog({
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="selection" className="flex-1">
-            <div className="grid md:grid-cols-2 gap-6 overflow-hidden mt-4">
-              <div className="space-y-4 overflow-y-auto">
-                <TemplateSelector
-                  selectedTemplateId={selectedTemplateId}
-                  onTemplateSelect={setSelectedTemplateId}
-                />
+          <div className="overflow-y-auto flex-1 my-4">
+            <TabsContent value="selection" className="h-full">
+              <div className="grid md:grid-cols-2 gap-6 overflow-hidden">
+                <div className="space-y-4">
+                  <TemplateSelector
+                    selectedTemplateId={selectedTemplateId}
+                    onTemplateSelect={setSelectedTemplateId}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <FileSelector
+                    profileId={profileId}
+                    selectedFiles={selectedFiles}
+                    onFileSelect={handleFileSelect}
+                  />
+                </div>
               </div>
-              <div className="space-y-4 overflow-y-auto">
-                <FileSelector
-                  profileId={profileId}
-                  selectedFiles={selectedFiles}
-                  onFileSelect={handleFileSelect}
+            </TabsContent>
+            
+            <TabsContent value="editing" className="h-full">
+              {generatedContent && (
+                <ResultEditor
+                  noteTitle={noteTitle}
+                  onTitleChange={setNoteTitle}
+                  generatedContent={generatedContent}
+                  onContentChange={setGeneratedContent}
                 />
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="editing" className="flex-1 mt-4">
-            {generatedContent && (
-              <ResultEditor
-                noteTitle={noteTitle}
-                onTitleChange={setNoteTitle}
-                generatedContent={generatedContent}
-                onContentChange={setGeneratedContent}
-              />
-            )}
-          </TabsContent>
+              )}
+            </TabsContent>
+          </div>
         </Tabs>
 
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t sticky bottom-0 bg-white z-10">
           {activeTab === "selection" ? (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
