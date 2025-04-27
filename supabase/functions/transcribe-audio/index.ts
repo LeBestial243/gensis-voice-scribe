@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -36,9 +37,30 @@ function processBase64Chunks(base64String: string, chunkSize = 32768) {
   return result;
 }
 
+function calculateAge(birthDate: string) {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const month = today.getMonth() - birth.getMonth();
+  
+  if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
 async function reformulateWithGPT4(text: string, youngProfile: any) {
   try {
+    // Check if youngProfile is provided
+    if (!youngProfile) {
+      console.log('No young profile provided for reformulation, returning original text');
+      return text;
+    }
+    
     const age = calculateAge(youngProfile.birth_date);
+    
+    console.log('Reformulating with GPT-4 for:', youngProfile.first_name);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -78,7 +100,10 @@ Tu aides à transformer une transcription vocale en une note professionnelle cla
     });
 
     if (!response.ok) {
-      throw new Error(`GPT-4 API error: ${await response.text()}`);
+      console.error(`GPT-4 API error status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`GPT-4 API error: ${errorText}`);
+      return null; // Fallback to original text
     }
 
     const result = await response.json();
@@ -89,32 +114,26 @@ Tu aides à transformer une transcription vocale en une note professionnelle cla
   }
 }
 
-function calculateAge(birthDate: string) {
-  const today = new Date();
-  const birth = new Date(birthDate);
-  let age = today.getFullYear() - birth.getFullYear();
-  const month = today.getMonth() - birth.getMonth();
-  
-  if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-  
-  return age;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { audio, youngProfile } = await req.json()
+    // Parse the request body
+    const requestBody = await req.json();
+    const { audio, youngProfile } = requestBody;
     
-    if (!audio || !youngProfile) {
+    console.log('Request received with audio data and profile:', 
+      audio ? `Audio length: ${audio.length}` : 'No audio',
+      youngProfile ? `Profile: ${youngProfile.first_name}` : 'No profile'
+    );
+    
+    if (!audio) {
       return new Response(
         JSON.stringify({ 
-          error: !audio ? "No audio data provided" : "No profile data provided",
-          code: !audio ? "missing_audio" : "missing_profile"
+          error: "No audio data provided",
+          code: "missing_audio"
         }),
         {
           status: 400,
@@ -187,12 +206,23 @@ serve(async (req) => {
         )
       }
 
-      // Reformulate with GPT-4
-      console.log('Reformulating with GPT-4...')
-      const reformulatedText = await reformulateWithGPT4(result.text, youngProfile)
-
-      // Use reformulated text if available, otherwise fallback to original
-      const finalText = reformulatedText || result.text
+      // Reformulate with GPT-4 if youngProfile is provided
+      let finalText = result.text;
+      if (youngProfile) {
+        console.log('Reformulating with GPT-4...')
+        const reformulatedText = await reformulateWithGPT4(result.text, youngProfile)
+        
+        // Use reformulated text if available, otherwise fallback to original
+        if (reformulatedText) {
+          finalText = reformulatedText;
+          console.log('Using reformulated text');
+        } else {
+          console.log('Reformulation failed, using original text');
+        }
+      } else {
+        console.log('No young profile provided, skipping reformulation');
+      }
+      
       console.log('Final text:', finalText)
 
       return new Response(

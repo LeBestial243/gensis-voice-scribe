@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle } from "lucide-react";
@@ -6,13 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, audioURL: string | null) => void;
   onTranscriptionStart: () => void;
+  profileId?: string;
 }
 
-export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }: VoiceRecorderProps) {
+export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart, profileId }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -25,7 +26,27 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
 
-  // Clean up on unmount
+  const { data: youngProfile } = useQuery({
+    queryKey: ['young_profile', profileId],
+    queryFn: async () => {
+      if (!profileId) return null;
+      
+      const { data, error } = await supabase
+        .from('young_profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!profileId
+  });
+
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -40,12 +61,9 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     };
   }, [isRecording, audioURL]);
 
-  // Check microphone permission
   const checkMicrophonePermission = async () => {
     try {
-      // Just check if we can get the stream without actually using it
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Clean up the stream right away
       stream.getTracks().forEach(track => track.stop());
       setMicPermission(true);
       setError(null);
@@ -64,10 +82,8 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
   };
 
   const startRecording = async () => {
-    // Reset any previous errors
     setError(null);
     
-    // First, check if we have permission
     const hasPermission = await checkMicrophonePermission();
     if (!hasPermission) return;
     
@@ -125,7 +141,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         }
       };
       
-      // Error event handler for mediaRecorder
       mediaRecorder.addEventListener('error', (e) => {
         console.error("MediaRecorder error:", e);
         const errorMessage = "Erreur avec l'enregistreur: " + (e instanceof Error ? e.message : "erreur inconnue");
@@ -144,7 +159,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         });
       });
       
-      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorder.start(1000);
       console.log("MediaRecorder started");
       setIsRecording(true);
       setRecordingTime(0);
@@ -168,7 +183,7 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       });
     }
   };
-  
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       try {
@@ -201,7 +216,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       return;
     }
     
-    // Reset any previous errors
     setError(null);
     setIsProcessing(true);
     onTranscriptionStart();
@@ -244,9 +258,8 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       reader.readAsDataURL(blob);
       const base64Audio = await base64Promise;
 
-      console.log("Invoking transcribe-audio function...");
+      console.log("Invoking transcribe-audio function with profile:", youngProfile ? "provided" : "not provided");
       
-      // Adding retries for better reliability
       let attempts = 0;
       const maxAttempts = 3;
       let result = null;
@@ -255,7 +268,10 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       while (attempts < maxAttempts) {
         try {
           const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-            body: { audio: base64Audio }
+            body: { 
+              audio: base64Audio,
+              youngProfile: youngProfile
+            }
           });
 
           console.log("Function response received:", { data, error });
@@ -266,16 +282,15 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
           }
           
           result = data;
-          break; // Success, exit the retry loop
+          break;
         } catch (retryError) {
           attempts++;
           console.warn(`Attempt ${attempts}/${maxAttempts} failed:`, retryError);
           
           if (attempts >= maxAttempts) {
-            throw retryError; // Re-throw the last error if we've reached max attempts
+            throw retryError;
           }
           
-          // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
         }
       }
@@ -287,7 +302,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
       }
 
       if (result.error) {
-        // Handle specific error codes
         if (result.code === 'insufficient_quota') {
           throw new Error("Le quota OpenAI est dépassé. Veuillez vérifier le plan et les détails de facturation.");
         } else if (result.code === 'missing_api_key') {
@@ -324,7 +338,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
         variant: "destructive",
       });
       
-      // Send a blank transcription to move the UI forward even with an error
       onTranscriptionComplete("", audioURL);
     }
   };
@@ -335,7 +348,6 @@ export function VoiceRecorder({ onTranscriptionComplete, onTranscriptionStart }:
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
-  // Request microphone permission when component mounts
   useEffect(() => {
     checkMicrophonePermission();
   }, []);

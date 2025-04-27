@@ -32,6 +32,21 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: profile } = useQuery({
+    queryKey: ['young_profile', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('young_profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId,
+  });
+
   const { data: folders = [] } = useQuery({
     queryKey: ['folders', profileId],
     queryFn: async () => {
@@ -176,7 +191,10 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
       const base64Audio = await base64Promise;
 
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: base64Audio }
+        body: { 
+          audio: base64Audio,
+          youngProfile: profile
+        }
       });
 
       if (error) {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -171,6 +170,7 @@ export function TranscriptionDialog({
             <VoiceRecorder 
               onTranscriptionComplete={handleTranscriptionComplete} 
               onTranscriptionStart={handleTranscriptionStart}
+              profileId={profileId}
             />
           </>
         ) : (
