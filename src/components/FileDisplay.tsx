@@ -24,14 +24,21 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     isDeleting,
     renameFile,
     isRenaming,
+    isDeletingFile
   } = useFiles(folderId);
 
-  const handleDeleteClick = (fileId: string) => {
+  const handleDeleteClick = (fileId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     console.log("Delete click for file:", fileId);
     setFileToDelete(fileId);
   };
 
-  const handleRenameClick = (file: FileType) => {
+  const handleRenameClick = (file: FileType, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     setFileToRename(file);
     setNewFileName(file.name);
   };
@@ -41,7 +48,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     if (fileToDelete) {
       deleteFile(fileToDelete);
       // Keep the dialog open until the deletion is complete
-      // It will be closed automatically by the onSettled callback in the mutation
+      // It will be closed by the onSettled callback in the mutation
     }
   };
 
@@ -54,6 +61,12 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   const confirmRename = () => {
     if (fileToRename && newFileName.trim()) {
       renameFile({ fileId: fileToRename.id, newName: newFileName.trim() });
+      // Dialog will be closed by the handleRenameComplete callback
+    }
+  };
+
+  const handleRenameComplete = () => {
+    if (!isRenaming) {
       setFileToRename(null);
       setNewFileName("");
     }
@@ -87,7 +100,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
               key={file.id}
               file={file}
               isDownloading={isDownloading === file.id}
-              isDeleting={isDeleting}
+              isDeleting={isDeletingFile(file.id)}
               onDownload={handleDownload}
               onDelete={handleDeleteClick}
               onRename={handleRenameClick}
@@ -105,7 +118,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
 
       <RenameDialog
         isOpen={fileToRename !== null}
-        onClose={() => setFileToRename(null)}
+        onClose={handleRenameComplete}
         onConfirm={confirmRename}
         newFileName={newFileName}
         onNewFileNameChange={setNewFileName}

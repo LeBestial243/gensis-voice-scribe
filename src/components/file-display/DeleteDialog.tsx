@@ -20,12 +20,15 @@ interface DeleteDialogProps {
 
 export function DeleteDialog({ isOpen, onClose, onConfirm, isDeleting }: DeleteDialogProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => {
-      // Only allow closing the dialog if we're not currently deleting
-      if (!isDeleting || !open) {
-        onClose();
-      }
-    }}>
+    <AlertDialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only allow dialog to be closed if we're not in the middle of deleting
+        if (!open && !isDeleting) {
+          onClose();
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
@@ -34,10 +37,11 @@ export function DeleteDialog({ isOpen, onClose, onConfirm, isDeleting }: DeleteD
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose} disabled={isDeleting}>Annuler</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
           <AlertDialogAction 
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation(); // Stop any potential event propagation
               onConfirm();
             }} 
             className="bg-destructive text-destructive-foreground"
