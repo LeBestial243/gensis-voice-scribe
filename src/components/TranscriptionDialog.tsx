@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InconsistenciesAlert } from "@/components/InconsistenciesAlert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Folder {
@@ -231,138 +232,104 @@ export function TranscriptionDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Enregistrer une observation</DialogTitle>
         </DialogHeader>
         
-        {!transcript ? (
-          <VoiceRecorder 
-            onTranscriptionComplete={handleTranscriptionComplete} 
-            onTranscriptionStart={handleTranscriptionStart}
-            youngProfile={youngProfile}
-          />
-        ) : (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">Transcription</h3>
-            <p className="text-sm text-muted-foreground">{currentDate}</p>
-            
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {hasTranscriptionError && (
-              <Alert variant="destructive" className="border-red-500 bg-red-50 dark:bg-red-900/20">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <AlertTitle>Attention : Incohérences détectées</AlertTitle>
-                <AlertDescription>
-                  {inconsistencies.length > 0 ? (
-                    <ul className="list-disc pl-4 mt-2 text-sm">
-                      {inconsistencies.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>Cette transcription contient des incohérences ou erreurs.</p>
-                  )}
-                  {errorMessage && <p className="mt-2 font-medium">{errorMessage}</p>}
-                  <p className="mt-2">Veuillez vérifier et corriger le contenu avant de sauvegarder.</p>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full">
-                <TabsTrigger value="professional" className="flex-1">Texte professionnel</TabsTrigger>
-                {rawTranscript && rawTranscript !== transcript && (
-                  <TabsTrigger value="original" className="flex-1">Texte brut</TabsTrigger>
-                )}
-              </TabsList>
+        <div className="flex-1 overflow-y-auto">
+          {!transcript ? (
+            <VoiceRecorder 
+              onTranscriptionComplete={handleTranscriptionComplete} 
+              onTranscriptionStart={handleTranscriptionStart}
+              youngProfile={youngProfile}
+            />
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold">Transcription</h3>
+              <p className="text-sm text-muted-foreground">{currentDate}</p>
               
-              <TabsContent value="professional">
-                <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
-                  <CardContent className="pt-6">
-                    <Textarea
-                      value={transcript}
-                      onChange={(e) => {
-                        setTranscript(e.target.value);
-                        // Keep error flag if manually edited but was previously flagged
-                      }}
-                      className={`min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
-                        hasTranscriptionError ? 'text-red-600' : ''
-                      }`}
-                      placeholder="Votre transcription apparaîtra ici..."
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {rawTranscript && rawTranscript !== transcript && (
-                <TabsContent value="original">
-                  <Card className="neumorphic opacity-80">
-                    <CardContent className="pt-6">
-                      <Textarea
-                        value={rawTranscript}
-                        readOnly
-                        className="min-h-[150px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none text-muted-foreground"
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Tabs>
-            
-            {audioURL && (
+              
+              {hasTranscriptionError && (
+                <InconsistenciesAlert 
+                  inconsistencies={inconsistencies?.map(msg => ({
+                    type: 'other',
+                    message: msg,
+                    severity: 'warning'
+                  }))} 
+                />
+              )}
+              
+              <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
+                <CardContent className="pt-6">
+                  <Textarea
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    className={`min-h-[150px] max-h-[300px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
+                      hasTranscriptionError ? 'text-red-600' : ''
+                    }`}
+                    placeholder="Votre transcription apparaîtra ici..."
+                  />
+                </CardContent>
+              </Card>
+              
+              {audioURL && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Écouter l'enregistrement</p>
+                  <audio controls src={audioURL} className="w-full" />
+                </div>
+              )}
+              
               <div className="space-y-2">
-                <p className="text-sm font-medium">Écouter l'enregistrement</p>
-                <audio controls src={audioURL} className="w-full" />
+                <label className="text-sm font-medium">Sélectionner un dossier</label>
+                <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+                  <SelectTrigger className={hasTranscriptionError ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Choisir un dossier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sélectionner un dossier</label>
-              <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-                <SelectTrigger className={hasTranscriptionError ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Choisir un dossier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {folder.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={handleReset}
-                disabled={saveTranscriptionMutation.isPending}
-              >
-                Annuler
-              </Button>
-              <Button 
-                onClick={handleSaveTranscription}
-                disabled={saveTranscriptionMutation.isPending || !selectedFolderId}
-                variant={hasTranscriptionError ? "destructive" : "default"}
-              >
-                {saveTranscriptionMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  hasTranscriptionError ? 
-                    "Valider malgré l'erreur" : 
-                    "Valider et classer"
-                )}
-              </Button>
-            </div>
+          )}
+        </div>
+        
+        {transcript && (
+          <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={handleReset}
+              disabled={saveTranscriptionMutation.isPending}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleSaveTranscription}
+              disabled={saveTranscriptionMutation.isPending || !selectedFolderId}
+              variant={hasTranscriptionError ? "destructive" : "default"}
+            >
+              {saveTranscriptionMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                hasTranscriptionError ? 
+                  "Valider malgré l'erreur" : 
+                  "Valider et classer"
+              )}
+            </Button>
           </div>
         )}
       </DialogContent>
