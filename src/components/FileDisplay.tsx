@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText } from "lucide-react";
@@ -25,6 +26,11 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
     renameFile,
     isRenaming,
   } = useFiles(folderId);
+
+  // Debug logs
+  console.log("FileDisplay: Rendering for folder", folderId);
+  console.log("FileDisplay: Files loaded", files?.length || 0, "files");
+  console.log("FileDisplay: Loading status", isLoading);
 
   const handleDeleteClick = (fileId: string) => {
     console.log("Delete click for file:", fileId);

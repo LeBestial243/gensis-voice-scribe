@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle, AlertCircle } from "lucide-react";
@@ -113,7 +112,6 @@ export function VoiceRecorder({
       streamRef.current = null;
     }
 
-    // Ensure state is updated even if there was an error
     setIsRecording(false);
   };
   
@@ -122,7 +120,6 @@ export function VoiceRecorder({
       setIsProcessing(true);
       onTranscriptionStart();
       
-      // Convert blob to base64
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       
@@ -135,7 +132,6 @@ export function VoiceRecorder({
         
         try {
           console.log('Sending audio to transcribe function with profile data...');
-          // Call the Edge Function with young profile data
           const { data, error } = await supabase.functions.invoke('transcribe-audio', {
             body: { 
               audio: base64Audio,
@@ -153,12 +149,10 @@ export function VoiceRecorder({
           
           console.log("Transcription received:", data);
           
-          // Check for errors and inconsistencies
           const hasError = data.hasError === true;
           const errorMessage = data.errorMessage || null;
           const detectedInconsistencies = data.inconsistencies || [];
           
-          // Store inconsistencies for UI display
           setInconsistencies(detectedInconsistencies);
           
           onTranscriptionComplete(
@@ -237,7 +231,7 @@ export function VoiceRecorder({
       )}
       
       {inconsistencies.length > 0 && (
-        <Alert variant="warning" className="w-full border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+        <Alert variant="default" className="w-full border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
           <AlertCircle className="h-4 w-4 mr-2" />
           <AlertTitle>Incohérences potentielles</AlertTitle>
           <AlertDescription>

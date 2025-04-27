@@ -117,6 +117,7 @@ export function FolderDisplay({
 
   const uploadFile = useMutation({
     mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
+      console.log("FolderDisplay: Starting file upload for folder", folderId);
       const fileName = file.name;
       const filePath = `${folderId}/${Date.now()}_${fileName}`;
       
@@ -125,7 +126,7 @@ export function FolderDisplay({
         .upload(filePath, file);
   
       if (storageError) {
-        console.error('Error uploading to storage:', storageError);
+        console.error('FolderDisplay: Error uploading to storage:', storageError);
         
         if (file.type.includes('text') || file.size < 100000) {
           console.log("FolderDisplay: Fallback to storing as text content");
@@ -145,7 +146,7 @@ export function FolderDisplay({
             .single();
             
           if (dbError) {
-            console.error('Error storing file as text:', dbError);
+            console.error('FolderDisplay: Error storing file as text:', dbError);
             throw dbError;
           }
           
@@ -171,7 +172,7 @@ export function FolderDisplay({
         .single();
         
       if (error) {
-        console.error('Error creating file record:', error);
+        console.error('FolderDisplay: Error creating file record:', error);
         throw error;
       }
       
@@ -181,6 +182,9 @@ export function FolderDisplay({
     onSuccess: () => {
       console.log("FolderDisplay: File upload successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['files'] });
+      if (uploadFolderId) {
+        queryClient.invalidateQueries({ queryKey: ['files', uploadFolderId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
       refetchFolderCounts();
       
@@ -189,6 +193,7 @@ export function FolderDisplay({
         description: "Le fichier a été téléchargé avec succès" 
       });
       setFileToUpload(null);
+      setUploadFolderId(null);
       setIsUploadOpen(false);
     },
     onError: (error) => {
@@ -224,6 +229,7 @@ export function FolderDisplay({
       return;
     }
     
+    console.log("FolderDisplay: Uploading file", fileToUpload.name, "to folder", uploadFolderId);
     uploadFile.mutate({ file: fileToUpload, folderId: uploadFolderId });
   };
 
@@ -231,6 +237,7 @@ export function FolderDisplay({
     if (event) {
       event.stopPropagation();
     }
+    console.log("FolderDisplay: Opening upload dialog for folder", folderId);
     setUploadFolderId(folderId);
     setIsUploadOpen(true);
   };

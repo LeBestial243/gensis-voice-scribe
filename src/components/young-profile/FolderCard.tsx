@@ -26,8 +26,12 @@ export function FolderCard({
   onToggle,
   onUploadClick 
 }: FolderCardProps) {
+  // Debug logs
+  console.log(`FolderCard rendering: folder=${folder.id}, isActive=${isActive}, fileCount=${fileCount}`);
+  
   const handleUploadClick = (event: React.MouseEvent) => {
     event.stopPropagation();
+    console.log("Upload clicked for folder:", folder.id);
     onUploadClick(folder.id, event);
   };
 
@@ -89,6 +93,7 @@ export function FolderCard({
           </div>
           
           <div className="mt-4 overflow-auto">
+            {/* Only render FileDisplay if the folder is active */}
             <FileDisplay folderId={folder.id} />
           </div>
         </CardContent>
