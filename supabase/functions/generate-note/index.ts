@@ -58,7 +58,7 @@ function generatePromptFromNotes({
   const age = calculateAge(youngProfile.birth_date);
 
   const header = `
-Tu es un assistant d'écriture destiné aux professionnels du secteur éducatif. Tu aides à générer une note structurée, claire et synthétique à partir d'observations déjà formalisées et stockées.
+Tu es un assistant d'écriture destiné aux professionnels du secteur éducatif. Tu aides à générer une note STRUCTURÉE en suivant EXACTEMENT le template fourni.
 
 🔎 Profil du jeune :
 - Prénom : ${youngProfile.first_name}
@@ -76,26 +76,58 @@ ${selectedNotes.map((n) => `• ${n.content}`).join('\n')}
 `;
 
   const structure = sections && sections.length > 0 ? `
-🧩 Structure attendue de la note finale :
+🧩 STRUCTURE OBLIGATOIRE À RESPECTER :
+
+Tu dois OBLIGATOIREMENT suivre cette structure pour la note finale. Chaque section doit être présente dans l'ordre exact ci-dessous :
 
 ${sections
   .sort((a, b) => a.order_index - b.order_index)
   .map((section, i) =>
-    `${i + 1}. ${section.title}\n> ${section.instructions || 'Aucune instruction spécifique.'}`)
+    `${i + 1}. ${section.title}\n-------------------\n${section.instructions ? `Instructions spécifiques : ${section.instructions}` : 'Développe cette section en utilisant les notes fournies.'}\n`)
   .join('\n\n')}
 ` : `
-🧩 Structure attendue de la note finale :
-- Introduction
-- Observations principales
-- Analyse
-- Conclusion et recommandations
+🧩 STRUCTURE OBLIGATOIRE À RESPECTER :
+
+Tu dois OBLIGATOIREMENT suivre cette structure pour la note finale :
+
+1. Introduction
+-------------------
+Présente la situation et le contexte
+
+2. Observations principales
+-------------------
+Résume les points clés des observations
+
+3. Analyse
+-------------------
+Propose une analyse des éléments observés
+
+4. Conclusion et recommandations
+-------------------
+Synthétise et propose des pistes d'action
 `;
 
   const guidelines = `
-✍️ Consignes pour l'IA :
-- Reformuler intelligemment, ne jamais copier/coller
-- Respecter l'ordre et l'intention pédagogique des sections
-- Employer un ton professionnel, neutre et synthétique
+✍️ CONSIGNES IMPÉRATIVES :
+1. Tu DOIS créer une section pour CHAQUE titre listé ci-dessus
+2. Chaque section DOIT commencer par son titre exact suivi d'une ligne de séparation
+3. Ne JAMAIS omettre une section, même si peu d'informations sont disponibles
+4. Si une section manque d'informations, indique "Informations insuffisantes pour cette section"
+5. Reformuler intelligemment, ne jamais copier/coller
+6. Employer un ton professionnel, neutre et synthétique
+7. Utiliser les informations des notes pour remplir les sections appropriées
+
+FORMAT ATTENDU :
+=============
+[Titre de section 1]
+-------------------
+[Contenu de la section 1]
+
+[Titre de section 2]
+-------------------
+[Contenu de la section 2]
+
+etc.
 `;
 
   return `${header}\n${corpus}\n${structure}\n${guidelines}`;
@@ -137,6 +169,15 @@ serve(async (req) => {
 
     console.log("Longueur du prompt système:", systemPrompt.length);
 
+    // Ajout d'instructions plus strictes pour GPT-4o
+    const userPrompt = transcriptionText ?
+      'Génère une note professionnelle reformulée à partir de ces informations.' :
+      `Génère une note structurée en respectant EXACTEMENT la structure du template fourni.
+      
+      TRÈS IMPORTANT : Tu DOIS créer une section pour CHAQUE titre du template, dans l'ordre exact.
+      Chaque section doit commencer par son titre exact suivi d'une ligne de séparation.
+      NE PAS omettre de sections, même si peu d'informations sont disponibles.`;
+
     // Call the OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -148,9 +189,12 @@ serve(async (req) => {
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Génère une note structurée à partir de ces informations.' }
+          { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Réduit pour plus de précision
+        max_tokens: 2000,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1
       }),
     });
 
