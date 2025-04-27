@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
@@ -61,6 +62,7 @@ async function callAIModel(prompt: string) {
 interface FileContent {
   content: string;
   folderName: string;
+  name?: string;
 }
 
 interface Section {
@@ -71,24 +73,40 @@ interface Section {
 }
 
 const processSection = async (section: Section, fileContents: FileContent[]): Promise<string> => {
+  // Nettoyage plus agressif des noms pour la comparaison
   const sectionTitle = section.title.toLowerCase()
-    .replace(/[0-9]/g, '')
-    .replace(/[.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/g, '')
+    .replace(/[^a-zà-ÿ\s]/g, '') // Garde uniquement les lettres et espaces
     .trim();
   
-  console.log(`Processing section: ${sectionTitle}`);
+  console.log(`=== Processing section: "${section.title}" (normalized: "${sectionTitle}") ===`);
 
+  // Cherche les fichiers pertinents basés sur le nom du dossier
   const relevantFiles = fileContents.filter(file => {
+    // Nettoyage similaire pour le nom du dossier
     const folderName = file.folderName.toLowerCase()
-      .replace(/[0-9]/g, '')
-      .replace(/[.,!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/g, '')
+      .replace(/[^a-zà-ÿ\s]/g, '') // Garde uniquement les lettres et espaces
       .trim();
     
     console.log(`Comparing section "${sectionTitle}" with folder "${folderName}"`);
-    return sectionTitle === folderName || sectionTitle.includes(folderName) || folderName.includes(sectionTitle);
+    
+    // Comparaison plus flexible
+    const isMatch = sectionTitle === folderName || 
+                   sectionTitle.includes(folderName) || 
+                   folderName.includes(sectionTitle) ||
+                   (sectionTitle.split(' ').some(word => folderName.includes(word) && word.length > 3)); // Pour les mots significatifs
+    
+    if (isMatch) {
+      console.log(`MATCH FOUND: Section "${sectionTitle}" matches folder "${folderName}"`);
+    }
+    
+    return isMatch;
   });
 
-  console.log(`Found ${relevantFiles.length} relevant files for section ${sectionTitle}`);
+  console.log(`Found ${relevantFiles.length} relevant files for section "${section.title}"`);
+  
+  if (relevantFiles.length > 0) {
+    console.log(`Files found:`, relevantFiles.map(f => ({ name: f.name, folder: f.folderName })));
+  }
 
   if (relevantFiles.length === 0) {
     return `Pas d'information disponible pour cette section`;
@@ -99,7 +117,11 @@ const processSection = async (section: Section, fileContents: FileContent[]): Pr
     .map(file => file.content)
     .join('\n\n');
 
-  return relevantContent || `Pas d'information disponible pour cette section`;
+  if (!relevantContent) {
+    return `Pas d'information disponible pour cette section`;
+  }
+
+  return relevantContent;
 };
 
 async function generateNote(youngProfile, templateSections, files, folders) {
@@ -110,7 +132,8 @@ async function generateNote(youngProfile, templateSections, files, folders) {
     const folder = folders.find(f => f.id === file.folder_id);
     return {
       content: file.content || '',
-      folderName: folder?.title || ''
+      folderName: folder?.title || '',
+      name: file.name
     };
   });
 
@@ -148,7 +171,7 @@ ${processedSections.join('\n\n')}
 3. Si aucun contenu pertinent n'est disponible pour une section, écris "Pas d'information disponible pour cette section"
 4. N'ajoute AUCUNE section qui n'est pas dans le template
 5. Respecte l'ordre exact des sections
-6. Utilise un ton professionnel et neutre d'éducateur sp��cialisé
+6. Utilise un ton professionnel et neutre d'éducateur spécialisé
 7. SYNTHÉTISE le contenu fourni pour chaque section - ne le répète pas tel quel
 8. Priorise la clarté et la concision
 `;
