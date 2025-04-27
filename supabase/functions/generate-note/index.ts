@@ -1,11 +1,18 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Initialize Supabase client
+const supabaseClient = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
 function calculateAge(birthDate: string) {
   const today = new Date();
@@ -186,11 +193,11 @@ serve(async (req) => {
     }
 
     // Fetch files from the selected folders
-    const { data: files, error: filesError } = await supabase
+    const { data: files, error: filesError } = await supabaseClient
       .from('files')
       .select('*')
       .in('folder_id', selectedFolders)
-      .eq('type', 'transcription')
+      .in('type', ['transcription', 'text', 'text/plain'])
       .order('created_at', { ascending: false });
 
     if (filesError) {
