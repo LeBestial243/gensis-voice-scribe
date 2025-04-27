@@ -22,6 +22,6 @@ export interface FileWithContent {
   updated_at: string | null;
   path: string;
   size: number;
-  folder_id: string;
+  folder_id?: string; // Make folder_id optional
   content?: string;
 }

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FileWithContent } from "@/components/young-profile/generate-note/FileSelector";
+import { FileWithContent } from "@/types/note-generation";
 
 export function useNoteFiles(selectedFiles: string[]) {
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export function useNoteFiles(selectedFiles: string[]) {
           updated_at,
           path,
           size,
+          folder_id,
           content
         `)
         .in('id', selectedFiles);
@@ -36,7 +37,7 @@ export function useNoteFiles(selectedFiles: string[]) {
       
       for (const file of filesData) {
         if (file.content) {
-          filesWithContent.push({ ...file, content: file.content });
+          filesWithContent.push({ ...file });
           continue;
         }
 
