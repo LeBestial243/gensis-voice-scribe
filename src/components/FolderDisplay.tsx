@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ export function FolderDisplay({
   
   console.log("FolderDisplay: Rendering with activeFolderId", activeFolderId);
   
+  // Fetch folders query
   const { 
     data: folders = [], 
     isLoading: foldersLoading
@@ -51,6 +53,7 @@ export function FolderDisplay({
     enabled: !!profileId
   });
 
+  // Fetch folder counts query
   const { data: folderCounts = {}, refetch: refetchFolderCounts } = useQuery({
     queryKey: ['folder_counts', profileId],
     queryFn: async () => {
@@ -81,6 +84,7 @@ export function FolderDisplay({
     enabled: folders.length > 0
   });
 
+  // Create folder mutation
   const createFolder = useMutation({
     mutationFn: async (title: string) => {
       const { data, error } = await supabase
@@ -115,6 +119,85 @@ export function FolderDisplay({
     }
   });
 
+  // New mutation for deleting folders
+  const deleteFolder = useMutation({
+    mutationFn: async (folderId: string) => {
+      console.log("FolderDisplay: Starting folder deletion for folder", folderId);
+      
+      // First, delete all files in the folder from storage
+      const { data: files, error: filesError } = await supabase
+        .from('files')
+        .select('path')
+        .eq('folder_id', folderId);
+        
+      if (filesError) {
+        console.error('Error fetching files for deletion:', filesError);
+        throw filesError;
+      }
+      
+      // Delete files from storage if they have paths
+      const filePaths = files?.filter(file => file.path).map(file => file.path) || [];
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('files')
+          .remove(filePaths);
+          
+        if (storageError) {
+          console.warn('Error removing some files from storage:', storageError);
+          // Continue with deletion even if storage removal fails
+        }
+      }
+      
+      // Delete all file records for this folder
+      const { error: deleteFilesError } = await supabase
+        .from('files')
+        .delete()
+        .eq('folder_id', folderId);
+        
+      if (deleteFilesError) {
+        console.error('Error deleting files:', deleteFilesError);
+        throw deleteFilesError;
+      }
+      
+      // Finally, delete the folder itself
+      const { error: deleteFolderError } = await supabase
+        .from('folders')
+        .delete()
+        .eq('id', folderId);
+        
+      if (deleteFolderError) {
+        console.error('Error deleting folder:', deleteFolderError);
+        throw deleteFolderError;
+      }
+      
+      console.log("FolderDisplay: Folder deleted successfully");
+      return folderId;
+    },
+    onSuccess: (deletedFolderId) => {
+      queryClient.invalidateQueries({ queryKey: ['folders', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['folder_counts', profileId] });
+      
+      // If the deleted folder was active, clear the selection
+      if (activeFolderId === deletedFolderId) {
+        onFolderSelect(null);
+      }
+      
+      toast({ 
+        title: "Dossier supprimé", 
+        description: "Le dossier et tous ses fichiers ont été supprimés avec succès" 
+      });
+    },
+    onError: (error) => {
+      console.error('Error in deleteFolder mutation:', error);
+      toast({
+        title: "Erreur lors de la suppression du dossier",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // File upload mutation
   const uploadFile = useMutation({
     mutationFn: async ({ file, folderId }: { file: File, folderId: string }) => {
       console.log("FolderDisplay: Starting file upload for folder", folderId);
@@ -246,6 +329,12 @@ export function FolderDisplay({
     onFolderSelect(folderId === activeFolderId ? null : folderId);
   };
 
+  // New handler for folder deletion
+  const handleDeleteFolder = (folderId: string) => {
+    console.log("FolderDisplay: Handling delete for folder", folderId);
+    deleteFolder.mutate(folderId);
+  };
+
   if (foldersLoading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -312,6 +401,7 @@ export function FolderDisplay({
                 isActive={isActive}
                 onToggle={() => handleFolderClick(folder.id)}
                 onUploadClick={handleOpenUpload}
+                onDeleteFolder={handleDeleteFolder}
               />
             );
           })}
