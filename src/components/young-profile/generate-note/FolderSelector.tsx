@@ -4,19 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Folder, ChevronDown, ChevronRight } from "lucide-react";
+import { Folder, ChevronDown, ChevronRight, FileText, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { FolderFileList } from "./FolderFileList";
 import { FileType } from "@/types/files";
 
 interface FolderSelectorProps {
   profileId: string;
   selectedFolders: string[];
   onFolderSelect: (folderId: string) => void;
-  selectedFiles?: string[];
-  onFileSelect?: (fileId: string) => void;
+  selectedFiles: string[];
+  onFileSelect: (fileId: string) => void;
 }
 
 interface FolderWithFiles {
@@ -28,168 +27,172 @@ interface FolderWithFiles {
 
 interface FolderWithStats extends FolderWithFiles {
   fileCount: number;
-  relevantContent: number;
+  relevantFileCount: number;
 }
 
-export function FolderSelector({ 
-  profileId, 
-  selectedFolders, 
+export function FolderSelector({
+  profileId,
+  selectedFolders,
   onFolderSelect,
-  selectedFiles = [],
-  onFileSelect 
+  selectedFiles,
+  onFileSelect
 }: FolderSelectorProps) {
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
   const [folderStats, setFolderStats] = useState<FolderWithStats[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: folders = [], isLoading: foldersLoading } = useQuery({
-    queryKey: ['folders', profileId],
+  // Récupérer les dossiers et leurs fichiers
+  const { data: folders = [], isLoading } = useQuery({
+    queryKey: ["folders", profileId],
     queryFn: async () => {
-      console.log('FolderSelector: Fetching folders for profile', profileId);
-      
-      const { data, error } = await supabase
-        .from('folders')
-        .select(`
-          id,
-          title,
-          created_at,
-          files (
+      try {
+        console.log("Fetching folders for profile:", profileId);
+        
+        const { data, error } = await supabase
+          .from("folders")
+          .select(`
             id,
-            name,
-            type,
-            size,
-            path,
-            folder_id,
+            title,
             created_at,
-            updated_at,
-            content
-          )
-        `)
-        .eq('profile_id', profileId)
-        .order('title');
+            files (
+              id,
+              name,
+              type,
+              size,
+              path,
+              folder_id,
+              created_at,
+              updated_at,
+              content
+            )
+          `)
+          .eq("profile_id", profileId)
+          .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error('FolderSelector: Error fetching folders', error);
-        throw error;
+        if (error) {
+          console.error("Error fetching folders:", error);
+          setError("Erreur lors du chargement des dossiers");
+          throw error;
+        }
+
+        console.log("Raw folders data:", data);
+        return data as FolderWithFiles[] || [];
+        
+      } catch (err) {
+        console.error("Failed to fetch folders:", err);
+        setError("Erreur lors du chargement des dossiers");
+        return [];
       }
-
-      console.log('FolderSelector: Raw folders data:', data);
-      
-      if (data && data.length > 0) {
-        console.log('FolderSelector: Fetched folders with files:', 
-          data.map(folder => ({
-            id: folder.id,
-            title: folder.title,
-            filesCount: folder.files ? folder.files.length : 0,
-            files: folder.files ? folder.files.map(f => ({ id: f.id, name: f.name })) : []
-          }))
-        );
-      }
-
-      return data as FolderWithFiles[] || [];
     },
+    enabled: !!profileId,
   });
 
+  // Calculer les statistiques des dossiers
   useEffect(() => {
-    if (folders && folders.length > 0) {
-      const stats = folders.map(folder => {
-        const files = folder.files || [];
-        
-        const fileCount = files.length;
-        
-        const relevantContent = files.filter(file => 
-          file.type === 'transcription' || 
-          file.type === 'text' || 
-          file.type === 'text/plain' ||
-          (file.name && file.name.toLowerCase().includes('transcription'))
-        ).length;
+    if (!folders || folders.length === 0) {
+      setFolderStats([]);
+      return;
+    }
 
-        console.log(`Folder ${folder.title}: ${fileCount} files, ${relevantContent} relevant`);
-        if (fileCount > 0) {
-          console.log(`Folder ${folder.title} files:`, files.map(f => ({ id: f.id, name: f.name, type: f.type })));
-        }
-        
-        return {
-          ...folder,
-          fileCount,
-          relevantContent
-        };
+    console.log("Computing folder stats...");
+    
+    const stats = folders.map((folder) => {
+      const files = Array.isArray(folder.files) ? folder.files : [];
+      const fileCount = files.length;
+      
+      const relevantFiles = files.filter(file => 
+        file.type === "transcription" ||
+        file.type === "text" ||
+        file.type === "text/plain" ||
+        (file.name && file.name.toLowerCase().includes("transcription"))
+      );
+      
+      const relevantFileCount = relevantFiles.length;
+      
+      console.log(`Folder "${folder.title}":`, {
+        totalFiles: fileCount,
+        relevantFiles: relevantFileCount,
+        selectedFiles: files.filter(f => selectedFiles.includes(f.id)).length
       });
       
-      setFolderStats(stats);
-      
-      // Auto-expand folders that are selected or have selected files
-      const newExpandedFolders = [...expandedFolders];
-      for (const folder of stats) {
-        // Ajouter les dossiers sélectionnés
-        if (selectedFolders.includes(folder.id) && !expandedFolders.includes(folder.id)) {
-          newExpandedFolders.push(folder.id);
-          continue;
-        }
+      // Auto-expand folders with selected content
+      if (!expandedFolders.includes(folder.id)) {
+        const shouldExpand = selectedFiles.some(id => files.some(f => f.id === id)) ||
+                            selectedFolders.includes(folder.id);
         
-        // Ajouter les dossiers qui ont des fichiers sélectionnés
-        if (folder.files && selectedFiles.length > 0) {
-          const hasSelectedFiles = folder.files.some(file => 
-            selectedFiles.includes(file.id)
-          );
-          
-          if (hasSelectedFiles && !expandedFolders.includes(folder.id)) {
-            newExpandedFolders.push(folder.id);
-          }
+        if (shouldExpand) {
+          setExpandedFolders(prev => [...prev, folder.id]);
         }
       }
-      
-      if (newExpandedFolders.length > expandedFolders.length) {
-        setExpandedFolders(newExpandedFolders);
-      }
-    } else {
-      setFolderStats([]);
-    }
-  }, [folders, selectedFolders, selectedFiles, expandedFolders]);
 
-  const handleFolderClick = (folderId: string) => {
-    console.log('FolderSelector: Folder clicked', folderId);
-    onFolderSelect(folderId);
-  };
+      return {
+        ...folder,
+        fileCount,
+        relevantFileCount,
+      };
+    });
+
+    setFolderStats(stats);
+  }, [folders, selectedFiles, selectedFolders, expandedFolders]);
 
   const toggleFolderExpand = (folderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setExpandedFolders(prev => 
-      prev.includes(folderId) 
+    setExpandedFolders(prev =>
+      prev.includes(folderId)
         ? prev.filter(id => id !== folderId)
         : [...prev, folderId]
     );
   };
 
-  if (foldersLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-5 w-24" />
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-medium">Dossiers disponibles</h3>
+          <Skeleton className="h-6 w-24" />
         </div>
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3].map(i => (
           <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="border border-red-200 rounded-lg p-4 text-red-700 bg-red-50">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertCircle className="h-5 w-5" />
+          <h3 className="font-medium">Erreur</h3>
+        </div>
+        <p className="text-sm">{error}</p>
+      </div>
+    );
+  }
+
   if (folderStats.length === 0) {
     return (
-      <div className="text-center p-6 border border-dashed rounded-lg">
-        <Folder className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-muted-foreground">Aucun dossier disponible</p>
+      <div className="border border-dashed rounded-lg p-6 text-center">
+        <Folder className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <p className="text-gray-500">Aucun dossier disponible</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-medium text-sm">Dossiers disponibles</h3>
-        <Badge variant="secondary">
-          {selectedFolders.length} dossier(s) sélectionné(s)
-        </Badge>
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium">Dossiers disponibles</h3>
+        <div className="flex gap-2">
+          <Badge variant="secondary">
+            {selectedFolders.length} dossier(s)
+          </Badge>
+          {selectedFiles.length > 0 && (
+            <Badge variant="outline" className="bg-purple-50">
+              {selectedFiles.length} fichier(s)
+            </Badge>
+          )}
+        </div>
       </div>
       
       <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
@@ -199,38 +202,47 @@ export function FolderSelector({
           
           return (
             <div key={folder.id} className="space-y-2">
-              <Card 
+              <Card
                 className={cn(
-                  "transition-all duration-200 cursor-pointer border",
-                  isSelected 
-                    ? 'border-purple-500 bg-purple-50/50 shadow-sm' 
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  "transition-all duration-200 cursor-pointer",
+                  isSelected
+                    ? "border-purple-500 bg-purple-50/50 shadow-sm"
+                    : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
                 )}
-                onClick={() => handleFolderClick(folder.id)}
+                onClick={() => onFolderSelect(folder.id)}
               >
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <Checkbox 
+                    <Checkbox
                       checked={isSelected}
                       className="mt-1"
-                      onCheckedChange={() => handleFolderClick(folder.id)}
+                      onCheckedChange={() => onFolderSelect(folder.id)}
                       onClick={(e) => e.stopPropagation()}
+                      id={`folder-checkbox-${folder.id}`}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           type="button"
                           className="flex items-center gap-1"
                           onClick={(e) => toggleFolderExpand(folder.id, e)}
+                          aria-label={isExpanded ? "Replier le dossier" : "Développer le dossier"}
                         >
                           {folder.fileCount > 0 && (
-                            isExpanded ? 
-                              <ChevronDown className="h-4 w-4 text-gray-400" /> : 
+                            isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-400" />
+                            ) : (
                               <ChevronRight className="h-4 w-4 text-gray-400" />
+                            )
                           )}
                           <Folder className="h-4 w-4 text-gray-400 flex-shrink-0" />
                         </button>
-                        <span className="font-medium text-sm truncate">{folder.title}</span>
+                        <label 
+                          htmlFor={`folder-checkbox-${folder.id}`}
+                          className="font-medium text-sm truncate cursor-pointer flex-grow"
+                        >
+                          {folder.title}
+                        </label>
                       </div>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-gray-500">
@@ -238,26 +250,77 @@ export function FolderSelector({
                         </span>
                         <span className="text-xs text-gray-400">•</span>
                         <span className="text-xs text-gray-500">
-                          {folder.relevantContent} transcription(s)
+                          {folder.relevantFileCount} transcription(s)
                         </span>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-
-              {isExpanded && folder.files && folder.files.length > 0 && (
+              
+              {isExpanded && (
                 <div className="ml-8">
-                  <FolderFileList 
-                    files={folder.files}
-                    selectedFiles={selectedFiles}
-                    onFileSelect={onFileSelect}
-                  />
-                </div>
-              )}
-              {isExpanded && folder.files && folder.files.length === 0 && (
-                <div className="ml-8 p-2 text-xs text-gray-500 italic">
-                  Aucun fichier dans ce dossier
+                  {Array.isArray(folder.files) && folder.files.length > 0 ? (
+                    <div className="space-y-1 border-l-2 border-gray-100 pl-2">
+                      {folder.files.map((file) => {
+                        const isRelevant =
+                          file.type === "transcription" ||
+                          file.type === "text" ||
+                          file.type === "text/plain" ||
+                          file.name.toLowerCase().includes("transcription");
+                          
+                        const isSelected = selectedFiles.includes(file.id);
+                        
+                        return (
+                          <div
+                            key={file.id}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md cursor-pointer",
+                              isSelected
+                                ? "border border-purple-300 bg-purple-50 shadow-sm"
+                                : "border border-gray-100 bg-gray-50 hover:border-gray-300",
+                              isRelevant ? "border-l-2 border-l-purple-300" : ""
+                            )}
+                            onClick={() => onFileSelect(file.id)}
+                          >
+                            <Checkbox
+                              id={`file-checkbox-${file.id}`}
+                              checked={isSelected}
+                              className="mr-1"
+                              onCheckedChange={() => onFileSelect(file.id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <FileText
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                isRelevant ? "text-purple-400" : "text-gray-400"
+                              )}
+                            />
+                            <label 
+                              htmlFor={`file-checkbox-${file.id}`}
+                              className="text-sm text-gray-600 truncate flex-grow cursor-pointer"
+                            >
+                              {file.name}
+                            </label>
+                            <Badge
+                              variant={isRelevant ? "secondary" : "outline"}
+                              className="text-xs"
+                            >
+                              {file.type === "transcription"
+                                ? "Transcription"
+                                : file.type === "text" || file.type === "text/plain"
+                                ? "Texte"
+                                : file.type}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-2 text-xs text-gray-500 italic">
+                      Aucun fichier dans ce dossier
+                    </div>
+                  )}
                 </div>
               )}
             </div>
