@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Plus, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -18,7 +19,7 @@ const Index = () => {
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+      <LoadingSpinner size="lg" />
     </div>;
   }
 
