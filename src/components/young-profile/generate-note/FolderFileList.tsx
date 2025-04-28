@@ -17,7 +17,7 @@ export function FolderFileList({
 }: FolderFileListProps) {
   const allFiles = files || [];
   
-  // Identifier les fichiers pertinents (transcriptions)
+  // Identifier uniquement les fichiers qui sont des transcriptions ou du texte
   const relevantFiles = allFiles.filter(file => 
     file.type === 'transcription' || 
     file.type === 'text' || 
@@ -25,8 +25,15 @@ export function FolderFileList({
     (file.name && file.name.toLowerCase().includes('transcription'))
   );
   
-  console.log("FolderFileList: Displaying", allFiles.length, "files, including", relevantFiles.length, "transcriptions");
-  console.log("FolderFileList: Files data", allFiles.map(file => ({ id: file.id, name: file.name, type: file.type })));
+  console.log("FolderFileList: Displaying files:", {
+    allFiles: allFiles.map(file => ({ 
+      id: file.id,
+      name: file.name, 
+      type: file.type,
+      isRelevant: relevantFiles.some(rf => rf.id === file.id),
+      isSelected: selectedFiles.includes(file.id)
+    }))
+  });
 
   if (allFiles.length === 0) {
     return (
@@ -39,10 +46,8 @@ export function FolderFileList({
   return (
     <div className="space-y-1">
       {allFiles.map(file => {
-        const isRelevant = relevantFiles.some(relevantFile => relevantFile.id === file.id);
+        const isRelevant = relevantFiles.some(rf => rf.id === file.id);
         const isSelected = selectedFiles.includes(file.id);
-        
-        console.log(`File ${file.name}:`, { id: file.id, isRelevant, isSelected });
         
         return (
           <div 
@@ -50,6 +55,8 @@ export function FolderFileList({
             className={`flex items-center gap-2 p-2 rounded-md ${
               isRelevant ? 'bg-purple-50 border border-purple-100' : 'bg-gray-50 border border-gray-100'
             } ${isSelected ? 'ring-2 ring-purple-200' : ''}`}
+            role="button"
+            onClick={() => onFileSelect?.(file.id)}
           >
             {onFileSelect && (
               <Checkbox
@@ -79,3 +86,4 @@ export function FolderFileList({
     </div>
   );
 }
+
