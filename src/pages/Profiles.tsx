@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CreateProfileForm } from '@/components/CreateProfileForm';
 import { ProfileList } from '@/components/ProfileList';
+import { EnhancedProfilesList } from '@/components/EnhancedProfilesList';
 import { MobileNav } from '@/components/MobileNav';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,27 +92,7 @@ export default function Profiles() {
   if (!selectedProfileId) {
     return (
       <div className="container mx-auto py-8 px-4 pb-24" id="profiles-container">
-        <div className="flex justify-between items-center mb-8" role="banner">
-          <h1 className="text-3xl font-bold text-title" tabIndex={0}>Mes profils</h1>
-          <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
-            <DialogTrigger asChild>
-              <GradientButton aria-label="Créer un nouveau profil">
-                <span className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span>Créer un profil</span>
-                </span>
-              </GradientButton>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Créer un nouveau profil</DialogTitle>
-              </DialogHeader>
-              <CreateProfileForm />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <ProfileList onSelectProfile={setSelectedProfileId} />
+        <EnhancedProfilesList onSelectProfile={setSelectedProfileId} />
         <MobileNav />
       </div>
     );
