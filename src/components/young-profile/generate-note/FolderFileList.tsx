@@ -37,7 +37,7 @@ export function FolderFileList({
   return (
     <div className="space-y-1">
       {allFiles.map(file => {
-        const isRelevant = relevantFiles.includes(file);
+        const isRelevant = relevantFiles.some(relevantFile => relevantFile.id === file.id);
         const isSelected = selectedFiles.includes(file.id);
         
         return (
