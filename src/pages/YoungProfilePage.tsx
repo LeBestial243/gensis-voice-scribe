@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,9 +7,6 @@ import { SearchTabs } from '@/components/young-profile/SearchTabs';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
-import { FolderDisplay } from '@/components/FolderDisplay';
-import { TranscriptionsList } from '@/components/TranscriptionsList';
-import { NotesList } from '@/components/young-profile/NotesList';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryCache } from '@/hooks/useQueryCache';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -176,31 +172,6 @@ export default function YoungProfilePage() {
           selectedFolderId={activeFolderId}
           onFolderSelect={setActiveFolderId}
         />
-        
-        {selectedTab === "transcriptions" && (
-          <TranscriptionsList 
-            profileId={profileId} 
-            searchQuery={searchQuery}
-            folderIds={activeFolderId ? [activeFolderId] : folderIds}
-          />
-        )}
-        
-        {selectedTab === "notes" && (
-          <NotesList 
-            profileId={profileId}
-            searchQuery={searchQuery}
-          />
-        )}
-        
-        {selectedTab === "files" && (
-          <FolderDisplay 
-            profileId={profileId} 
-            searchQuery={searchQuery}
-            activeFolderId={activeFolderId}
-            onFolderSelect={setActiveFolderId}
-            key={`folders-${profileId}-${searchQuery}`}
-          />
-        )}
       </main>
 
       <FloatingActions 
