@@ -44,6 +44,11 @@ export default {
             dark: "rgba(15, 23, 42, 0.6)",
           }
         },
+        neumorph: {
+          primary: "var(--gensys-primary-from, #56CCF2)",
+          accent: "var(--gensys-primary-to, #8B5CF6)",
+          secondary: "var(--gensys-primary-via, #5B86E5)",
+        },
         primary: {
           DEFAULT: "#5B86E5",
           hover: "#4F46E5",
@@ -76,6 +81,12 @@ export default {
       },
       backgroundImage: {
         'gradient-gensys': 'linear-gradient(to right, var(--tw-gradient-stops))',
+      },
+      boxShadow: {
+        'neumorph': '5px 5px 10px rgba(0, 0, 0, 0.1), -5px -5px 10px rgba(255, 255, 255, 0.7)',
+        'neumorph-hover': '8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.7)',
+        'neumorph-active': 'inset 5px 5px 10px rgba(0, 0, 0, 0.1), inset -5px -5px 10px rgba(255, 255, 255, 0.7)',
+        'neumorph-inset': 'inset 2px 2px 5px rgba(0, 0, 0, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.7)',
       },
     },
   },
