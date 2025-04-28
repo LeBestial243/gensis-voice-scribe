@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,22 +85,19 @@ export function FolderSelector({
       }
     },
     enabled: !!profileId,
-    // Forcer le rechargement à chaque fois
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
 
   // Calculer les statistiques des dossiers (nombre total de fichiers, fichiers pertinents)
   useEffect(() => {
-    if (!folders || folders.length === 0) {
+    if (!folders) {
       setFolderStats([]);
       return;
     }
 
-    console.log("Computing folder stats for", folders.length, "folders");
-    
     const stats = folders.map((folder) => {
       // S'assurer que files est un tableau
       const files = Array.isArray(folder.files) ? folder.files : [];
