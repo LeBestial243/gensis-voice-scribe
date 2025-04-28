@@ -86,22 +86,18 @@ export function FolderSelector({
       }
     },
     enabled: !!profileId,
-    // Forcer le rechargement à chaque fois
+    // Forcer le rechargement à chaque ouverture de la boîte de dialogue
     staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    gcTime: 0,
   });
 
   // Calculer les statistiques des dossiers (nombre total de fichiers, fichiers pertinents)
   useEffect(() => {
-    if (!folders || folders.length === 0) {
+    if (!folders) {
       setFolderStats([]);
       return;
     }
 
-    console.log("Computing folder stats for", folders.length, "folders");
-    
     const stats = folders.map((folder) => {
       // S'assurer que files est un tableau
       const files = Array.isArray(folder.files) ? folder.files : [];
@@ -122,6 +118,14 @@ export function FolderSelector({
       
       console.log(`Folder "${folder.title}": ${fileCount} files, ${relevantFileCount} relevant`);
       
+      // Si des fichiers sont sélectionnés, auto-expand le dossier
+      if (!expandedFolders.includes(folder.id)) {
+        const hasSelectedFiles = files.some(file => selectedFiles.includes(file.id));
+        if (hasSelectedFiles || selectedFolders.includes(folder.id)) {
+          setExpandedFolders(prev => [...prev, folder.id]);
+        }
+      }
+
       return {
         ...folder,
         fileCount,
@@ -130,42 +134,58 @@ export function FolderSelector({
     });
 
     setFolderStats(stats);
-  }, [folders]);
+  }, [folders, selectedFiles, selectedFolders, expandedFolders]);
 
-  // Gérer l'auto-expansion des dossiers sélectionnés
-  useEffect(() => {
-    if (!folders || folders.length === 0) return;
-    
-    // Trouver les dossiers qui ont des fichiers sélectionnés et les étendre
-    const foldersToExpand = folders
-      .filter(folder => {
-        const files = Array.isArray(folder.files) ? folder.files : [];
-        const hasSelectedFiles = files.some(file => selectedFiles.includes(file.id));
-        return hasSelectedFiles || selectedFolders.includes(folder.id);
-      })
-      .map(folder => folder.id);
-    
-    // Mettre à jour les dossiers étendus
-    if (foldersToExpand.length > 0) {
-      setExpandedFolders(prev => {
-        const newExpanded = [...prev];
-        foldersToExpand.forEach(id => {
-          if (!newExpanded.includes(id)) {
-            newExpanded.push(id);
-          }
-        });
-        return newExpanded;
-      });
-    }
-  }, [folders, selectedFolders, selectedFiles]);
-  
   // Gérer le clic sur un dossier
   const handleFolderClick = (folderId: string) => {
     console.log("Folder clicked:", folderId);
-    onFolderSelect(folderId);
+    
+    const folder = folderStats.find(f => f.id === folderId);
+    const isCurrentlySelected = selectedFolders.includes(folderId);
+    
+    // Si on clique sur un dossier pour le sélectionner
+    if (!isCurrentlySelected) {
+      // Ajouter le dossier aux dossiers sélectionnés
+      onFolderSelect(folderId);
+      
+      // Auto-sélectionner tous les fichiers pertinents du dossier
+      if (folder && Array.isArray(folder.files)) {
+        const relevantFiles = folder.files.filter(file => 
+          file.type === "transcription" || 
+          file.type === "text" || 
+          file.type === "text/plain" ||
+          (file.name && file.name.toLowerCase().includes("transcription"))
+        );
+        
+        // Ajouter tous les fichiers pertinents qui ne sont pas déjà sélectionnés
+        const filesToAdd = relevantFiles
+          .map(file => file.id)
+          .filter(fileId => !selectedFiles.includes(fileId));
+        
+        if (filesToAdd.length > 0) {
+          console.log(`Auto-selecting ${filesToAdd.length} files from folder:`, folder.title);
+          filesToAdd.forEach(fileId => onFileSelect(fileId));
+        }
+      }
+    } else {
+      // Si on déselectionne un dossier, déselectionner tous ses fichiers
+      onFolderSelect(folderId);
+      
+      if (folder && Array.isArray(folder.files)) {
+        const folderFileIds = folder.files.map(file => file.id);
+        const filesToRemove = selectedFiles.filter(fileId => 
+          folderFileIds.includes(fileId)
+        );
+        
+        if (filesToRemove.length > 0) {
+          console.log(`Auto-deselecting ${filesToRemove.length} files from folder:`, folder.title);
+          filesToRemove.forEach(fileId => onFileSelect(fileId));
+        }
+      }
+    }
     
     // Auto-expand lorsqu'un dossier est sélectionné
-    if (!expandedFolders.includes(folderId)) {
+    if (!isCurrentlySelected && !expandedFolders.includes(folderId)) {
       setExpandedFolders(prev => [...prev, folderId]);
     }
   };
@@ -309,7 +329,7 @@ export function FolderSelector({
                           file.type === "transcription" ||
                           file.type === "text" ||
                           file.type === "text/plain" ||
-                          file.name.toLowerCase().includes("transcription");
+                          (file.name && file.name.toLowerCase().includes("transcription"));
                           
                         const isSelected = selectedFiles.includes(file.id);
                         
