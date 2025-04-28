@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +14,8 @@ interface FolderSelectorProps {
   profileId: string;
   selectedFolders: string[];
   onFolderSelect: (folderId: string) => void;
+  selectedFiles?: string[];
+  onFileSelect?: (fileId: string) => void;
 }
 
 interface FolderWithFiles {
@@ -29,7 +30,13 @@ interface FolderWithStats extends FolderWithFiles {
   relevantContent: number;
 }
 
-export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: FolderSelectorProps) {
+export function FolderSelector({ 
+  profileId, 
+  selectedFolders, 
+  onFolderSelect,
+  selectedFiles = [],
+  onFileSelect 
+}: FolderSelectorProps) {
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
   const [folderStats, setFolderStats] = useState<FolderWithStats[]>([]);
 
@@ -64,7 +71,6 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
         throw error;
       }
 
-      // Debug log
       if (data && data.length > 0) {
         console.log('FolderSelector: Fetched folders with files:', 
           data.map(folder => ({
@@ -79,17 +85,13 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
     },
   });
 
-  // Update folderStats when folders data changes
   useEffect(() => {
     if (folders && folders.length > 0) {
       const stats = folders.map(folder => {
-        // Make sure files is always an array
         const files = folder.files || [];
         
-        // Count all files
         const fileCount = files.length;
         
-        // Count only relevant content (transcriptions or text files)
         const relevantContent = files.filter(file => 
           file.type === 'transcription' || 
           file.type === 'text' || 
@@ -108,7 +110,6 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
       
       setFolderStats(stats);
       
-      // Auto-expand folders that are selected
       const newExpandedFolders = [...expandedFolders];
       for (const folder of stats) {
         if (selectedFolders.includes(folder.id) && !expandedFolders.includes(folder.id)) {
@@ -225,7 +226,11 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
 
               {isExpanded && folder.files && (
                 <div className="ml-8">
-                  <FolderFileList files={folder.files} />
+                  <FolderFileList 
+                    files={folder.files}
+                    selectedFiles={selectedFiles}
+                    onFileSelect={onFileSelect}
+                  />
                 </div>
               )}
             </div>

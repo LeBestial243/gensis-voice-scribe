@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -36,6 +35,8 @@ export function GenerateNoteDialog({
     setSelectedTemplateId,
     selectedFolders,
     setSelectedFolders,
+    selectedFiles,
+    setSelectedFiles,
     generatedContent,
     setGeneratedContent,
     noteTitle,
@@ -49,7 +50,6 @@ export function GenerateNoteDialog({
     onSuccess: () => onOpenChange(false)
   });
 
-  // Reset state when dialog is closed
   useEffect(() => {
     if (!open) {
       handleReset();
@@ -58,7 +58,6 @@ export function GenerateNoteDialog({
   }, [open, handleReset]);
 
   useEffect(() => {
-    // Switch to the editing tab when content is generated
     if (generatedContent && activeTab === "selection") {
       setActiveTab("editing");
     }
@@ -80,6 +79,14 @@ export function GenerateNoteDialog({
     } else {
       setSelectedFolders([...selectedFolders, folderId]);
     }
+  };
+
+  const handleFileSelect = (fileId: string) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) 
+        ? prev.filter(id => id !== fileId)
+        : [...prev, fileId]
+    );
   };
 
   const handleSaveNote = async () => {
@@ -127,11 +134,11 @@ export function GenerateNoteDialog({
     }
   };
 
-  // Logs de débogage pour identifier le problème
   console.log("Dialog state:", { 
     activeTab, 
     selectedTemplateId, 
     selectedFoldersCount: selectedFolders.length,
+    selectedFilesCount: selectedFiles.length,
     generatedContent: generatedContent ? "Present" : "Not present",
     isGenerating
   });
@@ -179,6 +186,8 @@ export function GenerateNoteDialog({
                     profileId={profileId}
                     selectedFolders={selectedFolders}
                     onFolderSelect={handleFolderSelect}
+                    selectedFiles={selectedFiles}
+                    onFileSelect={handleFileSelect}
                   />
                 </div>
               </div>
