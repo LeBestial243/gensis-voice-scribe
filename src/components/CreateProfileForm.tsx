@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -9,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/ui/GradientButton";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
@@ -219,9 +219,9 @@ export function CreateProfileForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={createProfile.isPending}>
+        <GradientButton type="submit" className="w-full" disabled={createProfile.isPending}>
           {createProfile.isPending ? "Création..." : "Créer le profil"}
-        </Button>
+        </GradientButton>
       </form>
     </Form>
   );

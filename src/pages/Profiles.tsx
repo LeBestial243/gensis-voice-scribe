@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { Plus, Search, Mic, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,13 +95,12 @@ export default function Profiles() {
           <h1 className="text-3xl font-bold text-title" tabIndex={0}>Mes profils</h1>
           <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
             <DialogTrigger asChild>
-              <Button 
-                className="bg-gradient-to-r from-[#9867F0] to-[#5B86E5] text-white px-4 py-2 font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 ease-in-out"
-                aria-label="Créer un nouveau profil"
-              >
-                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-                Créer un profil
-              </Button>
+              <GradientButton aria-label="Créer un nouveau profil">
+                <span className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Créer un profil</span>
+                </span>
+              </GradientButton>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>

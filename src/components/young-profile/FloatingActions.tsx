@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/ui/GradientButton";
 import { FileText, Mic } from "lucide-react";
 
 interface FloatingActionsProps {
@@ -18,14 +19,16 @@ export function FloatingActions({ onRecordingClick, onGenerateNoteClick }: Float
         <Mic className="h-6 w-6 text-white" />
       </Button>
 
-      <Button
+      <GradientButton
         onClick={onGenerateNoteClick}
-        className="fixed bottom-24 right-4 bg-gradient-to-r from-gensys-primary-via to-gensys-primary-to hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2"
+        className="fixed bottom-24 right-4 shadow-lg hover:shadow-xl transition-all duration-300 gap-2"
         size="lg"
       >
-        <FileText className="h-5 w-5" />
-        Générer une note IA
-      </Button>
+        <span className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          <span>Générer une note IA</span>
+        </span>
+      </GradientButton>
     </>
   );
 }
