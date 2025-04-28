@@ -17,6 +17,7 @@ export function FolderFileList({
 }: FolderFileListProps) {
   const allFiles = files || [];
   
+  // Identifier les fichiers pertinents (transcriptions)
   const relevantFiles = allFiles.filter(file => 
     file.type === 'transcription' || 
     file.type === 'text' || 
@@ -25,6 +26,7 @@ export function FolderFileList({
   );
   
   console.log("FolderFileList: Displaying", allFiles.length, "files, including", relevantFiles.length, "transcriptions");
+  console.log("FolderFileList: Files data", allFiles.map(file => ({ id: file.id, name: file.name, type: file.type })));
 
   if (allFiles.length === 0) {
     return (
@@ -40,6 +42,8 @@ export function FolderFileList({
         const isRelevant = relevantFiles.some(relevantFile => relevantFile.id === file.id);
         const isSelected = selectedFiles.includes(file.id);
         
+        console.log(`File ${file.name}:`, { id: file.id, isRelevant, isSelected });
+        
         return (
           <div 
             key={file.id} 
@@ -52,10 +56,16 @@ export function FolderFileList({
                 checked={isSelected}
                 onCheckedChange={() => onFileSelect(file.id)}
                 className="mr-1"
+                id={`file-checkbox-${file.id}`}
               />
             )}
             <FileText className={`h-4 w-4 flex-shrink-0 ${isRelevant ? 'text-purple-400' : 'text-gray-400'}`} />
-            <span className="text-sm text-gray-600 truncate">{file.name}</span>
+            <label 
+              htmlFor={`file-checkbox-${file.id}`}
+              className="text-sm text-gray-600 truncate cursor-pointer flex-grow"
+            >
+              {file.name}
+            </label>
             <Badge variant={isRelevant ? "secondary" : "outline"} className="text-xs ml-auto">
               {file.type === 'transcription' 
                 ? 'Transcription' 

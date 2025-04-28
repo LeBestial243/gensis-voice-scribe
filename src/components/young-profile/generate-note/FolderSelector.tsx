@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,12 +72,15 @@ export function FolderSelector({
         throw error;
       }
 
+      console.log('FolderSelector: Raw folders data:', data);
+      
       if (data && data.length > 0) {
         console.log('FolderSelector: Fetched folders with files:', 
           data.map(folder => ({
             id: folder.id,
             title: folder.title,
-            filesCount: folder.files ? folder.files.length : 0
+            filesCount: folder.files ? folder.files.length : 0,
+            files: folder.files ? folder.files.map(f => ({ id: f.id, name: f.name })) : []
           }))
         );
       }
@@ -100,6 +104,9 @@ export function FolderSelector({
         ).length;
 
         console.log(`Folder ${folder.title}: ${fileCount} files, ${relevantContent} relevant`);
+        if (fileCount > 0) {
+          console.log(`Folder ${folder.title} files:`, files.map(f => ({ id: f.id, name: f.name, type: f.type })));
+        }
         
         return {
           ...folder,
@@ -110,19 +117,34 @@ export function FolderSelector({
       
       setFolderStats(stats);
       
+      // Auto-expand folders that are selected or have selected files
       const newExpandedFolders = [...expandedFolders];
       for (const folder of stats) {
+        // Ajouter les dossiers sélectionnés
         if (selectedFolders.includes(folder.id) && !expandedFolders.includes(folder.id)) {
           newExpandedFolders.push(folder.id);
+          continue;
+        }
+        
+        // Ajouter les dossiers qui ont des fichiers sélectionnés
+        if (folder.files && selectedFiles.length > 0) {
+          const hasSelectedFiles = folder.files.some(file => 
+            selectedFiles.includes(file.id)
+          );
+          
+          if (hasSelectedFiles && !expandedFolders.includes(folder.id)) {
+            newExpandedFolders.push(folder.id);
+          }
         }
       }
+      
       if (newExpandedFolders.length > expandedFolders.length) {
         setExpandedFolders(newExpandedFolders);
       }
     } else {
       setFolderStats([]);
     }
-  }, [folders, selectedFolders]);
+  }, [folders, selectedFolders, selectedFiles, expandedFolders]);
 
   const handleFolderClick = (folderId: string) => {
     console.log('FolderSelector: Folder clicked', folderId);
@@ -224,13 +246,18 @@ export function FolderSelector({
                 </CardContent>
               </Card>
 
-              {isExpanded && folder.files && (
+              {isExpanded && folder.files && folder.files.length > 0 && (
                 <div className="ml-8">
                   <FolderFileList 
                     files={folder.files}
                     selectedFiles={selectedFiles}
                     onFileSelect={onFileSelect}
                   />
+                </div>
+              )}
+              {isExpanded && folder.files && folder.files.length === 0 && (
+                <div className="ml-8 p-2 text-xs text-gray-500 italic">
+                  Aucun fichier dans ce dossier
                 </div>
               )}
             </div>

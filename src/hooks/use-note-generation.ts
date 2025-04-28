@@ -19,10 +19,17 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const saveNote = useSaveNote(onSuccess);
 
   const handleGenerate = async () => {
-    console.log('Starting note generation. Selected folders:', selectedFolders);
+    console.log('Starting note generation.');
+    console.log('Selected folders:', selectedFolders);
+    console.log('Selected files:', selectedFiles);
     
     if (selectedFolders.length === 0 || !selectedTemplateId) {
       console.log('Missing required data:', { selectedFolders, selectedTemplateId });
+      toast({
+        title: "Données manquantes",
+        description: "Veuillez sélectionner au moins un dossier et un modèle",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -72,12 +79,22 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
 
       if (filesError) throw filesError;
       console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });
+      
+      if (filesWithFolders && filesWithFolders.length > 0) {
+        console.log('Sample files:', filesWithFolders.slice(0, 3).map(f => ({ 
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          folderTitle: f.folders?.title
+        })));
+      }
 
       // Fetch content from storage for text files
       const fileContents: FileContent[] = [];
       
       for (const file of filesWithFolders || []) {
-        if (file.type === "transcription" || file.type === "text" || file.type === "text/plain") {
+        if (file.type === "transcription" || file.type === "text" || file.type === "text/plain" || 
+            (file.name && file.name.toLowerCase().includes('transcription'))) {
           console.log('Processing file:', { 
             name: file.name, 
             type: file.type, 
@@ -168,7 +185,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       console.error("Error generating note:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de générer la note. Veuillez réessayer.",
+        description: error instanceof Error ? error.message : "Impossible de générer la note. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -199,6 +216,6 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     isGenerating,
     handleGenerate,
     handleReset,
-    saveNote  // Add the saveNote mutation to the return object
+    saveNote
   };
 }
