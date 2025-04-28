@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -50,6 +51,7 @@ export function GenerateNoteDialog({
     onSuccess: () => onOpenChange(false)
   });
 
+  // Reset state when dialog is closed
   useEffect(() => {
     if (!open) {
       handleReset();
@@ -57,6 +59,7 @@ export function GenerateNoteDialog({
     }
   }, [open, handleReset]);
 
+  // Switch to editing tab when content is generated
   useEffect(() => {
     if (generatedContent && activeTab === "selection") {
       setActiveTab("editing");
@@ -64,7 +67,7 @@ export function GenerateNoteDialog({
   }, [generatedContent, activeTab]);
 
   const handleDialogClose = (isOpen: boolean) => {
-    if (!isOpen && (generatedContent || selectedFolders.length > 0)) {
+    if (!isOpen && (generatedContent || selectedFolders.length > 0 || selectedFiles.length > 0)) {
       if (confirm("Êtes-vous sûr de vouloir fermer ? Toutes les modifications seront perdues.")) {
         onOpenChange(false);
       }
@@ -74,11 +77,11 @@ export function GenerateNoteDialog({
   };
 
   const handleFolderSelect = (folderId: string) => {
-    if (selectedFolders.includes(folderId)) {
-      setSelectedFolders(selectedFolders.filter(id => id !== folderId));
-    } else {
-      setSelectedFolders([...selectedFolders, folderId]);
-    }
+    setSelectedFolders(prev => 
+      prev.includes(folderId) 
+        ? prev.filter(id => id !== folderId)
+        : [...prev, folderId]
+    );
   };
 
   const handleFileSelect = (fileId: string) => {
@@ -139,7 +142,7 @@ export function GenerateNoteDialog({
     selectedTemplateId, 
     selectedFoldersCount: selectedFolders.length,
     selectedFilesCount: selectedFiles.length,
-    generatedContent: generatedContent ? "Present" : "Not present",
+    hasGeneratedContent: !!generatedContent,
     isGenerating
   });
 
@@ -160,10 +163,19 @@ export function GenerateNoteDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="selection" disabled={isGenerating}>
               Sélection
-              {selectedFolders.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {selectedFolders.length}
-                </Badge>
+              {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
+                <div className="flex gap-2 ml-2">
+                  {selectedFolders.length > 0 && (
+                    <Badge variant="secondary">
+                      {selectedFolders.length} dossier(s)
+                    </Badge>
+                  )}
+                  {selectedFiles.length > 0 && (
+                    <Badge variant="secondary">
+                      {selectedFiles.length} fichier(s)
+                    </Badge>
+                  )}
+                </div>
               )}
             </TabsTrigger>
             <TabsTrigger value="editing" disabled={!generatedContent || isGenerating}>
@@ -214,7 +226,7 @@ export function GenerateNoteDialog({
               </Button>
               <Button 
                 onClick={handleGenerate} 
-                disabled={!selectedTemplateId || selectedFolders.length === 0 || isGenerating}
+                disabled={!selectedTemplateId || (selectedFolders.length === 0 && selectedFiles.length === 0) || isGenerating}
                 className="bg-gradient-to-r from-purple-500 to-indigo-600"
               >
                 {isGenerating ? (
@@ -223,7 +235,14 @@ export function GenerateNoteDialog({
                     Génération en cours...
                   </>
                 ) : (
-                  "Générer une note"
+                  <>
+                    Générer une note
+                    {selectedFiles.length > 0 && (
+                      <Badge variant="outline" className="ml-2 bg-white text-purple-600">
+                        {selectedFiles.length} fichier(s)
+                      </Badge>
+                    )}
+                  </>
                 )}
               </Button>
             </>
