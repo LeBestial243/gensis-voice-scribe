@@ -78,84 +78,89 @@ export function FolderCard({
 
   return (
     <>
-      <MorphCard 
-        className={cn(
-          "transition-all duration-200 overflow-hidden",
-          isActive ? getMaxHeight() : "max-h-[100px]",
-          isActive ? "ring-2 ring-gensys-primary-to ring-offset-2" : ""
-        )}
-        onClick={onToggle}
-        interactive
-      >
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center">
-              <div className="relative">
-                {isActive ? (
-                  <FolderOpen className="h-5 w-5 mr-2 text-gensys-primary-to" />
-                ) : (
-                  <Folder className="h-5 w-5 mr-2 text-muted-foreground" />
-                )}
-                <ChevronDown 
-                  className={cn(
-                    "h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground transition-transform duration-200",
-                    isActive && "rotate-180"
-                  )}
-                />
-              </div>
-              <CardTitle className="text-base">{folder.title}</CardTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={isActive ? "default" : "outline"}>
-                {fileCount} fichier{fileCount !== 1 ? 's' : ''}
-              </Badge>
-              
-              {/* Menu d'actions du dossier */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">Menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteClick(e);
-                    }}
-                    className="text-red-600 focus:text-red-600 focus:bg-red-100"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </CardHeader>
-        
+      <div className="relative">
         {isActive && (
-          <CardContent className="animate-accordion-down overflow-auto">
-            <div className="flex gap-2 my-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleUploadClick}
-                className="border-gensys-primary-via hover:border-gensys-primary-to hover:bg-gensys-primary-to/5"
-              >
-                <UploadCloud className="h-4 w-4 mr-1" />
-                Ajouter un fichier
-              </Button>
-            </div>
-            
-            <div className="mt-4 overflow-auto">
-              {/* Only render FileDisplay if the folder is active */}
-              <FileDisplay folderId={folder.id} />
-            </div>
-          </CardContent>
+          <div className="absolute -inset-1 bg-gradient-to-r from-gensys-primary-from/30 to-gensys-primary-to/30 rounded-xl blur-xl z-0 animate-pulse"></div>
         )}
-      </MorphCard>
+        <MorphCard 
+          className={cn(
+            "transition-all duration-200 overflow-hidden relative z-10",
+            isActive ? getMaxHeight() : "max-h-[100px]",
+            isActive ? "ring-2 ring-gensys-primary-to ring-offset-2" : ""
+          )}
+          onClick={onToggle}
+          interactive
+        >
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center">
+                <div className="relative">
+                  {isActive ? (
+                    <FolderOpen className="h-5 w-5 mr-2 text-gensys-primary-to" />
+                  ) : (
+                    <Folder className="h-5 w-5 mr-2 text-muted-foreground" />
+                  )}
+                  <ChevronDown 
+                    className={cn(
+                      "h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground transition-transform duration-200",
+                      isActive && "rotate-180"
+                    )}
+                  />
+                </div>
+                <CardTitle className="text-base">{folder.title}</CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={isActive ? "default" : "outline"}>
+                  {fileCount} fichier{fileCount !== 1 ? 's' : ''}
+                </Badge>
+                
+                {/* Menu d'actions du dossier */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(e);
+                      }}
+                      className="text-red-600 focus:text-red-600 focus:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </CardHeader>
+          
+          {isActive && (
+            <CardContent className="animate-accordion-down overflow-auto">
+              <div className="flex gap-2 my-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleUploadClick}
+                  className="border-gensys-primary-via hover:border-gensys-primary-to hover:bg-gensys-primary-to/5"
+                >
+                  <UploadCloud className="h-4 w-4 mr-1" />
+                  Ajouter un fichier
+                </Button>
+              </div>
+              
+              <div className="mt-4 overflow-auto">
+                {/* Only render FileDisplay if the folder is active */}
+                <FileDisplay folderId={folder.id} />
+              </div>
+            </CardContent>
+          )}
+        </MorphCard>
+      </div>
 
       {/* Dialogue de confirmation de suppression */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
