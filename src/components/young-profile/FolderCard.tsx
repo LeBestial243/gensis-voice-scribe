@@ -81,7 +81,7 @@ export function FolderCard({
         className={cn(
           "cursor-pointer transition-all duration-200 overflow-hidden",
           "hover:shadow-md",
-          isActive ? "ring-2 ring-primary ring-offset-2" : "",
+          isActive ? "ring-2 ring-gensys-primary-to ring-offset-2" : "",
           isActive ? getMaxHeight() : "max-h-[100px]"
         )}
         onClick={onToggle}
@@ -93,7 +93,7 @@ export function FolderCard({
             <div className="flex items-center">
               <div className="relative">
                 {isActive ? (
-                  <FolderOpen className="h-5 w-5 mr-2 text-primary" />
+                  <FolderOpen className="h-5 w-5 mr-2 text-gensys-primary-to" />
                 ) : (
                   <Folder className="h-5 w-5 mr-2 text-muted-foreground" />
                 )}
@@ -143,6 +143,7 @@ export function FolderCard({
                 variant="outline" 
                 size="sm"
                 onClick={handleUploadClick}
+                className="border-gensys-primary-via hover:border-gensys-primary-to hover:bg-gensys-primary-to/5"
               >
                 <UploadCloud className="h-4 w-4 mr-1" />
                 Ajouter un fichier

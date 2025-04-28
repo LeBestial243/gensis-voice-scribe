@@ -31,7 +31,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
+      <header className="sticky top-0 z-40 bg-gensys-glassmorphism-light backdrop-blur-sm border-b">
         <div className="container flex items-center h-16">
           <Button 
             variant="outline" 
@@ -47,7 +47,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         </div>
       </header>
 
-      <Card>
+      <Card className="bg-gradient-to-r from-gensys-primary-from/5 via-gensys-primary-via/5 to-gensys-primary-to/5">
         <CardHeader className="pb-3">
           <CardTitle className="text-2xl font-bold">
             {profile.first_name} {profile.last_name}

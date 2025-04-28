@@ -28,8 +28,24 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        gensys: {
+          primary: {
+            from: "#56CCF2",      // Bleu clair du logo
+            via: "#5B86E5",       // Bleu moyen
+            to: "#8B5CF6",        // Violet du logo
+          },
+          surface: {
+            light: "#f8fafc",
+            DEFAULT: "#f1f5f9",
+            dark: "#e2e8f0",
+          },
+          glassmorphism: {
+            light: "rgba(255, 255, 255, 0.7)",
+            dark: "rgba(15, 23, 42, 0.6)",
+          }
+        },
         primary: {
-          DEFAULT: "#6366F1",
+          DEFAULT: "#5B86E5",
           hover: "#4F46E5",
           foreground: "#FFFFFF",
         },
@@ -45,7 +61,7 @@ export default {
           foreground: "#6B7280",
         },
         accent: {
-          DEFAULT: "#6366F1",
+          DEFAULT: "#5B86E5",
           foreground: "#FFFFFF",
         },
         destructive: {
@@ -57,6 +73,9 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      backgroundImage: {
+        'gradient-gensys': 'linear-gradient(to right, var(--tw-gradient-stops))',
       },
     },
   },
