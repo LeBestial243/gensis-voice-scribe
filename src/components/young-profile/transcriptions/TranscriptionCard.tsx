@@ -6,7 +6,6 @@ import { FileText, Clock, Edit, Download, Trash2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { FilePreviewDialog } from "@/components/file-display/FilePreviewDialog";
 import type { FileData } from "@/types/files";
+import { MorphCard } from "@/components/ui/MorphCard";
 
 interface TranscriptionCardProps {
   file: FileData;
@@ -28,7 +28,7 @@ export function TranscriptionCard({ file, onDelete, onDownload }: TranscriptionC
 
   return (
     <>
-      <Card key={file.id} className="overflow-hidden">
+      <MorphCard key={file.id} className="overflow-hidden" interactive>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div className="flex items-start gap-2">
@@ -102,7 +102,7 @@ export function TranscriptionCard({ file, onDelete, onDownload }: TranscriptionC
             </Button>
           </div>
         </CardFooter>
-      </Card>
+      </MorphCard>
 
       <FilePreviewDialog
         file={file}

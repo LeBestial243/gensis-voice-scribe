@@ -2,13 +2,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FolderDialog } from "@/components/FolderDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Folder, FolderOpen, File, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MorphCard } from "@/components/ui/MorphCard";
 
 interface FoldersListProps {
   profileId: string;
@@ -135,7 +136,7 @@ export function FoldersList({
       
       <ScrollArea className="max-h-[500px]">
         {filteredFolders.length === 0 ? (
-          <Card className="bg-muted/50">
+          <MorphCard className="bg-muted/50">
             <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
               <Folder className="h-10 w-10 text-muted-foreground mb-2" />
               <p className="text-muted-foreground">Aucun dossier trouvé</p>
@@ -143,15 +144,14 @@ export function FoldersList({
                 <p className="text-sm text-muted-foreground">Aucun résultat pour "{searchQuery}"</p>
               )}
             </CardContent>
-          </Card>
+          </MorphCard>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
             {filteredFolders.map((folder) => (
-              <Card 
+              <MorphCard 
                 key={folder.id} 
-                className={`hover:bg-accent/50 transition-colors cursor-pointer ${
-                  selectedFolderId === folder.id ? 'bg-accent' : ''
-                }`}
+                className={selectedFolderId === folder.id ? 'bg-accent/50' : ''}
+                interactive
                 onClick={() => onFolderSelect(folder.id)}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
@@ -176,7 +176,7 @@ export function FoldersList({
                     </div>
                   </CardContent>
                 )}
-              </Card>
+              </MorphCard>
             ))}
           </div>
         )}

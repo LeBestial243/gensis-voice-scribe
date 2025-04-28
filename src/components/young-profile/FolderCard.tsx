@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Folder, FolderOpen, UploadCloud, ChevronDown, Trash2, MoreVertical } from "lucide-react";
@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MorphCard } from "@/components/ui/MorphCard";
 
 interface FolderCardProps {
   folder: {
@@ -77,16 +78,14 @@ export function FolderCard({
 
   return (
     <>
-      <Card 
+      <MorphCard 
         className={cn(
-          "cursor-pointer transition-all duration-200 overflow-hidden",
-          "hover:shadow-md",
-          isActive ? "ring-2 ring-gensys-primary-to ring-offset-2" : "",
-          isActive ? getMaxHeight() : "max-h-[100px]"
+          "transition-all duration-200 overflow-hidden",
+          isActive ? getMaxHeight() : "max-h-[100px]",
+          isActive ? "ring-2 ring-gensys-primary-to ring-offset-2" : ""
         )}
         onClick={onToggle}
-        data-folder-id={folder.id}
-        data-active={isActive}
+        interactive
       >
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
@@ -156,7 +155,7 @@ export function FolderCard({
             </div>
           </CardContent>
         )}
-      </Card>
+      </MorphCard>
 
       {/* Dialogue de confirmation de suppression */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
