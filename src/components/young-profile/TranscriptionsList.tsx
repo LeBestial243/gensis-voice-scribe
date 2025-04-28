@@ -1,14 +1,14 @@
-
 import { useState } from "react";
 import { CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranscriptions } from "@/hooks/useTranscriptions";
 import { TranscriptionCard } from "./transcriptions/TranscriptionCard";
 import type { FileData } from "@/types/files";
 import { MorphCard } from "@/components/ui/MorphCard";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 interface TranscriptionsListProps {
   profileId: string;
@@ -77,9 +77,12 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
 
   if (isLoading) {
     return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <MorphCard className="bg-muted/50">
+        <CardContent className="flex flex-col items-center justify-center p-8">
+          <LoadingSpinner size="md" />
+          <p className="mt-4 text-muted-foreground">Chargement des transcriptions...</p>
+        </CardContent>
+      </MorphCard>
     );
   }
 

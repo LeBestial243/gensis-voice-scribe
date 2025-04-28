@@ -88,6 +88,12 @@ export default {
         'neumorph-active': 'inset 5px 5px 10px rgba(0, 0, 0, 0.1), inset -5px -5px 10px rgba(255, 255, 255, 0.7)',
         'neumorph-inset': 'inset 2px 2px 5px rgba(0, 0, 0, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.7)',
       },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+        'reverse': 'spin 3s linear infinite reverse',
+        'delay-150': 'spin 2s linear infinite 150ms',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

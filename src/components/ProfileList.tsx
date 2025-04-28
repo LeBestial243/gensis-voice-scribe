@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CustomPagination } from "./CustomPagination";
 import { MorphCard } from "@/components/ui/MorphCard";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 const PROFILES_PER_PAGE = 6;
 
@@ -17,7 +17,6 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Count total profiles
   const { data: totalCount = 0 } = useQuery({
     queryKey: ['profiles_count'],
     queryFn: async () => {
@@ -32,7 +31,6 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
 
   const totalPages = Math.ceil(totalCount / PROFILES_PER_PAGE);
 
-  // Fetch paginated profiles
   const { data: profiles, isLoading, error } = useQuery({
     queryKey: ['profiles', currentPage, PROFILES_PER_PAGE],
     queryFn: async () => {
@@ -60,17 +58,9 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
 
   if (isLoading) {
     return (
-      <div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {Array(3).fill(0).map((_, index) => (
-            <MorphCard key={index} className="bg-[#F0F4FF]">
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-            </MorphCard>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Chargement des profils...</p>
       </div>
     );
   }
@@ -107,7 +97,7 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
                 type: "spring", 
                 stiffness: 300, 
                 damping: 30,
-                delay: index * 0.05 // Sequential animation
+                delay: index * 0.05
               }}
             >
               <MorphCard 
@@ -126,7 +116,6 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
                   </CardDescription>
                 </CardHeader>
                 
-                {/* Hover animation indicator */}
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-gensys-primary-from to-gensys-primary-to scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
               </MorphCard>
             </motion.div>

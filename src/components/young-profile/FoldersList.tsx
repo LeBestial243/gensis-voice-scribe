@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FolderDialog } from "@/components/FolderDialog";
@@ -10,6 +9,7 @@ import { Folder, FolderOpen, File, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MorphCard } from "@/components/ui/MorphCard";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 interface FoldersListProps {
   profileId: string;
@@ -24,7 +24,6 @@ export function FoldersList({
   onFolderSelect,
   selectedFolderId 
 }: FoldersListProps) {
-  // Fetch folders for the profile
   const { 
     data: folders = [], 
     isLoading: foldersLoading, 
@@ -49,7 +48,6 @@ export function FoldersList({
     },
   });
 
-  // Count files in each folder
   const { 
     data: foldersCounts = {}, 
     error: countsError 
@@ -61,7 +59,6 @@ export function FoldersList({
       if (folderIds.length === 0) return {};
       
       console.log('Fetching file counts for folders:', folderIds);
-      // Get all files for these folders
       const { data, error } = await supabase
         .from('files')
         .select('folder_id')
@@ -72,10 +69,8 @@ export function FoldersList({
         throw new Error(`Erreur lors du comptage des fichiers: ${error.message}`);
       }
       
-      // Organize counts by folder_id
       const counts: Record<string, number> = {};
       
-      // Manual count of files per folder
       for (const folder of folderIds) {
         const filesInFolder = data?.filter(file => file.folder_id === folder) || [];
         counts[folder] = filesInFolder.length;
@@ -85,17 +80,15 @@ export function FoldersList({
       return counts;
     },
     enabled: folders.length > 0,
-    retry: 3, // Retry 3 times if the query fails
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Filter folders based on search query
   const filteredFolders = folders.filter(folder => {
     if (!searchQuery) return true;
     return folder.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // Combine errors for display
   const hasError = foldersError || countsError;
   const errorMessage = foldersError 
     ? (foldersError instanceof Error ? foldersError.message : 'Erreur lors du chargement des dossiers')
@@ -105,8 +98,9 @@ export function FoldersList({
 
   if (foldersLoading) {
     return (
-      <div className="flex justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center p-8">
+        <LoadingSpinner size="sm" />
+        <p className="mt-4 text-sm text-muted-foreground">Chargement des dossiers...</p>
       </div>
     );
   }
