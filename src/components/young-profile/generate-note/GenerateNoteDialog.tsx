@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,19 +30,6 @@ export function GenerateNoteDialog({
 }: GenerateNoteDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("selection");
-  const queryClient = useQueryClient();
-  const dialogOpenedRef = useRef(false);
-  
-  useEffect(() => {
-    if (open && !dialogOpenedRef.current) {
-      console.log("Dialog opened, invalidating queries");
-      queryClient.invalidateQueries({ queryKey: ["folders", profileId] });
-      queryClient.invalidateQueries({ queryKey: ["templates"] });
-      dialogOpenedRef.current = true;
-    } else if (!open) {
-      dialogOpenedRef.current = false;
-    }
-  }, [open, profileId, queryClient]);
   
   const {
     selectedTemplateId,
@@ -64,6 +51,7 @@ export function GenerateNoteDialog({
     onSuccess: () => onOpenChange(false)
   });
 
+  // Reset state when dialog is closed
   useEffect(() => {
     if (!open) {
       handleReset();
@@ -71,6 +59,7 @@ export function GenerateNoteDialog({
     }
   }, [open, handleReset]);
 
+  // Switch to editing tab when content is generated
   useEffect(() => {
     if (generatedContent && activeTab === "selection") {
       setActiveTab("editing");
