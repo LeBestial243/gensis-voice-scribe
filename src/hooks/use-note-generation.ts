@@ -49,7 +49,9 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
 
       // Fetch all files for selected folders with folder information
       console.log('Fetching files for folders:', selectedFolders);
-      const { data: filesWithFolders, error: filesError } = await supabase
+      
+      // Prépare la requête de base
+      let query = supabase
         .from("files")
         .select(`
           *,
@@ -58,8 +60,15 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
             title
           )
         `)
-        .in("folder_id", selectedFolders)
-        .in("id", selectedFiles); // Only get selected files
+        .in("folder_id", selectedFolders);
+      
+      // Ajoute le filtre pour les fichiers sélectionnés uniquement si la liste n'est pas vide
+      if (selectedFiles.length > 0) {
+        console.log('Filtering for specific files:', selectedFiles);
+        query = query.in("id", selectedFiles);
+      }
+      
+      const { data: filesWithFolders, error: filesError } = await query;
 
       if (filesError) throw filesError;
       console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });

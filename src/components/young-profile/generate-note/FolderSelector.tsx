@@ -64,7 +64,17 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
         throw error;
       }
 
-      console.log('FolderSelector: Fetched folders', data?.length || 0);
+      // Debug log
+      if (data && data.length > 0) {
+        console.log('FolderSelector: Fetched folders with files:', 
+          data.map(folder => ({
+            id: folder.id,
+            title: folder.title,
+            filesCount: folder.files ? folder.files.length : 0
+          }))
+        );
+      }
+
       return data as FolderWithFiles[] || [];
     },
   });
@@ -97,10 +107,21 @@ export function FolderSelector({ profileId, selectedFolders, onFolderSelect }: F
       });
       
       setFolderStats(stats);
+      
+      // Auto-expand folders that are selected
+      const newExpandedFolders = [...expandedFolders];
+      for (const folder of stats) {
+        if (selectedFolders.includes(folder.id) && !expandedFolders.includes(folder.id)) {
+          newExpandedFolders.push(folder.id);
+        }
+      }
+      if (newExpandedFolders.length > expandedFolders.length) {
+        setExpandedFolders(newExpandedFolders);
+      }
     } else {
       setFolderStats([]);
     }
-  }, [folders]);
+  }, [folders, selectedFolders]);
 
   const handleFolderClick = (folderId: string) => {
     console.log('FolderSelector: Folder clicked', folderId);
