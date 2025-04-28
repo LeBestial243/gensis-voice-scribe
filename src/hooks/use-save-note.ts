@@ -10,24 +10,22 @@ export function useSaveNote(onSuccess?: () => void) {
 
   return useMutation({
     mutationFn: async ({ title, content }: SaveNoteParams) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilisateur non authentifié");
-      
-      const { data, error } = await supabase
-        .from('notes')
-        .insert([{ 
-          title, 
+      const { data: note, error } = await supabase
+        .from("profile_notes")
+        .insert({
+          profile_id: profileId,
+          title,
           content,
-          user_id: user.id
-        }])
+          type: "generated",
+        })
         .select()
         .single();
-      
+
       if (error) {
         console.error('Error saving note:', error);
         throw new Error(`Erreur lors de la sauvegarde: ${error.message}`);
       }
-      return data;
+      return note;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notes'] });

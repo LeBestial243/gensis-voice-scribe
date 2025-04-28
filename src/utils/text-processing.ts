@@ -1,4 +1,3 @@
-
 export const normalizeText = (text: string): string => {
   return text.toLowerCase()
     .normalize("NFD") // Décompose les lettres accentuées
@@ -24,3 +23,4 @@ export const isTextMatch = (sectionTitle: string, folderName: string): boolean =
   
   return isExactMatch || containsMatch || wordMatch;
 };
+
