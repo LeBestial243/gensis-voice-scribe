@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UseNoteGenerationProps, FileContent } from "@/types/note-generation";
 import { processSection } from "@/services/content-processor";
 import { useSaveNote } from "@/hooks/use-save-note";
+import { isTextMatch, normalizeText } from "@/utils/text-processing";
 
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
   const { toast } = useToast();
@@ -15,8 +15,8 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const [noteTitle, setNoteTitle] = useState<string>(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Initialize the save note mutation
-  const saveNote = useSaveNote(onSuccess);
+  // Initialize the save note mutation, passing the profileId
+  const saveNote = useSaveNote(profileId, onSuccess);
 
   const handleGenerate = async () => {
     console.log('Starting note generation.');

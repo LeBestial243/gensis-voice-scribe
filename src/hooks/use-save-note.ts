@@ -4,19 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SaveNoteParams } from "@/types/note-generation";
 
-export function useSaveNote(onSuccess?: () => void) {
+export function useSaveNote(profileId: string, onSuccess?: () => void) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ title, content }: SaveNoteParams) => {
       const { data: note, error } = await supabase
-        .from("profile_notes")
+        .from("notes")
         .insert({
-          profile_id: profileId,
+          user_id: profileId,
           title,
           content,
-          type: "generated",
         })
         .select()
         .single();

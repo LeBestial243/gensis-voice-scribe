@@ -1,23 +1,14 @@
 
 import { Section, FileContent } from "@/types/note-generation";
-import { normalizeText, isTextMatch } from "@/utils/text-processing";
+import { isTextMatch } from "@/utils/text-processing";
 
 export const processSection = async (section: Section, fileContents: FileContent[]): Promise<string> => {
-  const sectionTitle = normalizeText(section.title);
-  console.log(`=== Processing section: "${section.title}" (normalized: "${sectionTitle}") ===`);
+  console.log(`=== Processing section: "${section.title}" ===`);
 
-  const relevantFiles = fileContents.filter(file => {
-    const folderName = normalizeText(file.folderName);
-    console.log(`Comparing section "${sectionTitle}" with folder "${folderName}" (original: "${file.folderName}")`);
-    
-    const isMatch = isTextMatch(sectionTitle, folderName);
-    
-    if (isMatch) {
-      console.log(`MATCH FOUND: Section "${section.title}" matches folder "${file.folderName}"`);
-    }
-    
-    return isMatch;
-  });
+  // Filter files relevant to this section based on folder name matching
+  const relevantFiles = fileContents.filter(file => 
+    isTextMatch(section.title, file.folderName)
+  );
 
   console.log(`Found ${relevantFiles.length} relevant files for section "${section.title}"`);
   
@@ -34,5 +25,9 @@ export const processSection = async (section: Section, fileContents: FileContent
     .map(file => file.content)
     .join('\n\n');
 
-  return relevantContent || `*Aucune information n'a été trouvée pour cette section.*`;
+  if (!relevantContent) {
+    return `*Aucune information n'a été trouvée pour cette section.*`;
+  }
+
+  return relevantContent;
 };
