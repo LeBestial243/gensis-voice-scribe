@@ -75,9 +75,10 @@ export function FolderSelector({
           throw error;
         }
 
-        console.log("Raw folders data:", data);
-        return data as FolderWithFiles[] || [];
+        // Log détaillé pour le débogage
+        console.log("Raw folders data:", JSON.stringify(data, null, 2));
         
+        return data as FolderWithFiles[] || [];
       } catch (err) {
         console.error("Failed to fetch folders:", err);
         setError("Erreur lors du chargement des dossiers");
@@ -85,46 +86,42 @@ export function FolderSelector({
       }
     },
     enabled: !!profileId,
+    // Forcer le rechargement à chaque fois
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  // Calculer les statistiques des dossiers
+  // Calculer les statistiques des dossiers (nombre total de fichiers, fichiers pertinents)
   useEffect(() => {
     if (!folders || folders.length === 0) {
       setFolderStats([]);
       return;
     }
 
-    console.log("Computing folder stats...");
+    console.log("Computing folder stats for", folders.length, "folders");
     
     const stats = folders.map((folder) => {
+      // S'assurer que files est un tableau
       const files = Array.isArray(folder.files) ? folder.files : [];
+      
+      // Nombre total de fichiers
       const fileCount = files.length;
       
-      const relevantFiles = files.filter(file => 
-        file.type === "transcription" ||
-        file.type === "text" ||
-        file.type === "text/plain" ||
-        (file.name && file.name.toLowerCase().includes("transcription"))
+      // Nombre de fichiers pertinents (transcriptions, texte)
+      const relevantFiles = files.filter(
+        (file) =>
+          file.type === "transcription" ||
+          file.type === "text" ||
+          file.type === "text/plain" ||
+          (file.name && file.name.toLowerCase().includes("transcription"))
       );
       
       const relevantFileCount = relevantFiles.length;
       
-      console.log(`Folder "${folder.title}":`, {
-        totalFiles: fileCount,
-        relevantFiles: relevantFileCount,
-        selectedFiles: files.filter(f => selectedFiles.includes(f.id)).length
-      });
+      console.log(`Folder "${folder.title}": ${fileCount} files, ${relevantFileCount} relevant`);
       
-      // Auto-expand folders with selected content
-      if (!expandedFolders.includes(folder.id)) {
-        const shouldExpand = selectedFiles.some(id => files.some(f => f.id === id)) ||
-                            selectedFolders.includes(folder.id);
-        
-        if (shouldExpand) {
-          setExpandedFolders(prev => [...prev, folder.id]);
-        }
-      }
-
       return {
         ...folder,
         fileCount,
@@ -133,8 +130,47 @@ export function FolderSelector({
     });
 
     setFolderStats(stats);
-  }, [folders, selectedFiles, selectedFolders, expandedFolders]);
+  }, [folders]);
 
+  // Gérer l'auto-expansion des dossiers sélectionnés
+  useEffect(() => {
+    if (!folders || folders.length === 0) return;
+    
+    // Trouver les dossiers qui ont des fichiers sélectionnés et les étendre
+    const foldersToExpand = folders
+      .filter(folder => {
+        const files = Array.isArray(folder.files) ? folder.files : [];
+        const hasSelectedFiles = files.some(file => selectedFiles.includes(file.id));
+        return hasSelectedFiles || selectedFolders.includes(folder.id);
+      })
+      .map(folder => folder.id);
+    
+    // Mettre à jour les dossiers étendus
+    if (foldersToExpand.length > 0) {
+      setExpandedFolders(prev => {
+        const newExpanded = [...prev];
+        foldersToExpand.forEach(id => {
+          if (!newExpanded.includes(id)) {
+            newExpanded.push(id);
+          }
+        });
+        return newExpanded;
+      });
+    }
+  }, [folders, selectedFolders, selectedFiles]);
+  
+  // Gérer le clic sur un dossier
+  const handleFolderClick = (folderId: string) => {
+    console.log("Folder clicked:", folderId);
+    onFolderSelect(folderId);
+    
+    // Auto-expand lorsqu'un dossier est sélectionné
+    if (!expandedFolders.includes(folderId)) {
+      setExpandedFolders(prev => [...prev, folderId]);
+    }
+  };
+
+  // Gérer le clic sur le bouton d'expansion
   const toggleFolderExpand = (folderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedFolders(prev =>
@@ -144,6 +180,7 @@ export function FolderSelector({
     );
   };
 
+  // Affichage pendant le chargement
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -158,6 +195,7 @@ export function FolderSelector({
     );
   }
 
+  // Affichage en cas d'erreur
   if (error) {
     return (
       <div className="border border-red-200 rounded-lg p-4 text-red-700 bg-red-50">
@@ -170,6 +208,7 @@ export function FolderSelector({
     );
   }
 
+  // Affichage si aucun dossier n'est trouvé
   if (folderStats.length === 0) {
     return (
       <div className="border border-dashed rounded-lg p-6 text-center">
@@ -179,6 +218,7 @@ export function FolderSelector({
     );
   }
 
+  // Affichage principal des dossiers et fichiers
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -202,6 +242,7 @@ export function FolderSelector({
           
           return (
             <div key={folder.id} className="space-y-2">
+              {/* Carte du dossier */}
               <Card
                 className={cn(
                   "transition-all duration-200 cursor-pointer",
@@ -209,14 +250,14 @@ export function FolderSelector({
                     ? "border-purple-500 bg-purple-50/50 shadow-sm"
                     : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
                 )}
-                onClick={() => onFolderSelect(folder.id)}
+                onClick={() => handleFolderClick(folder.id)}
               >
                 <CardContent className="p-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
                       checked={isSelected}
                       className="mt-1"
-                      onCheckedChange={() => onFolderSelect(folder.id)}
+                      onCheckedChange={() => handleFolderClick(folder.id)}
                       onClick={(e) => e.stopPropagation()}
                       id={`folder-checkbox-${folder.id}`}
                     />
@@ -258,6 +299,7 @@ export function FolderSelector({
                 </CardContent>
               </Card>
               
+              {/* Liste des fichiers du dossier (visible si le dossier est étendu) */}
               {isExpanded && (
                 <div className="ml-8">
                   {Array.isArray(folder.files) && folder.files.length > 0 ? (
