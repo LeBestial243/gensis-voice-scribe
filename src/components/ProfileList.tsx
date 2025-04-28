@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomPagination } from "./CustomPagination";
 import { MorphCard } from "@/components/ui/MorphCard";
+import { motion, AnimatePresence } from "framer-motion";
 
 const PROFILES_PER_PAGE = 6;
 
@@ -95,31 +96,55 @@ export function ProfileList({ onSelectProfile }: { onSelectProfile?: (id: string
   return (
     <div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {profiles.map((profile) => (
-          <MorphCard 
-            key={profile.id} 
-            className="bg-[#F0F4FF]"
-            interactive
-            onClick={() => handleProfileClick(profile.id)}
-          >
-            <CardHeader>
-              <CardTitle className="text-xl font-bold tracking-tight text-gray-800 font-dmsans">
-                {profile.first_name} {profile.last_name}
-              </CardTitle>
-              <CardDescription className="text-sm text-gray-500 font-dmsans">
-                {profile.structure || "Aucune structure"} • 
-                {new Date(profile.arrival_date).toLocaleDateString('fr-FR')}
-              </CardDescription>
-            </CardHeader>
-          </MorphCard>
-        ))}
+        <AnimatePresence>
+          {profiles.map((profile, index) => (
+            <motion.div
+              key={profile.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 300, 
+                damping: 30,
+                delay: index * 0.05 // Sequential animation
+              }}
+            >
+              <MorphCard 
+                key={profile.id} 
+                className="bg-[#F0F4FF] group relative"
+                interactive
+                onClick={() => handleProfileClick(profile.id)}
+              >
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold tracking-tight text-gray-800 font-dmsans">
+                    {profile.first_name} {profile.last_name}
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-500 font-dmsans">
+                    {profile.structure || "Aucune structure"} • 
+                    {new Date(profile.arrival_date).toLocaleDateString('fr-FR')}
+                  </CardDescription>
+                </CardHeader>
+                
+                {/* Hover animation indicator */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-gensys-primary-from to-gensys-primary-to scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+              </MorphCard>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
       
-      <CustomPagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <CustomPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </motion.div>
     </div>
   );
 }
