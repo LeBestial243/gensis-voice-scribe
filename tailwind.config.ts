@@ -93,6 +93,30 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'reverse': 'spin 3s linear infinite reverse',
         'delay-150': 'spin 2s linear infinite 150ms',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      transitionProperty: {
+        'height': 'height',
+        'spacing': 'margin, padding',
+        'width': 'width',
+        'transform': 'transform',
+      },
+      transitionDuration: {
+        '0': '0ms',
+        '2000': '2000ms',
+      },
+      backdropBlur: {
+        'xl': '20px',
       },
     },
   },
