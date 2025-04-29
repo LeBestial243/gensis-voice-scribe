@@ -7,6 +7,7 @@ import { FilePreviewDialog } from "./FilePreviewDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { fileService } from "@/services/fileService";
 
 interface FileCardProps {
   file: FileType;
@@ -43,10 +44,14 @@ export function FileCard({
   };
 
   // Ensure deletion doesn't cause event propagation issues
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onDelete(file.id);
+    try {
+      onDelete(file.id);
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+    }
   };
 
   return (
