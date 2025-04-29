@@ -9,6 +9,7 @@ export interface FileData {
   created_at: string | null;
   updated_at: string | null;
   content?: string;
+  author?: string;  // Adding the author property that was missing
 }
 
 export type FileType = FileData;
