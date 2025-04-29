@@ -52,67 +52,68 @@ export function FileCard({
   return (
     <>
       <Card 
-        className="group relative cursor-pointer hover:shadow-md transition-shadow duration-200"
+        className="group cursor-pointer hover:shadow-md transition-shadow duration-200"
         onClick={handleCardClick}
       >
         <CardContent className="p-4">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-base font-medium text-gray-900">
-              {file.name}
-            </h3>
-          </div>
-            
-          <div className="flex items-center mt-6">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
-                {getInitials(file.author || "Felly Lunkeba")}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-muted-foreground ml-2">
-              {file.author || "Felly Lunkeba"}
-            </span>
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-medium text-gray-900 truncate mb-1">
+                {file.name}
+              </h3>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
+                    {getInitials("Felly Lunkeba")}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-muted-foreground truncate">
+                  Felly Lunkeba
+                </span>
+              </div>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload(file);
+                }}>
+                  {isDownloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    "Télécharger"
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onRename(file);
+                }}>
+                  Renommer
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? 
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 
+                    "Supprimer"
+                  }
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={(e) => {
-              e.stopPropagation();
-              onDownload(file);
-            }}>
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                "Télécharger"
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => {
-              e.stopPropagation();
-              onRename(file);
-            }}>
-              Renommer
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={handleDelete}
-            >
-              {isDeleting ? 
-                <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 
-                "Supprimer"
-              }
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </Card>
 
       <FilePreviewDialog

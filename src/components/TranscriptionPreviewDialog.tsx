@@ -13,7 +13,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 interface TranscriptionPreviewDialogProps {
   file: {
@@ -22,7 +21,6 @@ interface TranscriptionPreviewDialogProps {
     content?: string;
     path?: string;
     created_at: string;
-    author?: string;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -110,34 +108,32 @@ export function TranscriptionPreviewDialog({
   const formattedDate = formatDate(file.created_at);
   
   const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return (name || "FL").substring(0, 2).toUpperCase();
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
-
-  const authorName = file.author || "Felly Lunkeba";
-  const authorInitials = getInitials(authorName);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 max-w-[60%]">
-              <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <DialogTitle className="text-xl font-semibold break-words">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <DialogTitle className="text-xl font-semibold">
                 {file.name}
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
-                  {authorInitials}
+                  FL
                 </AvatarFallback>
               </Avatar>
-              <span className="truncate max-w-[120px]">{authorName}</span>
+              <span>Felly Lunkeba</span>
               <span>•</span>
               <span>{formattedDate}</span>
             </div>
@@ -166,16 +162,6 @@ export function TranscriptionPreviewDialog({
             )}
           </div>
         </ScrollArea>
-        
-        <div className="pt-4 border-t flex justify-end items-center mt-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onOpenChange(false)}
-          >
-            Fermer
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );

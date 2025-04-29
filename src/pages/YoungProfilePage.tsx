@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 import EnhancedFolderView from '@/components/young-profile/EnhancedFolderView';
 import { motion } from 'framer-motion';
-import { TranscriptionsList } from '@/components/TranscriptionsList';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -174,14 +173,6 @@ export default function YoungProfilePage() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
-
-        {activeFolderId && (
-          <TranscriptionsList 
-            profileId={profileId}
-            folderId={activeFolderId}
-            searchQuery={searchQuery}
-          />
-        )}
       </main>
 
       <motion.div
