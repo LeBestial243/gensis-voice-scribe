@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Download, Mic, X } from "lucide-react";
+import { Check, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -58,7 +58,7 @@ export function IncidentReportDialog({
   });
 
   // Initialize profile selections when profiles are loaded
-  useState(() => {
+  useEffect(() => {
     if (profiles.length > 0 && profileSelections.length === 0) {
       setProfileSelections(
         profiles.map((profile) => ({
@@ -68,7 +68,7 @@ export function IncidentReportDialog({
         }))
       );
     }
-  });
+  }, [profiles, profileSelections.length]);
 
   // Query to get folders for each profile
   const { data: allFolders = [] } = useQuery({
@@ -86,7 +86,7 @@ export function IncidentReportDialog({
   });
 
   // Handle transcription completion
-  const handleTranscriptionComplete = (text: string, audioUrl: string | null) => {
+  const handleTranscriptionComplete = (text: string, audioUrl: string | null, hasError?: boolean, errorMessage?: string | null, inconsistencies?: string[]) => {
     setTranscript(text);
     setAudioURL(audioUrl);
     setStep("transcription");
@@ -141,6 +141,7 @@ export function IncidentReportDialog({
           type: "text/plain",
           size: new Blob([transcript]).size,
           path: `incidents/${selection.folderId}/${Date.now()}.txt`,
+          content: transcript, // Store content directly in database
         };
 
         const { data, error } = await supabase
@@ -401,6 +402,8 @@ export function IncidentReportDialog({
             </p>
           </div>
         );
+      default:
+        return null;
     }
   };
 
