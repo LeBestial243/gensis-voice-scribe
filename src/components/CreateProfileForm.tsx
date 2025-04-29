@@ -27,6 +27,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface CreateProfileFormProps {
+  onSuccess?: () => void;
+}
+
 const formSchema = z.object({
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
   lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -39,7 +43,7 @@ const formSchema = z.object({
   }),
 });
 
-export function CreateProfileForm() {
+export function CreateProfileForm({ onSuccess }: CreateProfileFormProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -72,6 +76,7 @@ export function CreateProfileForm() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['young_profiles'] });
       toast({ title: "Profil créé avec succès" });
+      if (onSuccess) onSuccess();
       navigate(`/young_profiles/${data.id}?record=true`);
     },
     onError: () => {
