@@ -1,18 +1,12 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fileService } from "@/services/fileService";
+import { FileType } from "@/types/files";
 
-export type FileType = {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  path: string;
-  created_at: string;
-  content?: string | null;
-};
+export type { FileType };
 
 export function useFiles(folderId: string) {
   const { toast } = useToast();
@@ -41,7 +35,20 @@ export function useFiles(folderId: string) {
     try {
       setIsDownloading(file.id);
       
-      const signedUrl = await fileService.downloadFile(file);
+      // Fix type mismatch by ensuring the file has all required properties
+      const fileData = {
+        id: file.id,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        path: file.path,
+        folder_id: folderId,
+        created_at: file.created_at,
+        updated_at: file.created_at,
+        content: file.content
+      };
+      
+      const signedUrl = await fileService.downloadFile(fileData);
       
       const a = document.createElement('a');
       a.href = signedUrl;
