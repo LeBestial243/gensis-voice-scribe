@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UseNoteGenerationProps, FileContent } from "@/types/note-generation";
-import { processSection } from "@/services/content-processor";
+import { UseNoteGenerationProps, FileContent, Section } from "@/types/note-generation";
 import { useSaveNote } from "@/hooks/use-save-note";
-import { isTextMatch, normalizeText } from "@/utils/text-processing";
 
 export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
+  // Toast notification utility
   const { toast } = useToast();
+  
+  // State management
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -15,20 +16,63 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   const [noteTitle, setNoteTitle] = useState<string>(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Initialize the save note mutation, passing the profileId
+  // Initialize the save note mutation
   const saveNote = useSaveNote(profileId, onSuccess);
 
-  const handleGenerate = async () => {
+  // Helper to process a section of content
+  const processSection = async (section: Section, fileContents: FileContent[]): Promise<string> => {
+    console.log(`Processing section: "${section.title}"`);
+    
+    // Filter for relevant content based on section title and folder
+    const relevantFiles = fileContents.filter(file => {
+      const sectionLower = section.title.toLowerCase();
+      const folderLower = file.folderName.toLowerCase();
+      
+      return (
+        // Direct matches
+        sectionLower.includes(folderLower) || 
+        folderLower.includes(sectionLower) ||
+        // Or files specifically marked as relevant to this section
+        file.name.toLowerCase().includes(sectionLower)
+      );
+    });
+    
+    if (relevantFiles.length === 0) {
+      return `*Aucune information n'a été trouvée pour cette section.*`;
+    }
+    
+    // Concatenate content from all relevant files
+    const relevantContent = relevantFiles
+      .filter(file => file.content && file.content.length > 0)
+      .map(file => file.content)
+      .join('\n\n');
+    
+    if (!relevantContent) {
+      return `*Aucune information n'a été trouvée pour cette section.*`;
+    }
+    
+    return relevantContent;
+  };
+
+  const handleGenerate = useCallback(async () => {
     console.log('Starting note generation.');
     console.log('Selected folders:', selectedFolders);
     console.log('Selected files:', selectedFiles);
     
-    if (selectedFolders.length === 0 || !selectedTemplateId) {
-      console.log('Missing required data:', { selectedFolders, selectedTemplateId });
+    if (selectedFolders.length === 0 && selectedFiles.length === 0) {
       toast({
         title: "Données manquantes",
-        description: "Veuillez sélectionner au moins un dossier et un modèle",
+        description: "Veuillez sélectionner au moins un dossier ou un fichier",
         variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!selectedTemplateId) {
+      toast({
+        title: "Modèle requis",
+        description: "Veuillez sélectionner un modèle de note",
+        variant: "destructive", 
       });
       return;
     }
@@ -36,7 +80,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     setIsGenerating(true);
 
     try {
-      // Fetch template and sections
+      // 1. Fetch template and sections
       const { data: template, error: templateError } = await supabase
         .from("templates")
         .select("*")
@@ -54,11 +98,8 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       if (sectionsError) throw sectionsError;
       console.log('Template and sections loaded:', { template, sectionsCount: sections?.length });
 
-      // Fetch all files for selected folders with folder information
-      console.log('Fetching files for folders:', selectedFolders);
-      
-      // Prépare la requête de base
-      let query = supabase
+      // 2. Fetch file data
+      let filesQuery = supabase
         .from("files")
         .select(`
           *,
@@ -66,49 +107,47 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
             id,
             title
           )
-        `)
-        .in("folder_id", selectedFolders);
+        `);
       
-      // Ajoute le filtre pour les fichiers sélectionnés uniquement si la liste n'est pas vide
-      if (selectedFiles.length > 0) {
-        console.log('Filtering for specific files:', selectedFiles);
-        query = query.in("id", selectedFiles);
+      // Apply filters based on selection
+      if (selectedFolders.length > 0) {
+        filesQuery = filesQuery.in("folder_id", selectedFolders);
       }
       
-      const { data: filesWithFolders, error: filesError } = await query;
+      if (selectedFiles.length > 0) {
+        if (selectedFolders.length > 0) {
+          // If both folders and files are selected, use OR condition
+          filesQuery = filesQuery.or(`folder_id.in.(${selectedFolders.join(',')}),id.in.(${selectedFiles.join(',')})`);
+        } else {
+          // If only files are selected
+          filesQuery = filesQuery.in("id", selectedFiles);
+        }
+      }
+      
+      const { data: filesWithFolders, error: filesError } = await filesQuery;
 
       if (filesError) throw filesError;
-      console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });
-      
-      if (filesWithFolders && filesWithFolders.length > 0) {
-        console.log('Sample files:', filesWithFolders.slice(0, 3).map(f => ({ 
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          folderTitle: f.folders?.title
-        })));
-      }
+      console.log('Files fetched:', filesWithFolders?.length || 0);
 
-      // Fetch content from storage for text files
+      // 3. Process file content
       const fileContents: FileContent[] = [];
       
       for (const file of filesWithFolders || []) {
-        if (file.type === "transcription" || file.type === "text" || file.type === "text/plain" || 
+        // Filter for relevant file types
+        if (file.type === "transcription" || 
+            file.type === "text" || 
+            file.type === "text/plain" || 
             (file.name && file.name.toLowerCase().includes('transcription'))) {
-          console.log('Processing file:', { 
-            name: file.name, 
-            type: file.type, 
-            path: file.path,
-            folderTitle: file.folders?.title 
-          });
           
           try {
             let content: string = '';
             
+            // Check for content in database first
             if (file.content) {
-              console.log('Using database content for:', file.name);
               content = file.content;
-            } else if (file.path) {
+            } 
+            // If no content in database but file has path, download from storage
+            else if (file.path) {
               const { data: storageData, error: downloadError } = await supabase.storage
                 .from("files")
                 .download(file.path);
@@ -119,25 +158,16 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
               }
               
               content = await storageData.text();
-              console.log('Downloaded content for:', file.name, 'Content length:', content.length);
             }
             
             if (content) {
-              const fileContent = {
+              fileContents.push({
                 id: file.id,
                 name: file.name,
                 content: content,
                 type: file.type,
                 folderName: file.folders?.title || ''
-              };
-              
-              console.log('Adding file to fileContents:', {
-                name: fileContent.name,
-                folderName: fileContent.folderName,
-                contentPreview: fileContent.content.substring(0, 100) + '...'
               });
-              
-              fileContents.push(fileContent);
             }
           } catch (error) {
             console.error('Error processing file:', file.name, error);
@@ -145,37 +175,25 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
         }
       }
 
-      console.log('File contents prepared:', { 
-        contentsCount: fileContents.length,
-        folders: fileContents.map(f => ({ name: f.name, folder: f.folderName }))
-      });
-
       if (fileContents.length === 0) {
-        throw new Error("Aucun fichier texte trouvé dans les dossiers sélectionnés");
+        throw new Error("Aucun fichier texte trouvé pour générer la note");
       }
 
-      // Generate content based on template structure
+      // 4. Generate content based on template structure
       let content = "";
       content += `# ${template.title}\n\n`;
 
-      console.log('=== Starting to process template sections ===');
-      console.log('Sections to process:', sections?.map(s => s.title));
-
       for (const section of sections || []) {
-        console.log(`\n=== PROCESSING SECTION: "${section.title}" ===`);
         content += `## ${section.title}\n\n`;
         
         // Process content for this section
         const sectionContent = await processSection(section, fileContents);
         content += `${sectionContent}\n\n`;
-        
-        console.log(`Section "${section.title}" processed. Content: ${sectionContent.substring(0, 50)}...`);
       }
 
       setGeneratedContent(content);
       setNoteTitle(`${template.title} - ${new Date().toLocaleDateString("fr-FR")}`);
       
-      console.log('Note generation completed');
       toast({
         title: "Note générée avec succès",
         description: "Vous pouvez maintenant éditer et sauvegarder la note.",
@@ -191,16 +209,16 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [selectedTemplateId, selectedFolders, selectedFiles, toast]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setSelectedTemplateId("");
     setSelectedFolders([]);
     setSelectedFiles([]);
     setGeneratedContent("");
     setNoteTitle(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
     setIsGenerating(false);
-  };
+  }, []);
 
   return {
     selectedTemplateId,
