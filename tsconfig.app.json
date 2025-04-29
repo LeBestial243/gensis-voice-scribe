@@ -1,12 +1,33 @@
 {
   "compilerOptions": {
-    // ... autres configurations existantes
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
     
-    /* Activer progressivement les vérifications */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
-    
-    // Gardez "strict" et "noImplicitAny" à false pour l'instant
-  }
+    /* Ajoutez cette ligne pour résoudre les erreurs d'importation par défaut */
+    "esModuleInterop": true,
+
+    /* Linting progressif */
+    "strict": false,
+    "noUnusedLocals": false,  // Gardez à false pour l'instant
+    "noUnusedParameters": false,  // Gardez à false pour l'instant
+    "noImplicitAny": false,  
+    "noFallthroughCasesInSwitch": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
 }
