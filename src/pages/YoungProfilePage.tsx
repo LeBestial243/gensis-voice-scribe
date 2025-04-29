@@ -1,9 +1,9 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileHeader } from '@/components/young-profile/ProfileHeader';
+import { SearchTabs } from '@/components/young-profile/SearchTabs';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
 import { RecordingDialog } from '@/components/young-profile/RecordingDialog';
 import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
@@ -11,8 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryCache } from '@/hooks/useQueryCache';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
-import EnhancedFolderView from '@/components/young-profile/EnhancedFolderView';
-import { motion } from 'framer-motion';
 
 export default function YoungProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +27,6 @@ export default function YoungProfilePage() {
   const refreshData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['young_profile', profileId] });
     queryClient.invalidateQueries({ queryKey: ['folders', profileId] });
-    queryClient.invalidateQueries({ queryKey: ['enhanced_folders', profileId] });
     queryClient.invalidateQueries({ queryKey: ['files'] });
     queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
     queryClient.invalidateQueries({ queryKey: ['notes'] });
@@ -162,29 +159,25 @@ export default function YoungProfilePage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen pb-24 bg-gray-50">
       <ProfileHeader profile={profile} />
 
       <main className="container py-6 space-y-6">
-        <EnhancedFolderView 
+        <SearchTabs 
           profileId={profileId}
-          selectedFolderId={activeFolderId}
-          onFolderSelect={setActiveFolderId}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          selectedTab={selectedTab}
+          onTabChange={handleTabChange}
+          selectedFolderId={activeFolderId}
+          onFolderSelect={setActiveFolderId}
         />
       </main>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-      >
-        <FloatingActions 
-          onRecordingClick={() => setIsRecordingOpen(true)}
-          onGenerateNoteClick={handleOpenGenerateNote}
-        />
-      </motion.div>
+      <FloatingActions 
+        onRecordingClick={() => setIsRecordingOpen(true)}
+        onGenerateNoteClick={handleOpenGenerateNote}
+      />
 
       <TranscriptionDialog
         key={`transcription-dialog-${isRecordingOpen}`}

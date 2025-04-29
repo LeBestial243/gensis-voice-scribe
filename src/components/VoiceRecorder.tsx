@@ -1,9 +1,8 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface VoiceRecorderProps {
@@ -256,7 +255,6 @@ export function VoiceRecorder({
           onClick={handleRecordButtonClick}
           disabled={isProcessing}
           type="button"
-          aria-label={isRecording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
         >
           {isRecording ? (
             <Square className="w-8 h-8" />

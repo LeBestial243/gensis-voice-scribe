@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -93,41 +92,6 @@ export default function Profiles() {
   if (!selectedProfileId) {
     return (
       <div className="container mx-auto py-8 px-4 pb-24" id="profiles-container">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-title">Mes profils</h1>
-            <p className="text-subtitle mt-1">Gérez vos suivis éducatifs</p>
-          </div>
-          
-          <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
-            <DialogTrigger asChild>
-              <GradientButton className="px-4 py-2 rounded-xl">
-                <Plus className="h-5 w-5 mr-2" />
-                Créer un profil
-              </GradientButton>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Créer un nouveau profil</DialogTitle>
-              </DialogHeader>
-              <CreateProfileForm onSuccess={() => setOpenCreateProfile(false)} />
-            </DialogContent>
-          </Dialog>
-        </div>
-        
-        <div className="relative w-full max-w-md mx-auto mb-8">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Input
-            type="text"
-            placeholder="Rechercher un profil..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm hover:shadow transition-all duration-300"
-          />
-        </div>
-        
         <EnhancedProfilesList onSelectProfile={setSelectedProfileId} />
         <MobileNav />
       </div>

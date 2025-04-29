@@ -13,17 +13,13 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-    
-    /* Ajout pour résoudre les problèmes d'importation */
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
 
-    /* Linting - gardons-les désactivés pour l'instant */
+    /* Linting */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": false,
 
     "baseUrl": ".",
     "paths": {
