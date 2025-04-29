@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,14 +85,11 @@ export function FolderSelector({
       }
     },
     enabled: !!profileId,
-    // Forcer le rechargement à chaque ouverture de la boîte de dialogue
-    staleTime: 0,
-    gcTime: 0,
   });
 
   // Calculer les statistiques des dossiers (nombre total de fichiers, fichiers pertinents)
   useEffect(() => {
-    if (!folders) {
+    if (!folders || folders.length === 0) {
       setFolderStats([]);
       return;
     }
