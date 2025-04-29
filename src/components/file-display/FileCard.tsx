@@ -58,7 +58,7 @@ export function FileCard({
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-medium text-gray-900 truncate mb-1">
+              <h3 className="text-base font-medium text-gray-900 break-words mb-1">
                 {file.name}
               </h3>
               <div className="flex items-center gap-2">
