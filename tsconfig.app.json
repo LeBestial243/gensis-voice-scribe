@@ -14,14 +14,15 @@
     "noEmit": true,
     "jsx": "react-jsx",
     
-    /* Ajoutez cette ligne pour résoudre les erreurs d'importation par défaut */
+    /* Ajout pour résoudre les problèmes d'importation */
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
 
-    /* Linting progressif */
+    /* Linting - gardons-les désactivés pour l'instant */
     "strict": false,
-    "noUnusedLocals": false,  // Gardez à false pour l'instant
-    "noUnusedParameters": false,  // Gardez à false pour l'instant
-    "noImplicitAny": false,  
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
     "noFallthroughCasesInSwitch": true,
 
     "baseUrl": ".",
