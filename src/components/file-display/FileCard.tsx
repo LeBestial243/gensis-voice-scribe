@@ -56,19 +56,19 @@ export function FileCard({
         onClick={handleCardClick}
       >
         <CardContent className="p-4">
-          <div className="flex flex-col space-y-2">
-            <h3 className="text-base font-medium text-gray-900 break-words hyphens-auto">
+          <div>
+            <h3 className="text-base font-medium text-gray-900 mb-2">
               {file.name}
             </h3>
             
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
                     {getInitials("Felly Lunkeba")}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-muted-foreground truncate max-w-[120px]">
+                <span className="text-sm text-muted-foreground">
                   Felly Lunkeba
                 </span>
               </div>
