@@ -12,6 +12,7 @@ export type FileType = {
   path: string;
   created_at: string;
   content?: string | null;
+  author?: string; // Ajout de la propriété author optionnelle
 };
 
 export function useFiles(folderId: string) {
