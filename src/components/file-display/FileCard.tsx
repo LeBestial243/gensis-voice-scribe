@@ -49,6 +49,9 @@ export function FileCard({
     onDelete(file.id);
   };
 
+  // Default author name if none is provided
+  const authorName = file.author || "Felly Lunkeba";
+
   return (
     <>
       <Card 
@@ -64,11 +67,11 @@ export function FileCard({
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
-                    {getInitials("Felly Lunkeba")}
+                    {getInitials(authorName)}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-muted-foreground truncate">
-                  Felly Lunkeba
+                  {authorName}
                 </span>
               </div>
             </div>
