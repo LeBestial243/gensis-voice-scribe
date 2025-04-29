@@ -16,6 +16,7 @@ import { Home, Users, FileText, Settings, LogOut, BarChart2, PanelLeft, FileCode
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import appConfig from '@/config/appConfig';
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -32,8 +33,8 @@ export function AppSidebar() {
         <div className="flex items-center gap-2 justify-between w-full">
           <div className="flex items-center">
             <img 
-              src="https://ulhlmrjyjhrgktncggav.supabase.co/storage/v1/object/sign/logo/GenSys%20finale.svg?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5XzBjMjg3MTBiLTZhNWMtNDJjNC04ZWJjLWFkMGM2YzYyNDZmMiJ9.eyJ1cmwiOiJsb2dvL0dlblN5cyBmaW5hbGUuc3ZnIiwiaWF0IjoxNzQ1ODY4MzExLCJleHAiOjE3Nzc0MDQzMTF9.dZaZ2t7-73UWm13qTLYzeWWbkBWM4TM9CY9kb8wDTzU" 
-              alt="GENSYS Logo" 
+              src={appConfig.app.logo.main}
+              alt={`${appConfig.app.company} Logo`}
               className="h-8 w-auto mr-2" 
             />
           </div>
