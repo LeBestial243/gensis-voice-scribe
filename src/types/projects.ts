@@ -1,5 +1,6 @@
 
 import { AuditableEntity } from "./index";
+import { ConfidentialityLevel } from "./confidentiality";
 
 export type ProjectStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
 export type ObjectiveStatus = 'not_started' | 'in_progress' | 'completed' | 'cancelled';
@@ -12,6 +13,7 @@ export interface Project extends AuditableEntity {
   start_date: string;
   end_date: string;
   profile_id: string;
+  confidentiality_level?: ConfidentialityLevel;
 }
 
 export interface ProjectObjective extends AuditableEntity {
