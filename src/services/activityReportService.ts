@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ActivityReport, ActivityMetric } from "@/types/casf";
+import { ActivityReport, ActivityMetric, ReportSection } from "@/types/casf";
 import { formatSupabaseError } from "@/utils/errorHandler";
 import { auditService } from "./auditService";
 
@@ -33,14 +33,15 @@ export const activityReportService = {
       
       if (error) throw formatSupabaseError(error);
       
-      // Convert to our ActivityReport type
+      // Convert to our ActivityReport type with proper content handling
       return (data || []).map(item => ({
         id: item.id,
         title: item.title,
         period_start: item.period_start,
         period_end: item.period_end,
         report_type: item.report_type as ActivityReport['report_type'],
-        content: item.content || {},
+        content: item.content ? 
+          (typeof item.content === 'object' ? item.content : {}) as ActivityReport['content'] : {},
         user_id: item.user_id,
         created_at: item.created_at || new Date().toISOString()
       }));
@@ -59,14 +60,15 @@ export const activityReportService = {
       
       if (error) throw formatSupabaseError(error);
       
-      // Convert to our ActivityReport type
+      // Convert to our ActivityReport type with proper content handling
       return {
         id: data.id,
         title: data.title,
         period_start: data.period_start,
         period_end: data.period_end,
         report_type: data.report_type as ActivityReport['report_type'],
-        content: data.content || {},
+        content: data.content ? 
+          (typeof data.content === 'object' ? data.content : {}) as ActivityReport['content'] : {},
         user_id: data.user_id,
         created_at: data.created_at || new Date().toISOString()
       };
@@ -91,14 +93,15 @@ export const activityReportService = {
         report_type: report.report_type
       });
       
-      // Convert to our ActivityReport type
+      // Convert to our ActivityReport type with proper content handling
       return {
         id: data.id,
         title: data.title,
         period_start: data.period_start,
         period_end: data.period_end,
         report_type: data.report_type as ActivityReport['report_type'],
-        content: data.content || {},
+        content: data.content ? 
+          (typeof data.content === 'object' ? data.content : {}) as ActivityReport['content'] : {},
         user_id: data.user_id,
         created_at: data.created_at || new Date().toISOString()
       };
@@ -127,14 +130,15 @@ export const activityReportService = {
         report_type: updates.report_type
       });
       
-      // Convert to our ActivityReport type
+      // Convert to our ActivityReport type with proper content handling
       return {
         id: data.id,
         title: data.title,
         period_start: data.period_start,
         period_end: data.period_end,
         report_type: data.report_type as ActivityReport['report_type'],
-        content: data.content || {},
+        content: data.content ? 
+          (typeof data.content === 'object' ? data.content : {}) as ActivityReport['content'] : {},
         user_id: data.user_id,
         created_at: data.created_at || new Date().toISOString()
       };
