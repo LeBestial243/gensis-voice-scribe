@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { auditService } from "./auditService";
 
@@ -78,8 +77,7 @@ export const notesService = {
       await auditService.logAction(
         'read',
         'note',
-        noteId,
-        { note_title: data.title }
+        noteId
       );
     } catch (logError) {
       console.error('Failed to log note access:', logError);
@@ -107,8 +105,7 @@ export const notesService = {
       await auditService.logAction(
         'create',
         'note',
-        data.id,
-        { note_title: title }
+        data.id
       );
     } catch (logError) {
       console.error('Failed to log note creation:', logError);
@@ -135,8 +132,7 @@ export const notesService = {
       await auditService.logAction(
         'update',
         'note',
-        noteId,
-        { note_title: updates.title || data.title }
+        noteId
       );
     } catch (logError) {
       console.error('Failed to log note update:', logError);
@@ -165,8 +161,7 @@ export const notesService = {
       await auditService.logAction(
         'delete',
         'note',
-        noteId,
-        { note_title: note?.title || 'unknown' }
+        noteId
       );
     } catch (logError) {
       console.error('Failed to log note deletion:', logError);

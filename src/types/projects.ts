@@ -24,6 +24,7 @@ export interface ProjectObjective extends AuditableEntity {
   notes?: string;
 }
 
-export interface ProjectWithObjectives extends Project {
+// Modified to avoid type conflict with Project.objectives (string vs ProjectObjective[])
+export interface ProjectWithObjectives extends Omit<Project, 'objectives'> {
   objectives: ProjectObjective[];
 }

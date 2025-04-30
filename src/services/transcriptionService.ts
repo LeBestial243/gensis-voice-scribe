@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FileData } from "@/types/files";
 import { auditService } from "./auditService";
@@ -79,12 +78,7 @@ export const transcriptionService = {
       await auditService.logAction(
         'read',
         'transcription',
-        profileId as any,
-        { 
-          count: files.length, 
-          folder_id: folderId || 'multiple',
-          search: searchQuery || undefined
-        }
+        profileId
       );
     } catch (logError) {
       console.error('Failed to log transcription access:', logError);
@@ -128,8 +122,7 @@ export const transcriptionService = {
       await auditService.logAction(
         'create',
         'transcription',
-        data.id,
-        { file_name: fileName, folder_id: folderID }
+        data.id
       );
     } catch (logError) {
       console.error('Failed to log transcription creation:', logError);

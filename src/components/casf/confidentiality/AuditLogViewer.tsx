@@ -127,7 +127,9 @@ export function AuditLogViewer({
                   
                   <div className="text-sm mt-1">
                     {log.resource_type.charAt(0).toUpperCase() + log.resource_type.slice(1)}
-                    {log.details && log.details.name && `: ${log.details.name}`}
+                    {log.details && typeof log.details === 'object' && 'name' in log.details && (
+                      `: ${log.details.name}`
+                    )}
                   </div>
                 </div>
               </div>

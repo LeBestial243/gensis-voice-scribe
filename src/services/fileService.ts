@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FileType } from "@/types/files";
 import { auditService } from "./auditService";
@@ -68,8 +67,7 @@ export const fileService = {
       await auditService.logAction(
         'upload',
         'file',
-        data.id,
-        { file_name: fileName, folder_id: folderId }
+        data.id
       );
     } catch (logError) {
       console.error('Failed to log file upload:', logError);
@@ -89,8 +87,7 @@ export const fileService = {
         await auditService.logAction(
           'download',
           'file',
-          file.id,
-          { file_name: file.name }
+          file.id
         );
       } catch (logError) {
         console.error('Failed to log file download:', logError);
@@ -115,8 +112,7 @@ export const fileService = {
       await auditService.logAction(
         'download',
         'file',
-        file.id,
-        { file_name: file.name }
+        file.id
       );
     } catch (logError) {
       console.error('Failed to log file download:', logError);
@@ -160,8 +156,7 @@ export const fileService = {
       await auditService.logAction(
         'delete',
         'file',
-        fileId,
-        { file_name: file?.name || 'unknown' }
+        fileId
       );
     } catch (logError) {
       console.error('Failed to log file deletion:', logError);
@@ -185,8 +180,7 @@ export const fileService = {
       await auditService.logAction(
         'update',
         'file',
-        fileId,
-        { new_name: newName, old_name: data.name }
+        fileId
       );
     } catch (logError) {
       console.error('Failed to log file rename:', logError);
@@ -210,8 +204,7 @@ export const fileService = {
       await auditService.logAction(
         'update',
         'file',
-        fileId,
-        { confidentiality: level, file_name: data.name }
+        fileId
       );
     } catch (logError) {
       console.error('Failed to log confidentiality change:', logError);

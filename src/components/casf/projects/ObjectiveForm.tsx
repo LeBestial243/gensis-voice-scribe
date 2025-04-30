@@ -54,10 +54,12 @@ export function ObjectiveForm({
   
   const handleSubmit = (values: ObjectiveFormValues) => {
     onSubmit({
-      ...values,
       project_id: projectId,
-      title: values.title, // Ensure title is required
-      status: values.status || 'not_started', // Ensure status is required
+      title: values.title,
+      description: values.description,
+      status: values.status || 'not_started',
+      target_date: values.target_date,
+      notes: values.notes,
     });
   };
 

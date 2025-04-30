@@ -33,9 +33,9 @@ export function ReportPreview({ report }: ReportPreviewProps) {
             <p className="font-mono">{section.content}</p>
             {section.data && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                {Object.entries(section.data).map(([key, value]) => (
+                {Object.entries(section.data as Record<string, React.ReactNode>).map(([key, value]) => (
                   <div key={key} className="bg-background p-3 rounded-md text-center">
-                    <p className="text-2xl font-bold">{value}</p>
+                    <p className="text-2xl font-bold">{String(value)}</p>
                     <p className="text-sm text-muted-foreground">{key}</p>
                   </div>
                 ))}
@@ -93,7 +93,15 @@ export function ReportPreview({ report }: ReportPreviewProps) {
   };
 
   // Parse content from JSON if needed
-  const sections = report.content?.sections || [];
+  const sections = report.content && typeof report.content === 'object' && 'sections' in report.content 
+    ? report.content.sections as ReportSection[] 
+    : [];
+    
+  // Get confidentiality level with type safety
+  const confidentialityLevel = report.content && 
+    typeof report.content === 'object' && 
+    'confidentiality_level' in report.content ? 
+    String(report.content.confidentiality_level) : 'public';
 
   return (
     <div className="space-y-6">
@@ -101,7 +109,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <CardTitle className="text-2xl">{report.title}</CardTitle>
-            <AccessLevelBadge level={report.content?.confidentiality_level || 'public'} />
+            <AccessLevelBadge level={confidentialityLevel} />
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground mt-2">
             <div>

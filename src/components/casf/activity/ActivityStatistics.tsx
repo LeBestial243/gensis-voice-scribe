@@ -115,6 +115,7 @@ export function ActivityStatistics({
               {actionCounts.map((entry, index) => (
                 <Bar 
                   key={`bar-${index}`} 
+                  dataKey="count"
                   fill={getBarColor(entry.action)} 
                 />
               ))}

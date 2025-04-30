@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +12,7 @@ import { ObjectivesList } from '@/components/casf/projects/ObjectivesList';
 import { ProjectTimeline } from '@/components/casf/projects/ProjectTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
-import { ProjectWithObjectives } from '@/types/projects';
+import { ProjectWithObjectives, ProjectObjective } from '@/types/projects';
 import { ArrowLeft, Loader2, Clock, FileText, Calendar, Check } from 'lucide-react';
 
 export default function EducationalProjectPage() {
@@ -285,7 +284,7 @@ export default function EducationalProjectPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Objectifs généraux</h3>
-                <p className="mt-1">{project.objectives || "Aucun objectif général défini."}</p>
+                <p className="mt-1">{project?.objectives || "Aucun objectif général défini."}</p>
               </div>
               
               <Separator />
@@ -295,11 +294,11 @@ export default function EducationalProjectPage() {
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   <div>
                     <p className="text-xs text-muted-foreground">Date de début</p>
-                    <p>{formatDate(project.start_date)}</p>
+                    <p>{project ? formatDate(project.start_date) : ''}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Date de fin</p>
-                    <p>{formatDate(project.end_date)}</p>
+                    <p>{project ? formatDate(project.end_date) : ''}</p>
                   </div>
                 </div>
               </div>
@@ -317,11 +316,20 @@ export default function EducationalProjectPage() {
         
         <TabsContent value="objectives" className="mt-6">
           <ObjectivesList 
-            objectives={project.objectives || []}
-            projectId={project.id}
-            onAddObjective={(objective) => addObjectiveMutation.mutateAsync(objective)}
-            onUpdateObjective={(objectiveId, updates) => updateObjectiveMutation.mutateAsync({ objectiveId, updates })}
-            onDeleteObjective={(objectiveId) => deleteObjectiveMutation.mutateAsync(objectiveId)}
+            objectives={project?.objectives || []}
+            projectId={project?.id || ''}
+            onAddObjective={async (objective) => {
+              await addObjectiveMutation.mutateAsync(objective);
+              return;
+            }}
+            onUpdateObjective={async (objectiveId, updates) => {
+              await updateObjectiveMutation.mutateAsync({ objectiveId, updates });
+              return;
+            }}
+            onDeleteObjective={async (objectiveId) => {
+              await deleteObjectiveMutation.mutateAsync(objectiveId);
+              return;
+            }}
           />
         </TabsContent>
         
@@ -346,12 +354,21 @@ export default function EducationalProjectPage() {
           <DialogHeader>
             <DialogTitle>Modifier le projet</DialogTitle>
           </DialogHeader>
-          <EducationalProjectForm
-            initialData={project}
-            onSubmit={(data) => updateProjectMutation.mutate(data)}
-            profileId={project.profile_id}
-            isLoading={updateProjectMutation.isPending}
-          />
+          {project && (
+            <EducationalProjectForm
+              initialData={{
+                title: project.title,
+                objectives: typeof project.objectives === 'string' ? project.objectives : '',
+                status: project.status,
+                start_date: project.start_date,
+                end_date: project.end_date,
+                profile_id: project.profile_id
+              }}
+              onSubmit={(data) => updateProjectMutation.mutate(data)}
+              profileId={project.profile_id}
+              isLoading={updateProjectMutation.isPending}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -13,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ConfidentialityManager } from '../confidentiality/ConfidentialityManager';
 import { ConfidentialityLevel } from '@/types/confidentiality';
 import { ReportSection, ReportType } from '@/types/reports';
-import { PlusCircle, MinusCircle, Save } from 'lucide-react';
+import { PlusCircle, MinusCircle, Save, Loader2 } from 'lucide-react';
 
 const reportFormSchema = z.object({
   title: z.string().min(3, { message: 'Le titre doit contenir au moins 3 caractères' }),
