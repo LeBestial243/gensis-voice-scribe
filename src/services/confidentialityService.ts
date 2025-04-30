@@ -21,8 +21,9 @@ export const confidentialityService = {
     }
     
     try {
+      // Use type assertion to tell TypeScript that resourceType is valid
       const { data, error } = await supabase
-        .from(resourceType)
+        .from(resourceType as any)  // Use 'any' to bypass type checking for table name
         .select('confidentiality_level')
         .eq('id', resourceId)
         .single();
@@ -47,8 +48,9 @@ export const confidentialityService = {
     }
     
     try {
+      // Use type assertion to tell TypeScript that resourceType is valid
       const { data, error } = await supabase
-        .from(resourceType)
+        .from(resourceType as any)  // Use 'any' to bypass type checking for table name
         .update({ confidentiality_level: level })
         .eq('id', resourceId)
         .select()
