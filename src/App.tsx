@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import Profiles from "./pages/Profiles";
 import YoungProfilePage from "./pages/YoungProfilePage";
 import TemplatesPage from "./pages/TemplatesPage";
+import CASFReportsPage from "./pages/CASFReportsPage";
+import EducationalProjectPage from "./pages/EducationalProjectPage";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
             <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/casf/reports" element={<CASFReportsPage />} />
+            <Route path="/educational-projects/:id" element={<EducationalProjectPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

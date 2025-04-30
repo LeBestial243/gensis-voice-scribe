@@ -1,78 +1,118 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatSupabaseError } from "@/utils/errorHandler";
-import { AuditLog } from "@/types/audit";
+import { AuditLog, AuditAction, ResourceType } from "@/types/audit";
+
+export interface GetAuditLogsParams {
+  userId?: string;
+  action?: AuditAction;
+  resourceType?: ResourceType;
+  resourceId?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
 
 export const auditService = {
-  async logAction(
-    action: string,
-    resourceType: string,
-    resourceId: string,
-    details?: Record<string, any>
-  ): Promise<string> {
+  async logAction({
+    userId,
+    action,
+    resourceType,
+    resourceId,
+    details = {}
+  }: {
+    userId: string;
+    action: AuditAction | string;
+    resourceType: ResourceType | string;
+    resourceId: string;
+    details?: Record<string, any>;
+  }): Promise<AuditLog> {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('No authenticated user found');
-      }
-      
-      // Use the database function to log the audit action
+      const auditData = {
+        user_id: userId,
+        action,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        details
+      };
+
+      console.log("Logging audit action:", auditData);
+
       const { data, error } = await supabase
-        .rpc('log_audit_action', {
-          p_user_id: user.id,
-          p_action: action,
-          p_resource_type: resourceType,
-          p_resource_id: resourceId,
-          p_details: details || {}
-        });
-      
-      if (error) throw formatSupabaseError(error);
-      return data;
+        .from('audit_logs')
+        .insert(auditData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error logging audit action:", error);
+        throw formatSupabaseError(error);
+      }
+
+      return data as AuditLog;
     } catch (error) {
-      console.error('Failed to log audit action:', error);
+      console.error("Failed to log audit action:", error);
       throw error;
     }
   },
 
-  async getAuditLogs(filters?: { 
-    resource_type?: string, 
-    resource_id?: string, 
-    action?: string,
-    start_date?: string,
-    end_date?: string
-  }): Promise<AuditLog[]> {
+  async getAuditLogs({
+    userId,
+    action,
+    resourceType,
+    resourceId,
+    startDate,
+    endDate,
+    limit = 100
+  }: GetAuditLogsParams = {}): Promise<AuditLog[]> {
     try {
       let query = supabase
         .from('audit_logs')
         .select('*');
       
       // Apply filters if provided
-      if (filters) {
-        if (filters.resource_type) {
-          query = query.eq('resource_type', filters.resource_type);
-        }
-        if (filters.resource_id) {
-          query = query.eq('resource_id', filters.resource_id);
-        }
-        if (filters.action) {
-          query = query.eq('action', filters.action);
-        }
-        if (filters.start_date) {
-          query = query.gte('created_at', filters.start_date);
-        }
-        if (filters.end_date) {
-          query = query.lte('created_at', filters.end_date);
-        }
+      if (userId) {
+        query = query.eq('user_id', userId);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      if (action) {
+        query = query.eq('action', action);
+      }
+      
+      if (resourceType) {
+        query = query.eq('resource_type', resourceType);
+      }
+      
+      if (resourceId) {
+        query = query.eq('resource_id', resourceId);
+      }
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate);
+      }
+      
+      if (endDate) {
+        query = query.lte('created_at', endDate);
+      }
+      
+      // Order by creation date (newest first) and limit results
+      query = query.order('created_at', { ascending: false }).limit(limit);
+      
+      const { data, error } = await query;
       
       if (error) throw formatSupabaseError(error);
       return data as AuditLog[] || [];
     } catch (error) {
+      console.error("Error fetching audit logs:", error);
       throw error;
     }
+  },
+
+  async getResourceHistory(resourceType: ResourceType, resourceId: string): Promise<AuditLog[]> {
+    return this.getAuditLogs({ resourceType, resourceId });
+  },
+
+  async getUserActivity(userId: string, limit = 50): Promise<AuditLog[]> {
+    return this.getAuditLogs({ userId, limit });
   }
 };
