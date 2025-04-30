@@ -33,4 +33,6 @@ export type ResourceType =
   | 'objective'
   | 'report'
   | 'profile'
-  | 'system';
+  | 'system'
+  | 'transcription';
+

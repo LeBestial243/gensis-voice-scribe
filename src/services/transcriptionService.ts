@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { FileData } from "@/types/files";
 import { auditService } from "./auditService";
@@ -138,3 +139,4 @@ export const transcriptionService = {
 
 // Re-export file service to avoid circular dependencies
 import { fileService } from "./fileService";
+
