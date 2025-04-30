@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, Square, FileText, Loader2 } from "lucide-react";
+import { confidentialityService } from "@/services/confidentialityService";
+import { ConfidentialityLevel } from "@/types/confidentiality";
+import { ResourceConfidentialitySelector } from "../casf/confidentiality/ConfidentialityManager";
 
 interface RecordingDialogProps {
   open: boolean;
@@ -25,12 +28,27 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const [activeTab, setActiveTab] = useState("recording");
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [fileName, setFileName] = useState("");
+  const [confidentialityLevel, setConfidentialityLevel] = useState<ConfidentialityLevel>("restricted");
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Load default confidentiality settings
+  useEffect(() => {
+    const loadDefaultSettings = async () => {
+      try {
+        const settings = await confidentialityService.getDefaultSettings();
+        setConfidentialityLevel(settings.defaultLevels.transcriptions);
+      } catch (error) {
+        console.error("Failed to load default settings:", error);
+      }
+    };
+    
+    loadDefaultSettings();
+  }, []);
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders', profileId],
@@ -63,7 +81,8 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
         folder_id: folderId,
         type: 'transcription',
         path: '',
-        size: content.length
+        size: content.length,
+        confidentiality_level: confidentialityLevel // Add confidentiality level
       };
       
       if ('description' in Object.keys(tableInfo?.[0] || {})) {
@@ -228,6 +247,9 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
     setSelectedFolderId("");
     setFileName("");
     
+    // Reset confidentiality to default
+    loadDefaultSettings();
+    
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -235,6 +257,15 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
     
     if (audioURL) {
       URL.revokeObjectURL(audioURL);
+    }
+  };
+
+  const loadDefaultSettings = async () => {
+    try {
+      const settings = await confidentialityService.getDefaultSettings();
+      setConfidentialityLevel(settings.defaultLevels.transcriptions);
+    } catch (error) {
+      console.error("Failed to load default settings:", error);
     }
   };
 
@@ -386,6 +417,16 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
                   onChange={(e) => setTranscriptionText(e.target.value)}
                   placeholder="Le texte transcrit apparaîtra ici"
                   className="min-h-[150px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Niveau de confidentialité
+                </label>
+                <ResourceConfidentialitySelector
+                  value={confidentialityLevel}
+                  onChange={(value) => setConfidentialityLevel(value as ConfidentialityLevel)}
                 />
               </div>
               

@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { TranscriptionForm } from "./transcription-dialog/TranscriptionForm";
 import { TranscriptionActions } from "./transcription-dialog/TranscriptionActions";
+import { ConfidentialityLevel } from "@/types/confidentiality";
+import { confidentialityService } from "@/services/confidentialityService";
+import { ResourceConfidentialitySelector } from "./casf/confidentiality/ConfidentialityManager";
 
 interface Folder {
   id: string;
@@ -39,14 +42,30 @@ export function TranscriptionDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inconsistencies, setInconsistencies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("professional");
+  const [confidentialityLevel, setConfidentialityLevel] = useState<ConfidentialityLevel>("restricted");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Load default confidentiality level for transcriptions
+  useEffect(() => {
+    const loadDefaultSettings = async () => {
+      try {
+        const settings = await confidentialityService.getDefaultSettings();
+        setConfidentialityLevel(settings.defaultLevels.transcriptions);
+      } catch (error) {
+        console.error("Failed to load default settings:", error);
+      }
+    };
+    
+    loadDefaultSettings();
+  }, []);
   
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId, originalText }: { text: string; folderId: string; originalText?: string }) => {
       console.log('Saving transcription to folder:', folderId, 'with text length:', text.length);
       console.log('Has transcription error:', hasTranscriptionError);
+      console.log('Confidentiality level:', confidentialityLevel);
       
       const fileName = `Transcription du ${format(new Date(), "dd-MM-yyyy-HH-mm")}${hasTranscriptionError ? ' (À VÉRIFIER)' : ''}`;
       const filePath = `transcriptions/${folderId}/${Date.now()}.txt`;
@@ -61,6 +80,7 @@ export function TranscriptionDialog({
           size: new Blob([text]).size,
           path: filePath,
           content: text, // Texte reformulé
+          confidentiality_level: confidentialityLevel, // Ajouter le niveau de confidentialité
           // Ici, on pourrait également stocker le texte original et les incohérences
           // si la structure de la base de données le permet
         })
@@ -211,6 +231,17 @@ export function TranscriptionDialog({
     setErrorMessage(null);
     setInconsistencies([]);
     setActiveTab("professional");
+    // Reset confidentiality to default
+    loadDefaultSettings();
+  };
+
+  const loadDefaultSettings = async () => {
+    try {
+      const settings = await confidentialityService.getDefaultSettings();
+      setConfidentialityLevel(settings.defaultLevels.transcriptions);
+    } catch (error) {
+      console.error("Failed to load default settings:", error);
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -237,18 +268,28 @@ export function TranscriptionDialog({
               youngProfile={youngProfile}
             />
           ) : (
-            <TranscriptionForm 
-              transcript={transcript}
-              setTranscript={setTranscript}
-              selectedFolderId={selectedFolderId}
-              setSelectedFolderId={setSelectedFolderId}
-              audioURL={audioURL}
-              hasTranscriptionError={hasTranscriptionError}
-              errorMessage={errorMessage}
-              inconsistencies={inconsistencies}
-              folders={folders}
-              error={error}
-            />
+            <div className="space-y-4">
+              <TranscriptionForm 
+                transcript={transcript}
+                setTranscript={setTranscript}
+                selectedFolderId={selectedFolderId}
+                setSelectedFolderId={setSelectedFolderId}
+                audioURL={audioURL}
+                hasTranscriptionError={hasTranscriptionError}
+                errorMessage={errorMessage}
+                inconsistencies={inconsistencies}
+                folders={folders}
+                error={error}
+              />
+              
+              <div className="space-y-2 mt-4">
+                <label className="text-sm font-medium">Niveau de confidentialité</label>
+                <ResourceConfidentialitySelector 
+                  value={confidentialityLevel}
+                  onChange={(value) => setConfidentialityLevel(value as ConfidentialityLevel)}
+                />
+              </div>
+            </div>
           )}
         </div>
         
