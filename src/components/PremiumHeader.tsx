@@ -6,6 +6,7 @@ import { PremiumButton } from "@/components/ui/PremiumButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { NotificationSystem } from "@/components/NotificationSystem";
 
 interface PremiumHeaderProps {
   title?: string;
@@ -137,12 +138,7 @@ export function PremiumHeader({
           {/* Notifications */}
           {showNotifications && (
             <div className="relative">
-              <PremiumButton variant="glassmorphic" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-gensys-primary-from to-gensys-primary-to text-[10px] text-white">
-                  3
-                </span>
-              </PremiumButton>
+              <NotificationSystem />
             </div>
           )}
           
