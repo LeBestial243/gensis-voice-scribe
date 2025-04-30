@@ -22,7 +22,7 @@ const premiumButtonVariants = cva(
         soft: `relative overflow-hidden bg-[${theme.colors.primary.gradient.from}]/10 text-[${theme.colors.primary.gradient.to}] hover:bg-[${theme.colors.primary.gradient.from}]/20 active:scale-[0.98]`,
         
         // Bouton avec un effet de pulse
-        pulse: `relative overflow-hidden bg-gradient-to-r from-[${theme.colors.primary.gradient.from}] to-[${theme.colors.primary.gradient.to}] text-white shadow-[0_4px_20px_rgba(86,204,242,0.3)] hover:shadow-[0_8px_30px_rgba(86,204,242,0.5)] animate-pulse-slow hover:animate-none hover:scale-[1.02] active:scale-[0.98]`,
+        pulse: `relative overflow-hidden bg-gradient-to-r from-[${theme.colors.primary.gradient.from}] to-[${theme.colors.primary.gradient.to}] text-white shadow-[0_4px_20px_rgba(86,204,242,0.3)] hover:shadow-[0_8px_30px_rgba(86,204,242,0.5)] animate-pulse-subtle hover:animate-none hover:scale-[1.02] active:scale-[0.98]`,
         
         // Bouton avec un effet de bordure animée
         animated: `relative text-white shadow-sm after:absolute after:inset-0 after:rounded-xl after:content-[''] after:border-2 after:border-transparent after:bg-origin-border after:bg-gradient-to-r after:from-[${theme.colors.primary.gradient.from}] after:to-[${theme.colors.primary.gradient.to}] after:animate-border-pulse active:scale-[0.98]`,
