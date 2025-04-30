@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ConfidentialityManager } from './ConfidentialityManager';
+import { ResourceConfidentialitySelector } from './ConfidentialityManager';
 import { useConfidentiality } from '@/hooks/useConfidentiality';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -87,7 +87,7 @@ export function ConfidentialitySettings() {
               <div className="grid gap-6">
                 <div>
                   <h4 className="text-sm font-medium mb-2">Transcriptions</h4>
-                  <ConfidentialityManager 
+                  <ResourceConfidentialitySelector
                     value={settings.defaultLevels.transcriptions}
                     onChange={(value) => updateDefaultLevel('transcriptions', value as ConfidentialityLevel)}
                   />
@@ -95,7 +95,7 @@ export function ConfidentialitySettings() {
                 
                 <div>
                   <h4 className="text-sm font-medium mb-2">Notes</h4>
-                  <ConfidentialityManager 
+                  <ResourceConfidentialitySelector
                     value={settings.defaultLevels.notes}
                     onChange={(value) => updateDefaultLevel('notes', value as ConfidentialityLevel)}
                   />
@@ -103,7 +103,7 @@ export function ConfidentialitySettings() {
                 
                 <div>
                   <h4 className="text-sm font-medium mb-2">Projets</h4>
-                  <ConfidentialityManager 
+                  <ResourceConfidentialitySelector
                     value={settings.defaultLevels.projects}
                     onChange={(value) => updateDefaultLevel('projects', value as ConfidentialityLevel)}
                   />
@@ -111,7 +111,7 @@ export function ConfidentialitySettings() {
                 
                 <div>
                   <h4 className="text-sm font-medium mb-2">Rapports</h4>
-                  <ConfidentialityManager 
+                  <ResourceConfidentialitySelector
                     value={settings.defaultLevels.reports}
                     onChange={(value) => updateDefaultLevel('reports', value as ConfidentialityLevel)}
                   />

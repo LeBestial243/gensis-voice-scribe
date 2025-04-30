@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ConfidentialityManager } from '../confidentiality/ConfidentialityManager';
+import { ResourceConfidentialitySelector } from '../confidentiality/ConfidentialityManager';
 import { ConfidentialityLevel } from '@/types/confidentiality';
 import { ReportSection, ReportType } from '@/types/reports';
 import { PlusCircle, MinusCircle, Save, Loader2 } from 'lucide-react';
@@ -108,7 +109,7 @@ export function StandardizedReportForm({ initialData, onSubmit, isLoading = fals
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <ConfidentialityManager 
+                        <ResourceConfidentialitySelector 
                           value={field.value as ConfidentialityLevel} 
                           onChange={field.onChange}
                           showDescription={false}

@@ -232,9 +232,14 @@ export function ConfidentialityManager() {
 interface ResourceConfidentialitySelectorProps {
   value: ConfidentialityLevel;
   onChange: (value: string) => void;
+  showDescription?: boolean;
 }
 
-function ResourceConfidentialitySelector({ value, onChange }: ResourceConfidentialitySelectorProps) {
+export function ResourceConfidentialitySelector({ 
+  value, 
+  onChange,
+  showDescription = true 
+}: ResourceConfidentialitySelectorProps) {
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -254,7 +259,9 @@ function ResourceConfidentialitySelector({ value, onChange }: ResourceConfidenti
                   <div className={`w-3 h-3 rounded-full ${color}`} />
                   <span>{label}</span>
                 </div>
-                <span className="text-xs text-muted-foreground mt-1">{description}</span>
+                {showDescription && (
+                  <span className="text-xs text-muted-foreground mt-1">{description}</span>
+                )}
               </div>
             </SelectItem>
           ))}
