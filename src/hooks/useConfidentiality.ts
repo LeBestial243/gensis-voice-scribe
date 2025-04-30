@@ -1,170 +1,143 @@
 
-import { useState, useEffect } from 'react';
-import { 
-  ConfidentialityLevel, 
-  ConfidentialitySettings, 
-  defaultConfidentialitySettings,
-  canAccessContent
-} from '@/types/confidentiality';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from './use-toast';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { confidentialityService } from "@/services/confidentialityService";
+import { ConfidentialityLevel, ConfidentialitySettings, AuditLogEntry } from "@/types/casf";
+import { useErrorHandler } from "@/utils/errorHandler";
+import { useToast } from "@/hooks/use-toast";
 
-export interface UseConfidentialityReturn {
-  settings: ConfidentialitySettings;
-  userRole: string;
-  isLoading: boolean;
-  updateDefaultLevel: (
-    resourceType: keyof ConfidentialitySettings['defaultLevels'],
-    level: ConfidentialityLevel
-  ) => Promise<void>;
-  updateRoleAccess: (
-    role: string,
-    level: ConfidentialityLevel,
-    access: 'none' | 'read' | 'write'
-  ) => Promise<void>;
-  canAccess: (
-    level: ConfidentialityLevel,
-    requiredAccess?: 'read' | 'write'
-  ) => boolean;
-}
+// Define the resource types that can have confidentiality levels
+type ResourceWithConfidentiality = 'files' | 'notes';
 
-export function useConfidentiality(): UseConfidentialityReturn {
-  const [settings, setSettings] = useState<ConfidentialitySettings>(defaultConfidentialitySettings);
-  const [userRole, setUserRole] = useState<string>('observer'); // Default to lowest access
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export function useConfidentiality(userId: string) {
   const { toast } = useToast();
-
-  useEffect(() => {
-    async function loadUserRoleAndSettings() {
-      try {
-        setIsLoading(true);
-        
-        // 1. Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('Utilisateur non authentifié');
-        }
-        
-        // 2. Get user profile and role
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-          
-        if (profileError) throw profileError;
-        
-        // Set user role
-        setUserRole(profile?.role || 'observer');
-        
-        // In a real implementation, you might fetch organization-specific 
-        // confidentiality settings from the database
-        // For now, we just use the default settings
-        
-        setSettings(defaultConfidentialitySettings);
-      } catch (error) {
-        console.error('Error loading confidentiality settings:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de charger les paramètres de confidentialité',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadUserRoleAndSettings();
-  }, [toast]);
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
   
-  const updateDefaultLevel = async (
-    resourceType: keyof ConfidentialitySettings['defaultLevels'],
+  // Récupérer les paramètres de confidentialité
+  const { 
+    data: settings,
+    isLoading: isLoadingSettings,
+    error: settingsError
+  } = useQuery({
+    queryKey: ['confidentiality_settings'],
+    queryFn: () => confidentialityService.getSettings(),
+    onError: (error) => handleError(error, "Récupération des paramètres de confidentialité")
+  });
+  
+  // Mutation pour mettre à jour les paramètres
+  const updateSettingsMutation = useMutation({
+    mutationFn: (newSettings: ConfidentialitySettings) => 
+      confidentialityService.updateSettings(newSettings, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['confidentiality_settings'] });
+      toast({
+        title: "Paramètres mis à jour",
+        description: "Les paramètres de confidentialité ont été mis à jour avec succès."
+      });
+    },
+    onError: (error) => handleError(error, "Mise à jour des paramètres de confidentialité")
+  });
+  
+  // Vérifier si un utilisateur peut accéder à une ressource
+  const checkAccess = async (
+    resourceType: string,
+    resourceId: string,
+    requiredAccess: 'read' | 'write'
+  ) => {
+    try {
+      return await confidentialityService.canUserAccess(
+        userId,
+        resourceType,
+        resourceId,
+        requiredAccess
+      );
+    } catch (error) {
+      handleError(error, "Vérification de l'accès", false);
+      return false;
+    }
+  };
+  
+  // Récupérer les logs d'audit
+  const getAuditLogs = async (
+    filters: {
+      userId?: string;
+      resourceType?: string;
+      resourceId?: string;
+      action?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+    pagination: { page: number; pageSize: number }
+  ) => {
+    try {
+      return await confidentialityService.getAuditLogs(filters, pagination);
+    } catch (error) {
+      handleError(error, "Récupération des logs d'audit");
+      return { logs: [], total: 0 };
+    }
+  };
+  
+  // Définir le niveau de confidentialité d'une ressource
+  const setResourceConfidentiality = async (
+    resourceType: ResourceWithConfidentiality,
+    resourceId: string,
     level: ConfidentialityLevel
   ) => {
     try {
-      // In a real implementation, you would update the settings in the database
-      setSettings(prev => ({
-        ...prev,
-        defaultLevels: {
-          ...prev.defaultLevels,
-          [resourceType]: level
-        }
-      }));
+      await confidentialityService.setResourceConfidentiality(
+        resourceType,
+        resourceId,
+        level,
+        userId
+      );
+      
+      // Invalider les requêtes potentiellement affectées
+      queryClient.invalidateQueries({ queryKey: [resourceType, resourceId] });
       
       toast({
-        title: 'Paramètres mis à jour',
-        description: `Le niveau de confidentialité par défaut pour ${resourceType} a été mis à jour`
+        title: "Niveau de confidentialité mis à jour",
+        description: `Le niveau de confidentialité a été défini sur "${level}".`
       });
+      
+      return true;
     } catch (error) {
-      console.error('Error updating confidentiality settings:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour les paramètres de confidentialité',
-        variant: 'destructive'
-      });
+      handleError(error, "Modification du niveau de confidentialité");
+      return false;
     }
   };
   
-  const updateRoleAccess = async (
-    role: string,
-    level: ConfidentialityLevel,
-    access: 'none' | 'read' | 'write'
-  ) => {
+  // Vérifier si un niveau de confidentialité est accessible
+  const canAccess = async (
+    level: ConfidentialityLevel, 
+    action: 'view' | 'edit' = 'view'
+  ): Promise<boolean> => {
     try {
-      // In a real implementation, you would update the settings in the database
-      setSettings(prev => {
-        // Create a new role access map for the specific role
-        const updatedRoleAccess = {
-          ...(prev.roleAccess[role] || {}),
-          [level]: access
-        };
-        
-        // Ensure all required confidentiality levels are present
-        const confidentialityLevels: ConfidentialityLevel[] = ['public', 'restricted', 'confidential', 'strict'];
-        confidentialityLevels.forEach(confidentialityLevel => {
-          if (updatedRoleAccess[confidentialityLevel] === undefined) {
-            updatedRoleAccess[confidentialityLevel] = 
-              prev.roleAccess[role]?.[confidentialityLevel] || 'none';
-          }
-        });
-        
-        return {
-          ...prev,
-          roleAccess: {
-            ...prev.roleAccess,
-            [role]: updatedRoleAccess as Record<ConfidentialityLevel, 'none' | 'read' | 'write'>
-          }
-        };
-      });
-      
-      toast({
-        title: 'Paramètres mis à jour',
-        description: `Les permissions pour le rôle ${role} ont été mises à jour`
-      });
+      return await confidentialityService.canAccess(level, action);
     } catch (error) {
-      console.error('Error updating role access:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour les permissions de rôle',
-        variant: 'destructive'
-      });
+      handleError(error, "Vérification du niveau d'accès", false);
+      return false;
     }
-  };
-  
-  const canAccess = (
-    level: ConfidentialityLevel,
-    requiredAccess: 'read' | 'write' = 'read'
-  ) => {
-    return canAccessContent(userRole, level, requiredAccess, settings);
   };
   
   return {
+    // Données
     settings,
-    userRole,
-    isLoading,
-    updateDefaultLevel,
-    updateRoleAccess,
-    canAccess
+    
+    // États
+    isLoadingSettings,
+    isUpdatingSettings: updateSettingsMutation.isPending,
+    
+    // Actions
+    updateSettings: (newSettings: ConfidentialitySettings) => 
+      updateSettingsMutation.mutate(newSettings),
+    checkAccess,
+    getAuditLogs,
+    setResourceConfidentiality,
+    canAccess,
+    
+    // Utilitaires
+    getDefaultLevelForResource: (resourceType: string): ConfidentialityLevel => 
+      settings?.defaultLevels[resourceType] || 'public'
   };
 }
