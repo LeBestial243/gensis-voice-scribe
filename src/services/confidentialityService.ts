@@ -29,7 +29,10 @@ export const confidentialityService = {
         .single();
         
       if (error) throw error;
-      return data?.confidentiality_level as ConfidentialityLevel || null;
+      
+      // Use explicit type assertion to help TypeScript understand the structure
+      const confidentialityValue = data ? (data.confidentiality_level as ConfidentialityLevel) : null;
+      return confidentialityValue;
     } catch (error) {
       console.error(`Error fetching confidentiality level: ${error}`);
       return null;
