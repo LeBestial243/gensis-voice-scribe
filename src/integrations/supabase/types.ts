@@ -74,7 +74,9 @@ export type Database = {
       }
       educational_projects: {
         Row: {
+          confidentiality_level: string | null
           created_at: string | null
+          created_by: string | null
           end_date: string
           id: string
           objectives: string | null
@@ -83,9 +85,12 @@ export type Database = {
           status: string
           title: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
+          confidentiality_level?: string | null
           created_at?: string | null
+          created_by?: string | null
           end_date: string
           id?: string
           objectives?: string | null
@@ -94,9 +99,12 @@ export type Database = {
           status: string
           title: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
+          confidentiality_level?: string | null
           created_at?: string | null
+          created_by?: string | null
           end_date?: string
           id?: string
           objectives?: string | null
@@ -105,6 +113,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -252,12 +261,103 @@ export type Database = {
         }
         Relationships: []
       }
+      project_event_logs: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          objective_id: string | null
+          project_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          objective_id?: string | null
+          project_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          objective_id?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_event_logs_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "project_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_event_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "educational_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          objective_id: string | null
+          project_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          objective_id?: string | null
+          project_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          objective_id?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notes_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "project_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "educational_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_objectives: {
         Row: {
           created_at: string | null
           description: string | null
           id: string
           notes: string | null
+          progress: number | null
           project_id: string
           status: string
           target_date: string
@@ -269,6 +369,7 @@ export type Database = {
           description?: string | null
           id?: string
           notes?: string | null
+          progress?: number | null
           project_id: string
           status: string
           target_date: string
@@ -280,6 +381,7 @@ export type Database = {
           description?: string | null
           id?: string
           notes?: string | null
+          progress?: number | null
           project_id?: string
           status?: string
           target_date?: string
