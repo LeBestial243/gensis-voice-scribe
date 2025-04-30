@@ -1,4 +1,5 @@
 
+
 import { AuditableEntity } from "./index";
 
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived';
