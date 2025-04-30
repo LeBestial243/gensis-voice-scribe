@@ -28,6 +28,19 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
+        title: "hsl(var(--title))",
+        subtitle: "hsl(var(--subtitle))",
+        "neumorph-accent": "hsl(var(--neumorph-accent))",
+        "neumorph-primary": "hsl(var(--neumorph-primary))",
+        "neumorph-secondary": "hsl(var(--neumorph-secondary))",
         gensys: {
           primary: {
             from: "#56CCF2",      // Bleu clair du logo
@@ -73,11 +86,19 @@ export default {
           DEFAULT: "#EF4444",
           foreground: "#FFFFFF",
         },
+        glass: {
+          background: "var(--glass-bg)",
+          border: "var(--glass-border)",
+          shadow: "var(--glass-shadow)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.5rem",
+        "3xl": "2rem",
       },
       backgroundImage: {
         'gradient-gensys': 'linear-gradient(to right, var(--tw-gradient-stops))',
@@ -88,7 +109,7 @@ export default {
         'neumorph': '5px 5px 10px rgba(0, 0, 0, 0.1), -5px -5px 10px rgba(255, 255, 255, 0.7)',
         'neumorph-hover': '8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.7)',
         'neumorph-active': 'inset 5px 5px 10px rgba(0, 0, 0, 0.1), inset -5px -5px 10px rgba(255, 255, 255, 0.7)',
-        'neumorph-inset': 'inset 2px 2px 5px rgba(0, 0, 0, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.7)',
+        'neumorph-inset': 'inset 3px 3px 7px rgba(0, 0, 0, 0.1), inset -3px -3px 7px rgba(255, 255, 255, 0.7)',
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
         'glass-sm': '0 2px 16px 0 rgba(31, 38, 135, 0.05)',
         'glass-lg': '0 16px 48px 0 rgba(31, 38, 135, 0.1)',
