@@ -34,7 +34,7 @@ export default function CASFReportsPage() {
 
   // In the real app, this would be based on a selected profile
   const mockProfileId = "mock-profile-id";
-  const { createReport: createStandardizedReport } = useStandardizedReport({ 
+  const { createReport: createStandardizedReport, isCreating: isCreatingReport } = useStandardizedReport({ 
     profileId: mockProfileId 
   });
   
@@ -103,7 +103,6 @@ export default function CASFReportsPage() {
   const viewReport = async (reportId: string) => {
     try {
       // For now, we'll just use our activity report service since that's what we have implemented
-      const activityReportService = useActivityReport();
       const report = await activityReportService.getReportById(reportId);
       setSelectedReport(report);
       setIsPreviewOpen(true);
@@ -227,7 +226,9 @@ export default function CASFReportsPage() {
         
         <TabsContent value="create" className="mt-6 space-y-6">
           <StandardizedReportForm 
+            profileId={mockProfileId}
             onSubmit={handleCreateReport}
+            isLoading={isCreatingReport}
           />
         </TabsContent>
         

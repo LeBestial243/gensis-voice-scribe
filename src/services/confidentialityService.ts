@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ConfidentialityLevel, AccessPermission } from "@/types/confidentiality";
+import { ConfidentialityLevel, AccessPermission, defaultConfidentialitySettings } from "@/types/confidentiality";
 import { formatSupabaseError } from "@/utils/errorHandler";
 
 export const confidentialityService = {
@@ -37,6 +37,18 @@ export const confidentialityService = {
         role: data?.role || 'user',
         name: `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || 'Unknown User'
       };
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  /**
+   * Get the default confidentiality settings
+   */
+  async getDefaultSettings() {
+    try {
+      // This is a mock implementation - in a real app we would fetch this from a database
+      return defaultConfidentialitySettings;
     } catch (error) {
       throw error;
     }

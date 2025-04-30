@@ -36,12 +36,15 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Load default confidentiality settings
+  // Load default confidentiality level for recordings
   useEffect(() => {
     const loadDefaultSettings = async () => {
       try {
         const settings = await confidentialityService.getDefaultSettings();
-        setConfidentialityLevel(settings.defaultLevels.transcriptions);
+        // Set the appropriate confidentiality level based on the settings
+        if (settings && settings.defaultLevels) {
+          setConfidentialityLevel(settings.defaultLevels.transcriptions || 'restricted');
+        }
       } catch (error) {
         console.error("Failed to load default settings:", error);
       }
@@ -263,7 +266,9 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
   const loadDefaultSettings = async () => {
     try {
       const settings = await confidentialityService.getDefaultSettings();
-      setConfidentialityLevel(settings.defaultLevels.transcriptions);
+      if (settings && settings.defaultLevels) {
+        setConfidentialityLevel(settings.defaultLevels.transcriptions || 'restricted');
+      }
     } catch (error) {
       console.error("Failed to load default settings:", error);
     }

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,17 +37,21 @@ export function ActivityReportForm({
     }
   );
   
-  const [sections, setSections] = useState<{ title: string; content: string }[]>(
-    formData.content && Array.isArray(formData.content.sections) 
-      ? formData.content.sections 
-      : [{ title: 'Résumé', content: '' }]
-  );
+  const [sections, setSections] = useState<{ title: string; content: string }[]>(() => {
+    const content = formData.content || {};
+    if (typeof content === 'object' && 'sections' in content) {
+      return Array.isArray(content.sections) ? content.sections : [{ title: 'Résumé', content: '' }];
+    }
+    return [{ title: 'Résumé', content: '' }];
+  });
   
-  const [metrics, setMetrics] = useState<{ name: string; value: number; unit: string }[]>(
-    formData.content && Array.isArray(formData.content.metrics) 
-      ? formData.content.metrics 
-      : []
-  );
+  const [metrics, setMetrics] = useState<{ name: string; value: number; unit: string }[]>(() => {
+    const content = formData.content || {};
+    if (typeof content === 'object' && 'metrics' in content) {
+      return Array.isArray(content.metrics) ? content.metrics : [];
+    }
+    return [];
+  });
   
   const handleInputChange = (field: keyof ActivityReport, value: any) => {
     setFormData(prev => ({

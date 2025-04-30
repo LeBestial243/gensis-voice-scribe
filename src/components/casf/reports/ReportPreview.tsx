@@ -63,15 +63,16 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
   };
   
   const renderSections = () => {
-    const sections = report.content && report.content.sections 
-      ? report.content.sections 
+    const content = report.content || {};
+    const sections = typeof content === 'object' && 'sections' in content 
+      ? content.sections || []
       : [];
     
     if (!sections || sections.length === 0) {
       return <p className="text-muted-foreground">Aucune section dans ce rapport.</p>;
     }
     
-    return sections.map((section, index) => (
+    return sections.map((section: any, index: number) => (
       <div key={index} className="mb-6">
         <h3 className="text-lg font-medium mb-2">{section.title}</h3>
         <div className="whitespace-pre-wrap text-muted-foreground">
@@ -82,10 +83,16 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
   };
   
   const renderMetrics = () => {
-    if (!isActivityReport(report) || 
-        !report.content || 
-        !report.content.metrics || 
-        report.content.metrics.length === 0) {
+    if (!isActivityReport(report) || !report.content) {
+      return null;
+    }
+    
+    const content = report.content || {};
+    const metrics = typeof content === 'object' && 'metrics' in content 
+      ? content.metrics || []
+      : [];
+    
+    if (metrics.length === 0) {
       return null;
     }
     
@@ -93,7 +100,7 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
       <div className="mt-6">
         <h3 className="text-lg font-medium mb-3">Métriques</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {report.content.metrics.map((metric, index) => (
+          {metrics.map((metric: any, index: number) => (
             <Card key={index} className="bg-accent/10">
               <CardContent className="p-4">
                 <div className="text-2xl font-bold">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,11 +36,13 @@ export function StandardizedReportForm({
   );
   
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [sections, setSections] = useState<{ title: string; content: string }[]>(
-    formData.content && Array.isArray(formData.content.sections) 
-      ? formData.content.sections 
-      : [{ title: 'Section 1', content: '' }]
-  );
+  const [sections, setSections] = useState<{ title: string; content: string }[]>(() => {
+    const content = formData.content || {};
+    if (typeof content === 'object' && 'sections' in content) {
+      return Array.isArray(content.sections) ? content.sections : [{ title: 'Section 1', content: '' }];
+    }
+    return [{ title: 'Section 1', content: '' }];
+  });
   
   const handleInputChange = (field: keyof StandardizedReport, value: any) => {
     setFormData(prev => ({

@@ -1,4 +1,3 @@
-
 export type ConfidentialityLevel = 'public' | 'restricted' | 'confidential' | 'strict';
 
 export const confidentialityLevels: Record<ConfidentialityLevel, {
@@ -27,6 +26,12 @@ export const confidentialityLevels: Record<ConfidentialityLevel, {
     color: 'bg-red-500'
   }
 };
+
+export interface AccessPermission {
+  level: ConfidentialityLevel;
+  can_view: boolean;
+  can_edit: boolean;
+}
 
 export interface ConfidentialitySettings {
   defaultLevels: {
