@@ -1,4 +1,6 @@
 
+import { ConfidentialityLevel } from "./confidentiality";
+
 export interface FileData {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface FileData {
   created_at: string | null;
   updated_at: string | null;
   content?: string;
+  confidentiality_level?: ConfidentialityLevel;
 }
 
 export type FileType = FileData;

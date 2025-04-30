@@ -9,8 +9,116 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_reports: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          id: string
+          period_end: string
+          period_start: string
+          report_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          report_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          resource_id?: string
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      educational_projects: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          id: string
+          objectives: string | null
+          profile_id: string
+          start_date: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          id?: string
+          objectives?: string | null
+          profile_id: string
+          start_date: string
+          status: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          objectives?: string | null
+          profile_id?: string
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "educational_projects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "young_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       files: {
         Row: {
+          confidentiality_level: string | null
           content: string | null
           created_at: string | null
           folder_id: string
@@ -22,6 +130,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          confidentiality_level?: string | null
           content?: string | null
           created_at?: string | null
           folder_id: string
@@ -33,6 +142,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          confidentiality_level?: string | null
           content?: string | null
           created_at?: string | null
           folder_id?: string
@@ -87,6 +197,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          confidentiality_level: string | null
           content: string | null
           created_at: string
           id: string
@@ -95,6 +206,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          confidentiality_level?: string | null
           content?: string | null
           created_at?: string
           id?: string
@@ -103,6 +215,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          confidentiality_level?: string | null
           content?: string | null
           created_at?: string
           id?: string
@@ -138,6 +251,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_objectives: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          target_date: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          status: string
+          target_date: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          target_date?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_objectives_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "educational_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       template_sections: {
         Row: {
@@ -253,7 +410,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_audit_action: {
+        Args: {
+          p_user_id: string
+          p_action: string
+          p_resource_type: string
+          p_resource_id: string
+          p_details: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

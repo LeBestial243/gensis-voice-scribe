@@ -1,11 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { FileType } from "@/types/files";
+import { formatSupabaseError } from "@/utils/errorHandler";
+
+export type ConfidentialityLevel = 'public' | 'restricted' | 'confidential' | 'strict';
 
 // Service centralisé pour la gestion des fichiers
 export const fileService = {
   // Télécharger un fichier dans le stockage
-  async uploadFile(file: File, folderId: string): Promise<FileType> {
+  async uploadFile(
+    file: File, 
+    folderId: string, 
+    confidentialityLevel: ConfidentialityLevel = 'public'
+  ): Promise<FileType> {
     // Format standard du chemin
     const fileName = file.name;
     const filePath = `${folderId}/${Date.now()}_${fileName}`;
@@ -29,15 +36,16 @@ export const fileService = {
               type: file.type,
               size: file.size,
               path: null,
-              content: text
+              content: text,
+              confidentiality_level: confidentialityLevel
             })
             .select()
             .single();
             
-          if (dbError) throw dbError;
+          if (dbError) throw formatSupabaseError(dbError);
           return data;
         }
-        throw storageError;
+        throw formatSupabaseError(storageError);
       }
       
       // Créer l'entrée dans la base de données
@@ -48,12 +56,13 @@ export const fileService = {
           folder_id: folderId,
           type: file.type,
           size: file.size,
-          path: filePath
+          path: filePath,
+          confidentiality_level: confidentialityLevel
         })
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) throw formatSupabaseError(error);
       return data;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -71,7 +80,7 @@ export const fileService = {
         .eq('id', fileId)
         .single();
 
-      if (fileError) throw fileError;
+      if (fileError) throw formatSupabaseError(fileError);
       if (!fileData) throw new Error('File not found');
       
       // Supprimer d'abord de la base de données pour éviter des fichiers orphelins
@@ -80,7 +89,7 @@ export const fileService = {
         .delete()
         .eq('id', fileId);
 
-      if (dbError) throw dbError;
+      if (dbError) throw formatSupabaseError(dbError);
       
       // Supprimer du stockage uniquement si le chemin existe
       if (fileData.path && fileData.path.trim() !== '') {
@@ -113,7 +122,7 @@ export const fileService = {
       .createSignedUrl(file.path, 60);
     
     if (error || !data?.signedUrl) {
-      throw new Error("Impossible de générer le lien de téléchargement");
+      throw formatSupabaseError(error || new Error("Impossible de générer le lien de téléchargement"));
     }
     
     return data.signedUrl;
@@ -129,7 +138,7 @@ export const fileService = {
         .eq('id', fileId)
         .single();
         
-      if (error) throw error;
+      if (error) throw formatSupabaseError(error);
       
       // Si le contenu est déjà dans la base de données, le retourner
       if (data.content) {
@@ -142,7 +151,7 @@ export const fileService = {
           .from('files')
           .download(data.path);
           
-        if (downloadError) throw downloadError;
+        if (downloadError) throw formatSupabaseError(downloadError);
         
         const content = await fileData.text();
         return content;
@@ -151,6 +160,52 @@ export const fileService = {
       throw new Error("Contenu du fichier non disponible");
     } catch (error) {
       console.error('Error getting file content:', error);
+      throw error;
+    }
+  },
+
+  // Mettre à jour le niveau de confidentialité d'un fichier
+  async updateConfidentiality(
+    fileId: string, 
+    level: ConfidentialityLevel
+  ): Promise<FileType> {
+    try {
+      const { data, error } = await supabase
+        .from('files')
+        .update({ confidentiality_level: level })
+        .eq('id', fileId)
+        .select()
+        .single();
+      
+      if (error) throw formatSupabaseError(error);
+      return data;
+    } catch (error) {
+      console.error('Error updating file confidentiality:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les fichiers avec filtrage par niveau de confidentialité
+  async getFiles(
+    folderId: string, 
+    options?: { confidentialityLevel?: ConfidentialityLevel }
+  ): Promise<FileType[]> {
+    try {
+      let query = supabase
+        .from('files')
+        .select('*')
+        .eq('folder_id', folderId);
+      
+      if (options?.confidentialityLevel) {
+        query = query.eq('confidentiality_level', options.confidentialityLevel);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) throw formatSupabaseError(error);
+      return data || [];
+    } catch (error) {
+      console.error('Error getting files:', error);
       throw error;
     }
   }
