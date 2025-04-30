@@ -1,129 +1,49 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectService } from '@/services/projectService';
+import { useEducationalProject } from '@/hooks/useEducationalProject';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
 import { EducationalProjectForm } from '@/components/casf/projects/EducationalProjectForm';
 import { ObjectivesList } from '@/components/casf/projects/ObjectivesList';
 import { ProjectTimeline } from '@/components/casf/projects/ProjectTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
-import { ProjectWithObjectives, ProjectObjective } from '@/types/projects';
 import { ArrowLeft, Loader2, Clock, FileText, Calendar, Check } from 'lucide-react';
 
 export default function EducationalProjectPage() {
-  const { id: projectId } = useParams<{ id: string }>();
+  const { id: profileId, projectId } = useParams<{ id?: string; projectId?: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   
-  // Get the profile ID and project data
-  const { data: project, isLoading: isLoadingProject } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      if (!projectId) throw new Error('Project ID is required');
-      
-      // Get project details
-      const projectData = await projectService.getProjectById(projectId);
-      
-      // Get project objectives
-      const objectives = await projectService.getProjectObjectives(projectId);
-      
-      return {
-        ...projectData,
-        objectives
-      } as ProjectWithObjectives;
-    },
-    enabled: !!projectId,
+  const {
+    // Data
+    projects,
+    project,
+    
+    // Loading states
+    isLoadingProjects,
+    isLoadingProject,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    
+    // Project operations
+    createProject,
+    updateProject,
+    deleteProject,
+    
+    // Objective operations
+    addObjective,
+    updateObjective,
+    deleteObjective
+  } = useEducationalProject({ 
+    profileId: profileId || '', 
+    projectId 
   });
-  
-  // Update project mutation
-  const updateProjectMutation = useMutation({
-    mutationFn: (data: any) => projectService.updateProject(projectId!, data),
-    onSuccess: () => {
-      toast({
-        title: "Projet mis à jour",
-        description: "Le projet a été mis à jour avec succès"
-      });
-      setIsEditProjectOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour du projet",
-        variant: "destructive"
-      });
-      console.error("Error updating project:", error);
-    }
-  });
-  
-  // Add objective mutation
-  const addObjectiveMutation = useMutation({
-    mutationFn: projectService.createObjective,
-    onSuccess: () => {
-      toast({
-        title: "Objectif ajouté",
-        description: "L'objectif a été ajouté avec succès"
-      });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'ajout de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error adding objective:", error);
-    }
-  });
-  
-  // Update objective mutation
-  const updateObjectiveMutation = useMutation({
-    mutationFn: ({ objectiveId, updates }: { objectiveId: string, updates: any }) => 
-      projectService.updateObjective(objectiveId, updates),
-    onSuccess: () => {
-      toast({
-        title: "Objectif mis à jour",
-        description: "L'objectif a été mis à jour avec succès"
-      });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error updating objective:", error);
-    }
-  });
-  
-  // Delete objective mutation
-  const deleteObjectiveMutation = useMutation({
-    mutationFn: projectService.deleteObjective,
-    onSuccess: () => {
-      toast({
-        title: "Objectif supprimé",
-        description: "L'objectif a été supprimé avec succès"
-      });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error deleting objective:", error);
-    }
-  });
-  
+
   // Helper function to format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -172,7 +92,7 @@ export default function EducationalProjectPage() {
   
   // Calculate progress based on objectives
   const calculateProgress = () => {
-    if (!project?.objectives?.length) return 0;
+    if (!project?.objectives || !Array.isArray(project.objectives) || project.objectives.length === 0) return 0;
     
     const totalObjectives = project.objectives.length;
     const completedObjectives = project.objectives.filter(
@@ -182,7 +102,7 @@ export default function EducationalProjectPage() {
     return Math.round((completedObjectives / totalObjectives) * 100);
   };
 
-  if (isLoadingProject) {
+  if (isLoadingProject || isLoadingProjects) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -190,7 +110,8 @@ export default function EducationalProjectPage() {
     );
   }
 
-  if (!project) {
+  // If we're looking for a specific project but it wasn't found
+  if (projectId && !project) {
     return (
       <div className="container mx-auto py-8">
         <div className="flex flex-col items-center justify-center p-12">
@@ -206,6 +127,105 @@ export default function EducationalProjectPage() {
     );
   }
 
+  // If we're viewing a project list (no specific project selected)
+  if (!projectId) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-6">Projets éducatifs</h1>
+        
+        <div className="flex justify-between items-center mb-6">
+          <p className="text-muted-foreground">
+            {projects.length} projet{projects.length !== 1 ? 's' : ''} trouvé{projects.length !== 1 ? 's' : ''}
+          </p>
+          <Button onClick={() => navigate(`/young_profiles/${profileId}/projects/new`)}>
+            Créer un nouveau projet
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="line-clamp-2">{project.title}</CardTitle>
+                <div className="flex items-center text-muted-foreground text-sm">
+                  {getStatusBadge(project.status)}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
+                  {project.objectives || "Aucun objectif défini"}
+                </p>
+                <div className="flex justify-between text-sm">
+                  <span>
+                    Début: {formatDate(project.start_date)}
+                  </span>
+                  <span>
+                    Fin: {formatDate(project.end_date)}
+                  </span>
+                </div>
+              </CardContent>
+              <div className="px-6 pb-6 pt-0">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate(`/young_profiles/${profileId}/projects/${project.id}`)}
+                >
+                  Voir le projet
+                </Button>
+              </div>
+            </Card>
+          ))}
+          
+          {projects.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-primary/10 p-3 mb-4">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">Aucun projet</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Il n'y a pas encore de projets éducatifs pour ce profil. 
+                Créez un nouveau projet pour commencer.
+              </p>
+              <Button onClick={() => navigate(`/young_profiles/${profileId}/projects/new`)}>
+                Créer un projet
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If we're creating a new project
+  if (projectId === 'new') {
+    return (
+      <div className="container mx-auto py-8">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+        </Button>
+        
+        <h1 className="text-3xl font-bold mb-6">Nouveau projet éducatif</h1>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <EducationalProjectForm
+              onSubmit={(data) => {
+                createProject(data).then((newProject) => {
+                  if (newProject && newProject.id) {
+                    navigate(`/young_profiles/${profileId}/projects/${newProject.id}`);
+                  }
+                });
+              }}
+              profileId={profileId || ''}
+              isLoading={isCreating}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // View for a specific project
   return (
     <div className="container mx-auto py-8 pb-24">
       <div className="mb-6">
@@ -269,7 +289,10 @@ export default function EducationalProjectPage() {
               </div>
               <div className="mt-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                  {project.objectives?.filter(obj => obj.status === 'completed').length || 0} sur {project.objectives?.length || 0} objectifs terminés
+                  {project.objectives && Array.isArray(project.objectives) ? 
+                    `${project.objectives.filter(obj => obj.status === 'completed').length} sur ${project.objectives.length} objectifs terminés` : 
+                    "Aucun objectif défini"
+                  }
                 </p>
               </div>
             </div>
@@ -285,7 +308,7 @@ export default function EducationalProjectPage() {
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Objectifs généraux</h3>
                 <p className="mt-1">
-                  {typeof project?.objectives === 'string' 
+                  {typeof project.objectives === 'string' 
                     ? project.objectives 
                     : "Aucun objectif général défini."}
                 </p>
@@ -320,32 +343,26 @@ export default function EducationalProjectPage() {
         
         <TabsContent value="objectives" className="mt-6">
           <ObjectivesList 
-            objectives={project?.objectives || []}
-            projectId={project?.id || ''}
-            onAddObjective={async (objective) => {
-              await addObjectiveMutation.mutateAsync(objective);
-            }}
-            onUpdateObjective={async (objectiveId, updates) => {
-              await updateObjectiveMutation.mutateAsync({ objectiveId, updates });
-            }}
-            onDeleteObjective={async (objectiveId) => {
-              await deleteObjectiveMutation.mutateAsync(objectiveId);
-            }}
+            objectives={project.objectives && Array.isArray(project.objectives) ? project.objectives : []}
+            projectId={project.id}
+            onAddObjective={addObjective}
+            onUpdateObjective={updateObjective}
+            onDeleteObjective={deleteObjective}
           />
         </TabsContent>
         
         <TabsContent value="timeline" className="mt-6">
           <ProjectTimeline 
-            objectives={project?.objectives && Array.isArray(project.objectives) ? project.objectives : []}
-            startDate={project?.start_date || ''}
-            endDate={project?.end_date || ''}
+            objectives={project.objectives && Array.isArray(project.objectives) ? project.objectives : []}
+            startDate={project.start_date}
+            endDate={project.end_date}
           />
         </TabsContent>
         
         <TabsContent value="history" className="mt-6">
           <AuditLogViewer 
             resourceType="project"
-            resourceId={project?.id}
+            resourceId={project.id}
           />
         </TabsContent>
       </Tabs>
@@ -365,9 +382,13 @@ export default function EducationalProjectPage() {
                 end_date: project.end_date,
                 profile_id: project.profile_id
               }}
-              onSubmit={(data) => updateProjectMutation.mutate(data)}
+              onSubmit={(data) => {
+                updateProject(project.id, data).then(() => {
+                  setIsEditProjectOpen(false);
+                });
+              }}
               profileId={project.profile_id}
-              isLoading={updateProjectMutation.isPending}
+              isLoading={isUpdating}
             />
           )}
         </DialogContent>
