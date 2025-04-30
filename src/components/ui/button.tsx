@@ -3,20 +3,21 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
+import { theme } from "@/lib/theme"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-primary hover:bg-primary-hover text-white shadow-md hover:shadow-lg",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        default: `bg-primary hover:bg-primary-hover text-white shadow-md hover:shadow-lg`,
+        destructive: `bg-${theme.colors.ui.destructive.DEFAULT} text-${theme.colors.ui.destructive.foreground} hover:bg-destructive/90`,
         outline: "border border-input bg-background hover:bg-accent/10 hover:text-accent",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent/10 hover:text-accent",
         link: "text-primary underline-offset-4 hover:underline",
-        neumorphic: "bg-white shadow-[5px_5px_10px_rgba(0,0,0,0.1),-5px_-5px_10px_rgba(255,255,255,0.7)] hover:shadow-[8px_8px_16px_rgba(0,0,0,0.1),-8px_-8px_16px_rgba(255,255,255,0.7)] active:shadow-[inset_5px_5px_10px_rgba(0,0,0,0.1),inset_-5px_-5px_10px_rgba(255,255,255,0.7)] text-subtitle hover:text-title transition-all duration-300",
-        glass: "bg-white/80 backdrop-blur-md border border-white/20 shadow-md hover:shadow-lg text-subtitle hover:text-title transition-all duration-300",
+        neumorphic: `bg-white shadow-[${theme.effects.shadow.neumorph}] hover:shadow-[${theme.effects.shadow["neumorph-hover"]}] active:shadow-[${theme.effects.shadow["neumorph-active"]}] text-subtitle hover:text-title transition-all duration-300`,
+        glass: `bg-white/80 backdrop-blur-[${theme.effects.blur.md}] border border-white/20 shadow-md hover:shadow-lg text-subtitle hover:text-title transition-all duration-300`,
       },
       size: {
         default: "h-10 px-4 py-2",
