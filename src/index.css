@@ -7,20 +7,61 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 84% 70%;
-    --radius: 1rem;
-    
-    /* New CSS variables */
-    --gensys-primary-from: 86, 204, 242; /* RGB pour le bleu clair */
-    --gensys-primary-from-rgb: 86, 204, 242;
-    --gensys-primary-via: 91, 134, 229; /* RGB pour le bleu moyen */
-    --gensys-primary-via-rgb: 91, 134, 229;
-    --gensys-primary-to: 139, 92, 246; /* RGB pour le violet */
-    --gensys-primary-to-rgb: 139, 92, 246;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --primary-hover: 222.2 47.4% 16%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Couleurs relatives au sidebar */
+    --sidebar: 210 40% 98%;
+    --sidebar-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-accent: 222.2 47.4% 11.2%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 222.2 47.4% 11.2%;
+
+    /* Couleurs dédiées au design neumorphique */
+    --neumorph-accent: 265 89% 78%;
+    --neumorph-primary: 196 60% 50%;
+    --neumorph-secondary: 252 95% 85%;
+
+    /* Couleurs titre et sous-titre */
+    --title: 222.2 47.4% 11.2%;
+    --subtitle: 215.4 16.3% 46.9%;
+
+    /* Nouvelles couleurs premium pour le design futuriste */
+    --gensys-primary-from: 255, 107, 107; /* RGB pour le rouge-rose */
+    --gensys-primary-from-rgb: 255, 107, 107;
+    --gensys-primary-via: 198, 108, 255; /* RGB pour un violet pastel */
+    --gensys-primary-via-rgb: 198, 108, 255;
+    --gensys-primary-to: 107, 139, 255; /* RGB pour un bleu clair */
+    --gensys-primary-to-rgb: 107, 139, 255;
     
     --gensys-primary-light: 245, 243, 255;
     --gensys-primary-dark: 30, 41, 59;
@@ -32,11 +73,56 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 224 71% 45%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-hover: 210 40% 90%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Couleurs relatives au sidebar */
+    --sidebar: 222.2 47.4% 11.2%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-accent: 210 40% 98%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+
+    /* Couleurs adaptées au thème sombre */
+    --title: 210 40% 98%;
+    --subtitle: 215 20.2% 65.1%;
+
+    /* Couleurs neumorphiques adaptées au thème sombre */
+    --neumorph-accent: 265 89% 70%;
+    --neumorph-primary: 196 80% 40%;
+    --neumorph-secondary: 252 95% 75%;
+
+    /* Variables pour le glassmorphism en mode sombre */
+    --glass-bg: rgba(0, 0, 0, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -46,6 +132,7 @@
   }
   body {
     @apply bg-[#F9FAFB] text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
@@ -66,7 +153,7 @@
     @apply transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
   }
   
-  /* New utility classes */
+  /* Classe pour les effets de gradient animés */
   .animated-gradient-text {
     @apply bg-[length:200%_200%];
     background-image: linear-gradient(45deg, rgb(var(--gensys-primary-from)), rgb(var(--gensys-primary-to)));
@@ -76,7 +163,8 @@
     text-fill-color: transparent;
     animation: gradient-shift 3s ease infinite;
   }
-  
+
+  /* Classe pour un effet de brillance */
   .shimmer {
     position: relative;
     overflow: hidden;
@@ -97,5 +185,37 @@
     );
     transform: rotate(45deg);
     animation: shimmer 2s linear infinite;
+  }
+
+  /* Classe pour des cartes avec effet glassmorphism */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow: 0 16px 48px 0 var(--glass-shadow);
+    transform: translateY(-2px);
+  }
+
+  /* Style neumorphique pour les éléments d'interface */
+  .neumorphic {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.1), -5px -5px 10px rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+  }
+
+  .neumorphic:hover {
+    box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.7);
+  }
+
+  .neumorphic:active {
+    box-shadow: inset 5px 5px 10px rgba(0, 0, 0, 0.1), inset -5px -5px 10px rgba(255, 255, 255, 0.7);
   }
 }

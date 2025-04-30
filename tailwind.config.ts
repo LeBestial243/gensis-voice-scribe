@@ -43,9 +43,9 @@ export default {
         "neumorph-secondary": "hsl(var(--neumorph-secondary))",
         gensys: {
           primary: {
-            from: "#56CCF2",      // Bleu clair du logo
-            via: "#5B86E5",       // Bleu moyen
-            to: "#8B5CF6",        // Violet du logo
+            from: "rgb(var(--gensys-primary-from))", 
+            via: "rgb(var(--gensys-primary-via))",
+            to: "rgb(var(--gensys-primary-to))",
           },
           surface: {
             light: "#f8fafc",
@@ -58,9 +58,9 @@ export default {
           }
         },
         neumorph: {
-          primary: "var(--gensys-primary-from, #56CCF2)",
-          accent: "var(--gensys-primary-to, #8B5CF6)",
-          secondary: "var(--gensys-primary-via, #5B86E5)",
+          primary: "var(--gensys-primary-from, rgb(255, 107, 107))",
+          accent: "var(--gensys-primary-to, rgb(107, 139, 255))",
+          secondary: "var(--gensys-primary-via, rgb(198, 108, 255))",
         },
         primary: {
           DEFAULT: "#5B86E5",
