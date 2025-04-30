@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Bell, X, Check, Clock, User, FileText, Info } from "lucide-react";
 import { PremiumButton } from "@/components/ui/PremiumButton";
 import { GlassmorphicCard } from "@/components/ui/GlassmorphicCard";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export interface Notification {
   id: string;
