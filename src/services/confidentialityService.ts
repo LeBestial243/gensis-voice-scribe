@@ -4,6 +4,9 @@ import { AccessPermission, ConfidentialityLevel, defaultConfidentialitySettings 
 import { ConfidentialitySettings, AuditLogEntry, RoleAccess } from "@/types/casf";
 import { formatSupabaseError } from "@/utils/errorHandler";
 
+// Define valid resource types that have confidentiality_level column
+type ResourceWithConfidentiality = 'files' | 'notes';
+
 export const confidentialityService = {
   /**
    * Retrieves the current user's confidentiality settings
@@ -69,7 +72,7 @@ export const confidentialityService = {
    * Récupère le niveau de confidentialité d'une ressource
    */
   async getResourceConfidentiality(
-    resourceType: string, 
+    resourceType: ResourceWithConfidentiality, 
     resourceId: string
   ): Promise<ConfidentialityLevel> {
     try {
@@ -92,7 +95,7 @@ export const confidentialityService = {
    * Définit le niveau de confidentialité d'une ressource
    */
   async setResourceConfidentiality(
-    resourceType: string,
+    resourceType: ResourceWithConfidentiality,
     resourceId: string,
     level: ConfidentialityLevel,
     userId: string
@@ -134,7 +137,9 @@ export const confidentialityService = {
   ): Promise<boolean> {
     try {
       // 1. Obtenir le niveau de confidentialité de la ressource
-      const confidentialityLevel = await this.getResourceConfidentiality(resourceType, resourceId);
+      const confidentialityLevel = resourceType === 'files' || resourceType === 'notes' 
+        ? await this.getResourceConfidentiality(resourceType as ResourceWithConfidentiality, resourceId)
+        : 'public'; // Default for resources that don't have confidentiality levels
       
       // 2. Obtenir le rôle de l'utilisateur
       const { data: userData, error: userError } = await supabase
@@ -236,8 +241,19 @@ export const confidentialityService = {
         
       if (error) throw formatSupabaseError(error);
       
+      // Map the data to match our AuditLogEntry interface
+      const logs: AuditLogEntry[] = data.map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        timestamp: item.created_at, // Use created_at as timestamp
+        action: item.action,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        details: item.details as Record<string, any> | undefined
+      }));
+      
       return {
-        logs: data as AuditLogEntry[],
+        logs,
         total: count || 0
       };
     } catch (error) {
