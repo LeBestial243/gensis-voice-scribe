@@ -1,9 +1,10 @@
 
 import { Json } from "@/integrations/supabase/types";
+import { AuditableEntity } from "./index";
 
 export type ReportType = 'monthly' | 'quarterly' | 'yearly' | 'custom';
 
-export interface ActivityReport {
+export interface ActivityReport extends Omit<AuditableEntity, 'updated_at' | 'created_by' | 'updated_by'> {
   id: string;
   title: string;
   report_type: ReportType | string;
@@ -11,7 +12,6 @@ export interface ActivityReport {
   period_end: string;
   content?: Json | Record<string, any>;
   user_id: string;
-  created_at?: string;
 }
 
 export interface ReportContent {

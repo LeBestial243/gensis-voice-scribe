@@ -21,10 +21,13 @@ interface TranscriptionsListProps {
 export function TranscriptionsList({ profileId, folderId, searchQuery }: TranscriptionsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { 
-    data: { files, folderIds },
-    status: { isLoading }
-  } = useTranscriptions(profileId, folderId, searchQuery);
+  
+  // Use standardized hook with proper destructuring
+  const transcriptionsResult = useTranscriptions(profileId, folderId, searchQuery);
+  
+  // Properly access data and status from standardized hook structure
+  const { files, folderIds } = transcriptionsResult.data;
+  const { isLoading } = transcriptionsResult.status;
   
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 

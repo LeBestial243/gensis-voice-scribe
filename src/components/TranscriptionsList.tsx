@@ -10,6 +10,7 @@ import { CustomPagination } from "./CustomPagination";
 import { fileService } from "@/services/fileService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FileData } from "@/types/files";
+import { PaginationParams } from "@/types";
 
 interface TranscriptionsListProps {
   profileId: string;
@@ -33,20 +34,22 @@ export function TranscriptionsList({
   
   // Get folder IDs to filter by
   const filterFolderIds = folderId ? [folderId] : folderIds;
-  
-  const { 
-    data: { files, totalCount, folderIds: fetchedFolderIds },
-    status: { isLoading }
-  } = useTranscriptions(
+
+  // Use standardized hook with proper destructuring
+  const transcriptionsResult = useTranscriptions(
     profileId, 
     folderId, 
     searchQuery, 
     {
       page: currentPage,
       pageSize: PAGE_SIZE
-    }
+    } as PaginationParams
   );
-
+  
+  // Properly access data and status from standardized hook structure
+  const { files, totalCount } = transcriptionsResult.data;
+  const { isLoading } = transcriptionsResult.status;
+  
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const deleteMutation = useMutation({

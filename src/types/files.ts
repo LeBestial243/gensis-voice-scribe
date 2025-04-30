@@ -1,15 +1,13 @@
 
-import { ConfidentialityLevel } from "./confidentiality";
+import { AuditableEntity, ConfidentialityLevel } from "./index";
 
-export interface FileData {
+export interface FileData extends AuditableEntity {
   id: string;
   name: string;
   type: string;
   size: number;
   path: string;
   folder_id: string;
-  created_at: string | null;
-  updated_at: string | null;
   content?: string;
   confidentiality_level?: ConfidentialityLevel | string;
 }

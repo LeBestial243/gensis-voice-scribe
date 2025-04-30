@@ -1,8 +1,10 @@
 
+import { AuditableEntity } from "./index";
+
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived';
 export type ObjectiveStatus = 'pending' | 'in_progress' | 'achieved' | 'canceled';
 
-export interface Project {
+export interface Project extends AuditableEntity {
   id: string;
   profile_id: string;
   title: string;
@@ -10,11 +12,9 @@ export interface Project {
   start_date: string;
   end_date: string;
   status: ProjectStatus | string;
-  created_at?: string;
-  updated_at?: string;
 }
 
-export interface ProjectObjective {
+export interface ProjectObjective extends AuditableEntity {
   id: string;
   project_id: string;
   title: string;
@@ -22,8 +22,6 @@ export interface ProjectObjective {
   target_date: string;
   status: ObjectiveStatus | string;
   notes?: string | null;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface ProjectWithObjectives extends Project {

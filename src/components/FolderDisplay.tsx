@@ -268,7 +268,6 @@ export function FolderDisplay({
         title: "Fichier téléchargé", 
         description: "Le fichier a été téléchargé avec succès" 
       });
-      setFileToUpload(null);
       setUploadFolderId(null);
       setIsUploadOpen(false);
     },

@@ -4,6 +4,7 @@ import { FolderCard } from "../young-profile/FolderCard";
 interface Folder {
   id: string;
   title: string;
+  created_at?: string; // Made optional to match usage
 }
 
 interface FolderListProps {
