@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -26,11 +27,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { NoteActionsMenu } from "./NoteActionsMenu";
+import { CustomPagination } from "@/components/CustomPagination";
+import { usePagination } from "@/hooks/usePagination";
+import { notesService } from "@/services/notesService";
+import { PaginationParams } from "@/types";
 
 interface NotesListProps {
   profileId: string;
   searchQuery: string;
 }
+
+const PAGE_SIZE = 5; // Number of notes per page
 
 export function NotesList({ profileId, searchQuery }: NotesListProps) {
   const { toast } = useToast();
@@ -38,31 +45,29 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: notes = [], isLoading } = useQuery({
-    queryKey: ['notes', profileId],
+  const { data, isLoading } = useQuery({
+    queryKey: ['notes', profileId, searchQuery, currentPage, PAGE_SIZE],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', profileId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
+      try {
+        return await notesService.getNotes(profileId, searchQuery, { 
+          page: currentPage, 
+          pageSize: PAGE_SIZE 
+        });
+      } catch (error) {
+        console.error("Error fetching notes:", error);
+        return { notes: [], totalCount: 0 };
+      }
     },
   });
 
-  const deleteNote = useMutation({
-    mutationFn: async (noteId: string) => {
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
+  const notes = data?.notes || [];
+  const totalCount = data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-      if (error) throw error;
-      return noteId;
-    },
+  const deleteNote = useMutation({
+    mutationFn: notesService.deleteNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notes', profileId] });
       toast({
@@ -79,15 +84,6 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
         variant: "destructive"
       });
     }
-  });
-
-  const filteredNotes = notes.filter(note => {
-    if (!searchQuery) return true;
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      note.title.toLowerCase().includes(searchLower) || 
-      (note.content && note.content.toLowerCase().includes(searchLower))
-    );
   });
 
   const toggleExpand = (id: string) => {
@@ -151,7 +147,7 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
     );
   }
 
-  if (filteredNotes.length === 0) {
+  if (notes.length === 0) {
     return (
       <Card className="bg-muted/50">
         <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
@@ -169,7 +165,7 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
     <>
       <ScrollArea className="max-h-[600px]">
         <div className="space-y-3 pr-4">
-          {filteredNotes.map((note) => (
+          {notes.map((note) => (
             <Card key={note.id} className="overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -239,6 +235,15 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
           ))}
         </div>
       </ScrollArea>
+
+      {totalPages > 1 && (
+        <CustomPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          className="mt-4"
+        />
+      )}
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

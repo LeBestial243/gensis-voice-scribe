@@ -14,12 +14,14 @@ interface CustomPaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  className?: string;
 }
 
 export const CustomPagination = ({ 
   currentPage, 
   totalPages, 
-  onPageChange 
+  onPageChange,
+  className = ""
 }: CustomPaginationProps) => {
   // Generate page numbers to display
   const generatePagination = () => {
@@ -40,7 +42,7 @@ export const CustomPagination = ({
   if (totalPages <= 1) return null;
   
   return (
-    <Pagination className="mt-6">
+    <Pagination className={`mt-6 ${className}`}>
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious 
