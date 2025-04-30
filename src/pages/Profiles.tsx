@@ -177,6 +177,8 @@ export default function Profiles() {
           profileId={selectedProfileId}
         />
       )}
+      
+      <MobileNav />
     </div>
   );
 }

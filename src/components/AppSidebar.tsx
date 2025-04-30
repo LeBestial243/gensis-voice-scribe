@@ -1,22 +1,18 @@
 
+import { Home, Users, FileCode, LogOut, PanelLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import appConfig from '@/config/appConfig';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarHeader,
-  SidebarTrigger,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, Users, FileText, Settings, LogOut, BarChart2, PanelLeft, FileCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import appConfig from '@/config/appConfig';
+import { PremiumDesktopNavigation } from "./navigation/PremiumDesktopNavigation";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -26,6 +22,24 @@ export function AppSidebar() {
     await supabase.auth.signOut();
     navigate('/auth');
   };
+  
+  const navigationLinks = [
+    {
+      path: "/",
+      label: "Accueil",
+      icon: <Home className="h-5 w-5" />
+    },
+    {
+      path: "/profiles",
+      label: "Jeunes suivis",
+      icon: <Users className="h-5 w-5" />
+    },
+    {
+      path: "/templates",
+      label: "Mes templates",
+      icon: <FileCode className="h-5 w-5" />
+    }
+  ];
 
   return (
     <Sidebar className="border-r bg-gensys-glassmorphism-light backdrop-blur-sm shadow-md rounded-r-xl ml-4 transition-all duration-300">
@@ -46,51 +60,13 @@ export function AppSidebar() {
           </SidebarTrigger>
         </div>
       </SidebarHeader>
+      
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gensys-primary-to font-medium">Principal</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === '/'}
-                  className="hover:bg-gensys-primary-to/10 transition-all duration-300"
-                >
-                  <Link to="/" className="flex items-center gap-2 no-underline text-inherit">
-                    <Home className={`h-5 w-5 ${location.pathname === '/' ? 'text-gensys-primary-to' : ''}`} />
-                    <span className={location.pathname === '/' ? 'text-gensys-primary-to' : ''}>Accueil</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === '/profiles'}
-                  className="hover:bg-gensys-primary-to/10 transition-all duration-300"
-                >
-                  <Link to="/profiles" className="flex items-center gap-2 no-underline text-inherit">
-                    <Users className={`h-5 w-5 ${location.pathname === '/profiles' ? 'text-gensys-primary-to' : ''}`} />
-                    <span className={location.pathname === '/profiles' ? 'text-gensys-primary-to' : ''}>Jeunes suivis</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === '/templates'}
-                  className="hover:bg-gensys-primary-to/10 transition-all duration-300"
-                >
-                  <Link to="/templates" className="flex items-center gap-2 no-underline text-inherit">
-                    <FileCode className={`h-5 w-5 ${location.pathname === '/templates' ? 'text-gensys-primary-to' : ''}`} />
-                    <span className={location.pathname === '/templates' ? 'text-gensys-primary-to' : ''}>Mes templates</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <PremiumDesktopNavigation links={navigationLinks} className="mx-3" />
         </SidebarGroup>
       </SidebarContent>
+      
       <SidebarFooter>
         <div className="px-6 py-3">
           <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
