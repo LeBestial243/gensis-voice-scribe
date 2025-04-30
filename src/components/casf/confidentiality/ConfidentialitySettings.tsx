@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ResourceConfidentialitySelector } from './ConfidentialityManager';
+import { ResourceConfidentialitySelector } from './ResourceConfidentialitySelector';
 import { useConfidentiality } from '@/hooks/useConfidentiality';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';

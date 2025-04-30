@@ -9,7 +9,7 @@ import { TranscriptionForm } from "./transcription-dialog/TranscriptionForm";
 import { TranscriptionActions } from "./transcription-dialog/TranscriptionActions";
 import { ConfidentialityLevel } from "@/types/confidentiality";
 import { confidentialityService } from "@/services/confidentialityService";
-import { ResourceConfidentialitySelector } from "./casf/confidentiality/ConfidentialityManager";
+import { ResourceConfidentialitySelector } from "./casf/confidentiality/ResourceConfidentialitySelector";
 
 interface Folder {
   id: string;

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mic, Square, FileText, Loader2 } from "lucide-react";
 import { confidentialityService } from "@/services/confidentialityService";
 import { ConfidentialityLevel } from "@/types/confidentiality";
-import { ResourceConfidentialitySelector } from "../casf/confidentiality/ConfidentialityManager";
+import { ResourceConfidentialitySelector } from "../casf/confidentiality/ResourceConfidentialitySelector";
 
 interface RecordingDialogProps {
   open: boolean;
