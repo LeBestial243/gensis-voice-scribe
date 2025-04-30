@@ -1,210 +1,222 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { FileType } from "@/types/files";
-import { formatSupabaseError } from "@/utils/errorHandler";
-import { ConfidentialityLevel } from "@/types/confidentiality";
+import { auditService } from "./auditService";
 
-// Service centralisé pour la gestion des fichiers
 export const fileService = {
-  // Télécharger un fichier dans le stockage
-  async uploadFile(
-    file: File, 
-    folderId: string, 
-    confidentialityLevel: ConfidentialityLevel = 'public'
-  ): Promise<FileType> {
-    // Format standard du chemin
+  async getFiles(folderId: string) {
+    if (!folderId) return [];
+    
+    const { data, error } = await supabase
+      .from('files')
+      .select('*')
+      .eq('folder_id', folderId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+  
+  async uploadFile(file: File, folderId: string) {
     const fileName = file.name;
     const filePath = `${folderId}/${Date.now()}_${fileName}`;
     
-    try {
-      // Télécharger dans le stockage
-      const { error: storageError, data: storageData } = await supabase.storage
-        .from('files')
-        .upload(filePath, file);
+    const { error: storageError, data: storageData } = await supabase.storage
+      .from('files')
+      .upload(filePath, file);
 
-      if (storageError) {
-        // En cas d'échec du stockage, essayer de stocker comme contenu si c'est du texte
-        if (file.type.includes('text') || file.size < 100000) {
-          const text = await file.text();
-          
-          const { data, error: dbError } = await supabase
-            .from('files')
-            .insert({
-              name: fileName,
-              folder_id: folderId,
-              type: file.type,
-              size: file.size,
-              path: null,
-              content: text,
-              confidentiality_level: confidentialityLevel
-            })
-            .select()
-            .single();
-            
-          if (dbError) throw formatSupabaseError(dbError);
-          return data as FileType;
-        }
-        throw formatSupabaseError(storageError);
-      }
-      
-      // Créer l'entrée dans la base de données
-      const { data, error } = await supabase
-        .from('files')
-        .insert({
-          name: fileName,
-          folder_id: folderId,
-          type: file.type,
-          size: file.size,
-          path: filePath,
-          confidentiality_level: confidentialityLevel
-        })
-        .select()
-        .single();
+    if (storageError) {
+      if (file.type.includes('text') || file.size < 100000) {
+        const text = await file.text();
         
-      if (error) throw formatSupabaseError(error);
-      return data as FileType;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
-  },
-
-  // Supprimer un fichier
-  async deleteFile(fileId: string): Promise<string> {
-    try {
-      // Récupérer d'abord les informations du fichier
-      const { data: fileData, error: fileError } = await supabase
-        .from('files')
-        .select('path, name')
-        .eq('id', fileId)
-        .single();
-
-      if (fileError) throw formatSupabaseError(fileError);
-      if (!fileData) throw new Error('File not found');
-      
-      // Supprimer d'abord de la base de données pour éviter des fichiers orphelins
-      const { error: dbError } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', fileId);
-
-      if (dbError) throw formatSupabaseError(dbError);
-      
-      // Supprimer du stockage uniquement si le chemin existe
-      if (fileData.path && fileData.path.trim() !== '') {
-        const { error: storageError } = await supabase.storage
+        const { data, error: dbError } = await supabase
           .from('files')
-          .remove([fileData.path]);
-
-        // On journalise l'erreur mais on ne l'échoue pas car le fichier est déjà supprimé de la base de données
-        if (storageError) {
-          console.warn('Storage removal failed but database record was deleted:', storageError);
-        }
+          .insert({
+            name: fileName,
+            folder_id: folderId,
+            type: file.type,
+            size: file.size,
+            path: null,
+            content: text
+          })
+          .select()
+          .single();
+          
+        if (dbError) throw dbError;
+        return data;
+      } else {
+        throw storageError;
       }
-      
-      return fileId;
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      throw error;
-    }
-  },
-
-  // Télécharger un fichier
-  async downloadFile(file: FileType): Promise<string> {
-    if (!file.path) {
-      throw new Error("Ce fichier ne peut pas être téléchargé (chemin manquant)");
     }
     
     const { data, error } = await supabase
-      .storage
+      .from('files')
+      .insert({
+        name: fileName,
+        folder_id: folderId,
+        type: file.type,
+        size: file.size,
+        path: filePath
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log file upload in audit
+    try {
+      await auditService.logAction(
+        'upload',
+        'file',
+        data.id,
+        { file_name: fileName, folder_id: folderId }
+      );
+    } catch (logError) {
+      console.error('Failed to log file upload:', logError);
+    }
+    
+    return data;
+  },
+  
+  async downloadFile(file: FileType) {
+    if (!file.path && file.content) {
+      // For text-based files stored directly in the database
+      const blob = new Blob([file.content], { type: file.type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      // Log file download in audit
+      try {
+        await auditService.logAction(
+          'download',
+          'file',
+          file.id,
+          { file_name: file.name }
+        );
+      } catch (logError) {
+        console.error('Failed to log file download:', logError);
+      }
+      
+      return url;
+    }
+    
+    if (!file.path) {
+      throw new Error("File has no path and no content");
+    }
+    
+    const { data, error } = await supabase.storage
       .from('files')
       .createSignedUrl(file.path, 60);
+      
+    if (error) throw error;
+    if (!data?.signedUrl) throw new Error("Failed to generate signed URL");
     
-    if (error || !data?.signedUrl) {
-      throw formatSupabaseError(error || new Error("Impossible de générer le lien de téléchargement"));
+    // Log file download in audit
+    try {
+      await auditService.logAction(
+        'download',
+        'file',
+        file.id,
+        { file_name: file.name }
+      );
+    } catch (logError) {
+      console.error('Failed to log file download:', logError);
     }
     
     return data.signedUrl;
   },
-
-  // Obtenir le contenu d'un fichier
-  async getFileContent(fileId: string): Promise<string> {
-    try {
-      // Essayer d'abord de récupérer depuis la base de données
-      const { data, error } = await supabase
+  
+  async deleteFile(fileId: string) {
+    // First get the file to check if it has a path
+    const { data: file, error: fetchError } = await supabase
+      .from('files')
+      .select('*')
+      .eq('id', fileId)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
+    // If the file has a path, delete it from storage
+    if (file?.path) {
+      const { error: storageError } = await supabase.storage
         .from('files')
-        .select('content, path')
-        .eq('id', fileId)
-        .single();
-        
-      if (error) throw formatSupabaseError(error);
+        .remove([file.path]);
       
-      // Si le contenu est déjà dans la base de données, le retourner
-      if (data.content) {
-        return data.content;
+      if (storageError) {
+        console.error('Error removing file from storage:', storageError);
+        // Continue with deletion even if storage removal fails
       }
-      
-      // Sinon, essayer de télécharger depuis le stockage
-      if (data.path) {
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from('files')
-          .download(data.path);
-          
-        if (downloadError) throw formatSupabaseError(downloadError);
-        
-        const content = await fileData.text();
-        return content;
-      }
-      
-      throw new Error("Contenu du fichier non disponible");
-    } catch (error) {
-      console.error('Error getting file content:', error);
-      throw error;
     }
+    
+    // Delete the file record from the database
+    const { error } = await supabase
+      .from('files')
+      .delete()
+      .eq('id', fileId);
+    
+    if (error) throw error;
+    
+    // Log file deletion in audit
+    try {
+      await auditService.logAction(
+        'delete',
+        'file',
+        fileId,
+        { file_name: file?.name || 'unknown' }
+      );
+    } catch (logError) {
+      console.error('Failed to log file deletion:', logError);
+    }
+    
+    return true;
   },
-
-  // Mettre à jour le niveau de confidentialité d'un fichier
-  async updateConfidentiality(
-    fileId: string, 
-    level: ConfidentialityLevel
-  ): Promise<FileType> {
-    try {
-      const { data, error } = await supabase
-        .from('files')
-        .update({ confidentiality_level: level })
-        .eq('id', fileId)
-        .select()
-        .single();
+  
+  async renameFile(fileId: string, newName: string) {
+    const { data, error } = await supabase
+      .from('files')
+      .update({ name: newName })
+      .eq('id', fileId)
+      .select()
+      .single();
       
-      if (error) throw formatSupabaseError(error);
-      return data as FileType;
-    } catch (error) {
-      console.error('Error updating file confidentiality:', error);
-      throw error;
+    if (error) throw error;
+    
+    // Log file rename in audit
+    try {
+      await auditService.logAction(
+        'update',
+        'file',
+        fileId,
+        { new_name: newName, old_name: data.name }
+      );
+    } catch (logError) {
+      console.error('Failed to log file rename:', logError);
     }
+    
+    return data;
   },
-
-  // Récupérer les fichiers avec filtrage par niveau de confidentialité
-  async getFiles(
-    folderId: string, 
-    options?: { confidentialityLevel?: ConfidentialityLevel }
-  ): Promise<FileType[]> {
+  
+  async updateConfidentiality(fileId: string, level: string) {
+    const { data, error } = await supabase
+      .from('files')
+      .update({ confidentiality_level: level })
+      .eq('id', fileId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log confidentiality change in audit
     try {
-      let query = supabase
-        .from('files')
-        .select('*')
-        .eq('folder_id', folderId);
-      
-      if (options?.confidentialityLevel) {
-        query = query.eq('confidentiality_level', options.confidentialityLevel);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw formatSupabaseError(error);
-      return data as FileType[] || [];
-    } catch (error) {
-      console.error('Error getting files:', error);
-      throw error;
+      await auditService.logAction(
+        'update',
+        'file',
+        fileId,
+        { confidentiality: level, file_name: data.name }
+      );
+    } catch (logError) {
+      console.error('Failed to log confidentiality change:', logError);
     }
+    
+    return data;
   }
 };

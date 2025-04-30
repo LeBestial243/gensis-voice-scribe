@@ -1,15 +1,16 @@
 
-import { useState } from "react";
 import { CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useTranscriptions } from "@/hooks/useTranscriptions";
 import { TranscriptionCard } from "./transcriptions/TranscriptionCard";
-import type { FileData } from "@/types/files";
+import { fileService } from "@/services/fileService";
 import { MorphCard } from "@/components/ui/MorphCard";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { FileData } from "@/types/files";
 
 interface TranscriptionsListProps {
   profileId: string;
@@ -19,37 +20,44 @@ interface TranscriptionsListProps {
 
 export function TranscriptionsList({ profileId, folderId, searchQuery }: TranscriptionsListProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { files, isLoading, folderIds } = useTranscriptions(profileId, folderId, searchQuery);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
+  const deleteMutation = useMutation({
+    mutationFn: fileService.deleteFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
       toast({
         title: "Fichier supprimé",
         description: "Le fichier a été supprimé avec succès."
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le fichier.",
         variant: "destructive"
       });
+      console.error('Error deleting file:', error);
     }
+  });
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const handleDownload = async (file: FileData) => {
     try {
-      const { error } = await supabase.storage
-        .from('files')
-        .download(file.path);
+      setIsDownloading(file.id);
+      const signedUrl = await fileService.downloadFile(file);
       
-      if (error) throw error;
+      const a = document.createElement('a');
+      a.href = signedUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       
       toast({
         title: "Fichier téléchargé",
@@ -61,6 +69,9 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
         description: "Une erreur s'est produite lors du téléchargement",
         variant: "destructive",
       });
+      console.error('Error downloading file:', error);
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -113,6 +124,8 @@ export function TranscriptionsList({ profileId, folderId, searchQuery }: Transcr
             file={file}
             onDelete={handleDelete}
             onDownload={handleDownload}
+            isDownloading={isDownloading === file.id}
+            isDeleting={deleteMutation.isPending}
           />
         ))}
       </div>

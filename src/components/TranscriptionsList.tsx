@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useTranscriptions } from "@/hooks/useTranscriptions";
 import { TranscriptionCard } from "./young-profile/transcriptions/TranscriptionCard";
 import { CustomPagination } from "./CustomPagination";
+import { fileService } from "@/services/fileService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FileData } from "@/types/files";
 
 interface TranscriptionsListProps {
@@ -26,7 +27,9 @@ export function TranscriptionsList({
   folderIds = [] 
 }: TranscriptionsListProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
   
   // Get folder IDs to filter by
   const filterFolderIds = folderId ? [folderId] : folderIds;
@@ -43,38 +46,35 @@ export function TranscriptionsList({
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
+  const deleteMutation = useMutation({
+    mutationFn: fileService.deleteFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
       toast({
         title: "Fichier supprimé",
         description: "Le fichier a été supprimé avec succès."
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le fichier.",
         variant: "destructive"
       });
     }
+  });
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const handleDownload = async (file: FileData) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('files')
-        .createSignedUrl(file.path, 60);
-        
-      if (error || !data?.signedUrl) throw error;
+      setIsDownloading(file.id);
+      const signedUrl = await fileService.downloadFile(file);
       
       const a = document.createElement('a');
-      a.href = data.signedUrl;
+      a.href = signedUrl;
       a.download = file.name;
       document.body.appendChild(a);
       a.click();
@@ -90,6 +90,8 @@ export function TranscriptionsList({
         description: "Une erreur s'est produite lors du téléchargement",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -140,6 +142,8 @@ export function TranscriptionsList({
               file={file}
               onDelete={handleDelete}
               onDownload={handleDownload}
+              isDownloading={isDownloading === file.id}
+              isDeleting={deleteMutation.isPending}
             />
           ))}
         </div>

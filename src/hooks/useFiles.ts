@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fileService } from "@/services/fileService";
 import { FileType } from "@/types/files";
@@ -16,18 +15,7 @@ export function useFiles(folderId: string) {
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['files', folderId],
-    queryFn: async () => {
-      if (!folderId) return [];
-      
-      const { data, error } = await supabase
-        .from('files')
-        .select('*')
-        .eq('folder_id', folderId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => fileService.getFiles(folderId),
     enabled: !!folderId,
   });
 
@@ -35,20 +23,7 @@ export function useFiles(folderId: string) {
     try {
       setIsDownloading(file.id);
       
-      // Fix type mismatch by ensuring the file has all required properties
-      const fileData = {
-        id: file.id,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        path: file.path,
-        folder_id: folderId,
-        created_at: file.created_at,
-        updated_at: file.created_at,
-        content: file.content
-      };
-      
-      const signedUrl = await fileService.downloadFile(fileData);
+      const signedUrl = await fileService.downloadFile(file);
       
       const a = document.createElement('a');
       a.href = signedUrl;
@@ -100,15 +75,7 @@ export function useFiles(folderId: string) {
 
   const renameMutation = useMutation({
     mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
-      const { data, error } = await supabase
-        .from('files')
-        .update({ name: newName })
-        .eq('id', fileId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await fileService.renameFile(fileId, newName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
