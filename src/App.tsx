@@ -29,8 +29,12 @@ const App = () => (
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
             <Route path="/templates" element={<TemplatesPage />} />
-            <Route path="/casf/reports" element={<CASFReportsPage />} />
-            <Route path="/educational-projects/:id" element={<EducationalProjectPage />} />
+            
+            {/* Routes CASF */}
+            <Route path="/casf-reports" element={<CASFReportsPage />} />
+            <Route path="/young_profiles/:id/projects" element={<EducationalProjectPage />} />
+            <Route path="/young_profiles/:id/projects/:projectId" element={<EducationalProjectPage />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
