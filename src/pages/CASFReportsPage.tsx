@@ -1,7 +1,4 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { reportService } from '@/services/reportService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -10,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { StandardizedReportForm } from '@/components/casf/reports/StandardizedReportForm';
 import { ReportPreview } from '@/components/casf/reports/ReportPreview';
 import { ActivityReportGenerator } from '@/components/casf/activity/ActivityReportGenerator';
-import { ReportType, ActivityReport } from '@/types/reports';
+import { useActivityReport } from '@/hooks/useActivityReport';
+import { useStandardizedReport } from '@/hooks/useStandardizedReport';
+import { ActivityReport, StandardizedReport } from '@/types/casf';
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
 import { ActivityStatistics } from '@/components/casf/activity/ActivityStatistics';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +18,7 @@ import { CustomPagination } from '@/components/CustomPagination';
 import { auditService } from '@/services/auditService';
 import { Loader2, Search, FileText, Calendar, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useQuery } from '@tanstack/react-query';
 
 export default function CASFReportsPage() {
   const { toast } = useToast();
@@ -28,11 +28,14 @@ export default function CASFReportsPage() {
   const [selectedReport, setSelectedReport] = useState<ActivityReport | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
-  const { data: reports = [], isLoading: isLoadingReports } = useQuery({
-    queryKey: ['reports', reportTypeFilter],
-    queryFn: () => reportService.getReports(
-      reportTypeFilter ? { report_type: reportTypeFilter } : undefined
-    ),
+  const { reports: activityReports = [], isLoadingReports } = useActivityReport({
+    filters: reportTypeFilter ? { report_type: reportTypeFilter } : undefined
+  });
+
+  // In the real app, this would be based on a selected profile
+  const mockProfileId = "mock-profile-id";
+  const { createReport: createStandardizedReport } = useStandardizedReport({ 
+    profileId: mockProfileId 
   });
   
   const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({
@@ -44,7 +47,7 @@ export default function CASFReportsPage() {
   });
   
   // Filter reports based on search query
-  const filteredReports = reports.filter(report => {
+  const filteredReports = activityReports.filter(report => {
     if (!searchQuery) return true;
     return report.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -76,21 +79,9 @@ export default function CASFReportsPage() {
     }
   };
 
-  const handleCreateReport = async (data: any) => {
+  const handleCreateReport = async (data: Omit<StandardizedReport, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const reportData = {
-        title: data.title,
-        report_type: data.report_type,
-        period_start: data.period_start,
-        period_end: data.period_end,
-        user_id: "system", // This would be replaced with the actual user ID
-        content: {
-          confidentiality_level: data.confidentiality_level,
-          sections: data.sections
-        }
-      };
-      
-      await reportService.createReport(reportData);
+      await createStandardizedReport(data);
       
       toast({
         title: "Rapport créé",
@@ -98,18 +89,22 @@ export default function CASFReportsPage() {
       });
       
       setSelectedTab('list');
+      return data as StandardizedReport;
     } catch (error) {
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la création du rapport",
         variant: "destructive"
       });
+      throw error;
     }
   };
   
   const viewReport = async (reportId: string) => {
     try {
-      const report = await reportService.getReportById(reportId);
+      // For now, we'll just use our activity report service since that's what we have implemented
+      const activityReportService = useActivityReport();
+      const report = await activityReportService.getReportById(reportId);
       setSelectedReport(report);
       setIsPreviewOpen(true);
     } catch (error) {

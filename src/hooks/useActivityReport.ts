@@ -58,7 +58,7 @@ export function useActivityReport({ filters, reportId }: UseActivityReportProps 
         description: "Le rapport d'activité a été créé avec succès"
       });
       
-      logAction('create', 'activity_report', data.id, { title: data.title });
+      logAction('create', 'report', data.id, { title: data.title });
       
       queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
       return data;
@@ -91,7 +91,7 @@ export function useActivityReport({ filters, reportId }: UseActivityReportProps 
         description: "Le rapport d'activité a été mis à jour avec succès"
       });
       
-      logAction('update', 'activity_report', data.id, { title: data.title });
+      logAction('update', 'report', data.id, { title: data.title });
       
       queryClient.invalidateQueries({ queryKey: ['activity_report', data.id] });
       queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
@@ -122,7 +122,7 @@ export function useActivityReport({ filters, reportId }: UseActivityReportProps 
         description: "Le rapport d'activité a été supprimé avec succès"
       });
       
-      logAction('delete', 'activity_report', deletedReportId);
+      logAction('delete', 'report', deletedReportId);
       
       queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
     },
@@ -138,14 +138,6 @@ export function useActivityReport({ filters, reportId }: UseActivityReportProps 
       setIsDeleting(false);
     }
   });
-  
-  // Activity metrics query
-  const getActivityMetrics = (period_start: string, period_end: string, category?: string) => {
-    return useQuery({
-      queryKey: ['activity_metrics', period_start, period_end, category],
-      queryFn: () => activityReportService.getMetrics(period_start, period_end, category),
-    });
-  };
   
   // Handle report operations
   const createReport = (reportData: Omit<ActivityReport, 'id' | 'created_at'>) => {
@@ -182,6 +174,8 @@ export function useActivityReport({ filters, reportId }: UseActivityReportProps 
     deleteReport,
     
     // Activity metrics
-    getActivityMetrics
+    getActivityMetrics: (period_start: string, period_end: string, category?: string) => {
+      return activityReportService.getMetrics(period_start, period_end, category);
+    }
   };
 }

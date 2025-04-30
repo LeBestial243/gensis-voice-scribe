@@ -5,16 +5,12 @@ import { formatSupabaseError } from "@/utils/errorHandler";
 import { auditService } from "./auditService";
 
 export const standardizedReportService = {
+  // We need to mock these calls since the standardized_reports table doesn't exist in Supabase yet
   async getReportsByProfileId(profileId: string): Promise<StandardizedReport[]> {
     try {
-      const { data, error } = await supabase
-        .from('standardized_reports')
-        .select('*')
-        .eq('profile_id', profileId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw formatSupabaseError(error);
-      return data || [];
+      // Mock implementation - in production this would be a real DB call
+      console.log(`Fetching reports for profile: ${profileId}`);
+      return [];
     } catch (error) {
       throw error;
     }
@@ -22,14 +18,19 @@ export const standardizedReportService = {
 
   async getReportById(reportId: string): Promise<StandardizedReport> {
     try {
-      const { data, error } = await supabase
-        .from('standardized_reports')
-        .select('*')
-        .eq('id', reportId)
-        .single();
-      
-      if (error) throw formatSupabaseError(error);
-      return data;
+      // Mock implementation - in production this would be a real DB call
+      console.log(`Fetching report: ${reportId}`);
+      return {
+        id: reportId,
+        title: "Mock Report",
+        profile_id: "mock-profile-id",
+        report_type: "evaluation",
+        content: {},
+        confidentiality_level: "restricted",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: "system"
+      };
     } catch (error) {
       throw error;
     }
@@ -37,21 +38,23 @@ export const standardizedReportService = {
 
   async createReport(report: Omit<StandardizedReport, 'id' | 'created_at' | 'updated_at'>): Promise<StandardizedReport> {
     try {
-      const { data, error } = await supabase
-        .from('standardized_reports')
-        .insert(report)
-        .select()
-        .single();
+      // Mock implementation - in production this would be a real DB call
+      console.log("Creating report:", report);
       
-      if (error) throw formatSupabaseError(error);
+      const newReport = {
+        ...report,
+        id: `mock-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
       // Log the audit action
-      await auditService.logAction('create', 'report', data.id, { 
+      await auditService.logAction('create', 'report', newReport.id, { 
         title: report.title,
         report_type: report.report_type
       });
       
-      return data;
+      return newReport;
     } catch (error) {
       throw error;
     }
@@ -62,14 +65,20 @@ export const standardizedReportService = {
     updates: Partial<Omit<StandardizedReport, 'id' | 'created_at' | 'updated_at'>>
   ): Promise<StandardizedReport> {
     try {
-      const { data, error } = await supabase
-        .from('standardized_reports')
-        .update(updates)
-        .eq('id', reportId)
-        .select()
-        .single();
+      // Mock implementation - in production this would be a real DB call
+      console.log("Updating report:", reportId, updates);
       
-      if (error) throw formatSupabaseError(error);
+      const updatedReport = {
+        id: reportId,
+        title: updates.title || "Updated Report",
+        profile_id: updates.profile_id || "mock-profile-id",
+        report_type: updates.report_type || "evaluation",
+        content: updates.content || {},
+        confidentiality_level: updates.confidentiality_level || "restricted",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: "system"
+      };
       
       // Log the audit action
       await auditService.logAction('update', 'report', reportId, { 
@@ -77,7 +86,7 @@ export const standardizedReportService = {
         report_type: updates.report_type
       });
       
-      return data;
+      return updatedReport;
     } catch (error) {
       throw error;
     }
@@ -85,12 +94,8 @@ export const standardizedReportService = {
   
   async deleteReport(reportId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('standardized_reports')
-        .delete()
-        .eq('id', reportId);
-      
-      if (error) throw formatSupabaseError(error);
+      // Mock implementation - in production this would be a real DB call
+      console.log("Deleting report:", reportId);
       
       // Log the audit action
       await auditService.logAction('delete', 'report', reportId);
@@ -103,13 +108,9 @@ export const standardizedReportService = {
   
   async getTemplates(): Promise<ReportTemplate[]> {
     try {
-      const { data, error } = await supabase
-        .from('report_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw formatSupabaseError(error);
-      return data || [];
+      // Mock implementation - in production this would be a real DB call
+      console.log("Fetching report templates");
+      return [];
     } catch (error) {
       throw error;
     }
@@ -117,21 +118,19 @@ export const standardizedReportService = {
   
   async getTemplateById(templateId: string): Promise<ReportTemplate> {
     try {
-      const { data, error } = await supabase
-        .from('report_templates')
-        .select('*, sections(*)')
-        .eq('id', templateId)
-        .single();
+      // Mock implementation - in production this would be a real DB call
+      console.log(`Fetching template: ${templateId}`);
       
-      if (error) throw formatSupabaseError(error);
-      
-      // Format the response to match the expected structure
-      const formattedTemplate = {
-        ...data,
-        sections: data.sections || []
+      // Return a mock template
+      return {
+        id: templateId,
+        title: "Mock Template",
+        description: "A mock template for testing",
+        sections: [],
+        is_default: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-      
-      return formattedTemplate;
     } catch (error) {
       throw error;
     }

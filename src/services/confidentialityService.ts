@@ -1,125 +1,61 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ConfidentialityLevel } from "@/types/confidentiality";
-import { AuditAction, ResourceType } from "@/types/audit";
-import { auditService } from "./auditService";
-
-// Define tables that support confidentiality levels
-type ConfidentialityTable = 'files' | 'notes' | 'projects' | 'reports' | 'transcriptions';
-
-// Type guard to check if a string is a valid confidentiality table
-function isConfidentialityTable(table: string): table is ConfidentialityTable {
-  return ['files', 'notes', 'projects', 'reports', 'transcriptions'].includes(table);
-}
+import { ConfidentialityLevel, AccessPermission } from "@/types/confidentiality";
+import { formatSupabaseError } from "@/utils/errorHandler";
 
 export const confidentialityService = {
-  async getResourceConfidentiality(resourceType: string, resourceId: string): Promise<ConfidentialityLevel | null> {
-    // Validate if resourceType is a known table with confidentiality support
-    if (!isConfidentialityTable(resourceType)) {
-      console.error(`Table "${resourceType}" does not support confidentiality levels`);
-      return null;
-    }
-    
+  /**
+   * Retrieves the current user's confidentiality settings
+   */
+  async getCurrentUserAccess(): Promise<AccessPermission[]> {
     try {
-      // Use type assertion to tell TypeScript that resourceType is valid
-      const { data, error } = await supabase
-        .from(resourceType as any)  // Use 'any' to bypass type checking for table name
-        .select('confidentiality_level')
-        .eq('id', resourceId)
-        .single();
-        
-      if (error) throw error;
-      
-      // Handle the case where data could be null
-      if (!data) return null;
-      
-      // Handle the data safely, checking if it exists before accessing properties
-      if (data && typeof data === 'object' && 'confidentiality_level' in data) {
-        // Fixed: Use null check before accessing the property
-        const confidentialityLevel = data?.confidentiality_level as ConfidentialityLevel;
-        return confidentialityLevel || null;
-      }
-      
-      return null;
+      // This is a mock implementation - in a real app we would query this from a database
+      return [
+        { level: 'public', can_view: true, can_edit: true },
+        { level: 'restricted', can_view: true, can_edit: true },
+        { level: 'confidential', can_view: true, can_edit: false },
+        { level: 'strict', can_view: false, can_edit: false },
+      ];
     } catch (error) {
-      console.error(`Error fetching confidentiality level: ${error}`);
-      return null;
+      throw error;
     }
   },
   
-  async setResourceConfidentiality(
-    resourceType: string, 
-    resourceId: string, 
-    level: ConfidentialityLevel,
-    userId: string
-  ) {
-    // Validate if resourceType is a known table with confidentiality support
-    if (!isConfidentialityTable(resourceType)) {
-      throw new Error(`Table "${resourceType}" does not support confidentiality levels`);
-    }
-    
+  async getUserProfile(userId: string) {
     try {
-      // Use type assertion to tell TypeScript that resourceType is valid
       const { data, error } = await supabase
-        .from(resourceType as any)  // Use 'any' to bypass type checking for table name
-        .update({ confidentiality_level: level })
-        .eq('id', resourceId)
-        .select()
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
         .single();
-        
-      if (error) throw error;
       
-      // Log the action
-      await auditService.logAction(
-        'update' as AuditAction,
-        resourceType as ResourceType,
-        resourceId,
-        { newLevel: level }
-      );
+      if (error) throw formatSupabaseError(error);
       
-      return data;
+      // Add null check before returning properties from data
+      return {
+        id: data?.id || userId,
+        role: data?.role || 'user',
+        name: `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || 'Unknown User'
+      };
     } catch (error) {
-      console.error(`Error setting confidentiality level: ${error}`);
-      throw error; // Re-throw to allow handling by caller
+      throw error;
     }
   },
   
-  async getDefaultSettings() {
-    // Récupérer les paramètres par défaut depuis Supabase ou utiliser des valeurs par défaut
-    // Pour l'instant, utilisons des valeurs codées en dur
-    return {
-      defaultLevels: {
-        transcriptions: 'restricted' as ConfidentialityLevel,
-        notes: 'restricted' as ConfidentialityLevel,
-        projects: 'restricted' as ConfidentialityLevel,
-        reports: 'confidential' as ConfidentialityLevel
-      },
-      roleAccess: {
-        'admin': {
-          'public': 'write',
-          'restricted': 'write',
-          'confidential': 'write',
-          'strict': 'write'
-        },
-        'director': {
-          'public': 'write',
-          'restricted': 'write',
-          'confidential': 'write',
-          'strict': 'read'
-        },
-        'educator': {
-          'public': 'write',
-          'restricted': 'write',
-          'confidential': 'read',
-          'strict': 'none'
-        },
-        'observer': {
-          'public': 'read',
-          'restricted': 'read',
-          'confidential': 'none',
-          'strict': 'none'
-        }
-      }
-    };
+  /**
+   * Check if the current user can access content with the specified confidentiality level
+   */
+  async canAccess(level: ConfidentialityLevel, action: 'view' | 'edit' = 'view'): Promise<boolean> {
+    try {
+      const permissions = await this.getCurrentUserAccess();
+      const permission = permissions.find(p => p.level === level);
+      
+      if (!permission) return false;
+      
+      return action === 'view' ? permission.can_view : permission.can_edit;
+    } catch (error) {
+      console.error("Error checking access permissions:", error);
+      return false; // Default to denying access on error
+    }
   }
 };

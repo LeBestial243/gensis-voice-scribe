@@ -34,4 +34,7 @@ export type ResourceType =
   | 'report'
   | 'profile'
   | 'system'
-  | 'transcription';
+  | 'transcription'
+  | 'activity_report'
+  | 'standardized_report';
+

@@ -30,7 +30,8 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
   
   const getReportTypeName = () => {
     if (isActivityReport(report)) {
-      switch (report.report_type) {
+      const type = report.report_type;
+      switch (type) {
         case 'monthly':
           return 'Mensuel';
         case 'quarterly':
@@ -40,10 +41,11 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
         case 'custom':
           return 'Personnalisé';
         default:
-          return report.report_type;
+          return type as string;
       }
     } else {
-      switch (report.report_type) {
+      const type = report.report_type;
+      switch (type) {
         case 'admission':
           return 'Admission';
         case 'evaluation':
@@ -55,7 +57,7 @@ export function ReportPreview({ report, onEdit, onExport }: ReportPreviewProps) 
         case 'custom':
           return 'Personnalisé';
         default:
-          return report.report_type;
+          return type as string;
       }
     }
   };

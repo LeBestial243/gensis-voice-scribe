@@ -1,5 +1,6 @@
 
 import { ConfidentialityLevel } from "./confidentiality";
+import { Json } from "@/integrations/supabase/types";
 
 export interface EducationalProject {
   id: string;
@@ -29,7 +30,7 @@ export interface StandardizedReport {
   title: string;
   profile_id: string;
   report_type: 'admission' | 'evaluation' | 'periodic' | 'incident' | 'custom';
-  content: Record<string, any>;
+  content: Record<string, any> | Json;
   confidentiality_level: ConfidentialityLevel;
   created_at: string;
   updated_at: string;
@@ -60,7 +61,7 @@ export interface ActivityReport {
   period_start: string;
   period_end: string;
   report_type: 'monthly' | 'quarterly' | 'yearly' | 'custom';
-  content: Record<string, any>;
+  content: Record<string, any> | Json;
   user_id: string;
   created_at: string;
 }
@@ -87,3 +88,4 @@ export interface RegulatoryUpdate {
   created_at: string;
   updated_at: string;
 }
+
