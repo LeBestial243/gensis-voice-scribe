@@ -9,12 +9,16 @@ interface UseFormHandlingProps<T extends FieldValues> {
   schema: z.ZodTypeAny;
   defaultValues?: UseFormProps<T>['defaultValues'];
   onSubmit: SubmitHandler<T>;
+  errorContext?: string;
+  showToast?: boolean;
 }
 
 export function useFormHandling<T extends FieldValues>({
   schema,
   defaultValues,
-  onSubmit
+  onSubmit,
+  errorContext = "Erreur lors de la soumission du formulaire",
+  showToast = true
 }: UseFormHandlingProps<T>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { handleError } = useErrorHandler();
@@ -29,7 +33,7 @@ export function useFormHandling<T extends FieldValues>({
       setIsSubmitting(true);
       await onSubmit(data);
     } catch (error) {
-      handleError(error, "Erreur lors de la soumission du formulaire");
+      handleError(error, errorContext, showToast);
     } finally {
       setIsSubmitting(false);
     }

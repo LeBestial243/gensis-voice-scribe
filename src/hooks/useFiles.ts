@@ -4,19 +4,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { fileService } from "@/services/fileService";
 import { FileType } from "@/types/files";
+import { useErrorHandler } from "@/utils/errorHandler";
 
 export type { FileType };
 
 export function useFiles(folderId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
 
-  const { data: files = [], isLoading } = useQuery({
+  const { data: files = [], isLoading, error } = useQuery({
     queryKey: ['files', folderId],
     queryFn: () => fileService.getFiles(folderId),
     enabled: !!folderId,
+    meta: {
+      onError: (error: unknown) => {
+        handleError(error, "Chargement des fichiers");
+      }
+    }
   });
 
   const handleDownload = async (file: FileType) => {
@@ -37,11 +44,7 @@ export function useFiles(folderId: string) {
         description: `Le fichier "${file.name}" a été téléchargé`,
       });
     } catch (error) {
-      toast({
-        title: "Erreur de téléchargement",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors du téléchargement",
-        variant: "destructive",
-      });
+      handleError(error, "Téléchargement du fichier");
     } finally {
       setIsDownloading(null);
     }
@@ -62,11 +65,7 @@ export function useFiles(folderId: string) {
       });
     },
     onError: (error) => {
-      toast({
-        title: "Erreur lors de la suppression",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite",
-        variant: "destructive",
-      });
+      handleError(error, "Suppression du fichier");
     },
     onSettled: () => {
       setDeletingFileId(null);
@@ -86,17 +85,14 @@ export function useFiles(folderId: string) {
       });
     },
     onError: (error) => {
-      toast({
-        title: "Erreur lors du renommage",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite",
-        variant: "destructive",
-      });
+      handleError(error, "Renommage du fichier");
     },
   });
 
   return {
     files,
     isLoading,
+    error,
     isDownloading,
     handleDownload,
     deleteFile: (fileId: string) => deleteMutation.mutate(fileId),

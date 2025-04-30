@@ -42,7 +42,7 @@ export function formatSupabaseError(error: any): AppError {
 export function useErrorHandler() {
   const { toast } = useToast();
   
-  const handleError = (error: unknown, context: string = "") => {
+  const handleError = (error: unknown, context: string = "", showToast: boolean = true) => {
     console.error(`Error in ${context}:`, error);
     
     // Formater différents types d'erreurs
@@ -60,12 +60,14 @@ export function useErrorHandler() {
       message = error;
     }
     
-    // Afficher un toast
-    toast({
-      title: `Erreur${context ? ` - ${context}` : ''}`,
-      description: message,
-      variant: "destructive",
-    });
+    // Afficher un toast si demandé
+    if (showToast) {
+      toast({
+        title: `Erreur${context ? ` - ${context}` : ''}`,
+        description: message,
+        variant: "destructive",
+      });
+    }
     
     return { message, context, code: errorCode };
   };
