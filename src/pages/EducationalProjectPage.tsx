@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEducationalProject } from '@/hooks/useEducationalProject';
@@ -13,6 +12,7 @@ import { ProjectTimeline } from '@/components/casf/projects/ProjectTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
 import { ArrowLeft, Loader2, Clock, FileText, Calendar, Check } from 'lucide-react';
+import { ProjectStatus, ObjectiveStatus } from '@/types/casf';
 
 export default function EducationalProjectPage() {
   const { id: profileId, projectId } = useParams<{ id?: string; projectId?: string }>();
@@ -213,11 +213,11 @@ export default function EducationalProjectPage() {
           <CardContent className="pt-6">
             <EducationalProjectForm
               onSubmit={(data) => {
-                // Fixed: Now we're passing a complete Project object with all required fields
+                // Fix: Cast status to ProjectStatus to satisfy TypeScript
                 const completeData = {
                   title: data.title || "",
                   objectives: data.objectives || "",
-                  status: data.status || "planned",
+                  status: data.status as ProjectStatus,
                   start_date: data.start_date || new Date().toISOString(),
                   end_date: data.end_date || new Date().toISOString(),
                   profile_id: profileId || ""
@@ -359,10 +359,20 @@ export default function EducationalProjectPage() {
             objectives={project.objectives_list && Array.isArray(project.objectives_list) ? project.objectives_list : []}
             projectId={project.id}
             onAddObjective={(objective) => {
-              return addObjective(objective, userId).then(() => {});
+              // Fix: Cast status to ObjectiveStatus
+              const typedObjective = {
+                ...objective,
+                status: objective.status as ObjectiveStatus
+              };
+              return addObjective(typedObjective, userId).then(() => {});
             }}
             onUpdateObjective={(objectiveId, updates) => {
-              return updateObjective(objectiveId, updates, userId).then(() => {});
+              // Fix: Cast status to ObjectiveStatus if it exists in updates
+              const typedUpdates = {
+                ...updates,
+                status: updates.status ? updates.status as ObjectiveStatus : undefined
+              };
+              return updateObjective(objectiveId, typedUpdates, userId).then(() => {});
             }}
             onDeleteObjective={(objectiveId) => {
               return deleteObjective(objectiveId, userId).then(() => {});
@@ -402,7 +412,12 @@ export default function EducationalProjectPage() {
                 profile_id: project.profile_id
               }}
               onSubmit={(data) => {
-                return updateProject(project.id, data, userId).then(() => {
+                // Fix: Cast status to ProjectStatus
+                const typedData = {
+                  ...data,
+                  status: data.status as ProjectStatus
+                };
+                return updateProject(project.id, typedData, userId).then(() => {
                   setIsEditProjectOpen(false);
                 });
               }}
