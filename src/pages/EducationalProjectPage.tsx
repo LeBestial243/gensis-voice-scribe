@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEducationalProject } from '@/hooks/useEducationalProject';
+import { useAuth } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,8 @@ export default function EducationalProjectPage() {
   const { id: profileId, projectId } = useParams<{ id?: string; projectId?: string }>();
   const navigate = useNavigate();
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id || '';
   
   const {
     // Data
@@ -92,10 +95,10 @@ export default function EducationalProjectPage() {
   
   // Calculate progress based on objectives
   const calculateProgress = () => {
-    if (!project?.objectives || !Array.isArray(project.objectives) || project.objectives.length === 0) return 0;
+    if (!project?.objectives_list || !Array.isArray(project.objectives_list) || project.objectives_list.length === 0) return 0;
     
-    const totalObjectives = project.objectives.length;
-    const completedObjectives = project.objectives.filter(
+    const totalObjectives = project.objectives_list.length;
+    const completedObjectives = project.objectives_list.filter(
       obj => obj.status === 'completed'
     ).length;
     
@@ -220,7 +223,7 @@ export default function EducationalProjectPage() {
                   profile_id: profileId || ""
                 };
                 
-                return createProject(completeData).then((newProject) => {
+                return createProject(completeData, userId).then((newProject) => {
                   if (newProject && newProject.id) {
                     navigate(`/young_profiles/${profileId}/projects/${newProject.id}`);
                   }
@@ -299,8 +302,8 @@ export default function EducationalProjectPage() {
               </div>
               <div className="mt-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                  {project.objectives && Array.isArray(project.objectives) ? 
-                    `${project.objectives.filter(obj => obj.status === 'completed').length} sur ${project.objectives.length} objectifs terminés` : 
+                  {project.objectives_list && Array.isArray(project.objectives_list) ? 
+                    `${project.objectives_list.filter(obj => obj.status === 'completed').length} sur ${project.objectives_list.length} objectifs terminés` : 
                     "Aucun objectif défini"
                   }
                 </p>
@@ -353,23 +356,23 @@ export default function EducationalProjectPage() {
         
         <TabsContent value="objectives" className="mt-6">
           <ObjectivesList 
-            objectives={project.objectives && Array.isArray(project.objectives) ? project.objectives : []}
+            objectives={project.objectives_list && Array.isArray(project.objectives_list) ? project.objectives_list : []}
             projectId={project.id}
             onAddObjective={(objective) => {
-              return addObjective(objective).then(() => {});
+              return addObjective(objective, userId).then(() => {});
             }}
             onUpdateObjective={(objectiveId, updates) => {
-              return updateObjective(objectiveId, updates).then(() => {});
+              return updateObjective(objectiveId, updates, userId).then(() => {});
             }}
             onDeleteObjective={(objectiveId) => {
-              return deleteObjective(objectiveId).then(() => {});
+              return deleteObjective(objectiveId, userId).then(() => {});
             }}
           />
         </TabsContent>
         
         <TabsContent value="timeline" className="mt-6">
           <ProjectTimeline 
-            objectives={project.objectives && Array.isArray(project.objectives) ? project.objectives : []}
+            objectives={project.objectives_list && Array.isArray(project.objectives_list) ? project.objectives_list : []}
             startDate={project.start_date}
             endDate={project.end_date}
           />
@@ -399,7 +402,7 @@ export default function EducationalProjectPage() {
                 profile_id: project.profile_id
               }}
               onSubmit={(data) => {
-                return updateProject(project.id, data).then(() => {
+                return updateProject(project.id, data, userId).then(() => {
                   setIsEditProjectOpen(false);
                 });
               }}
