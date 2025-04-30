@@ -42,29 +42,32 @@ export function formatSupabaseError(error: any): AppError {
 export function useErrorHandler() {
   const { toast } = useToast();
   
-  const handleError = (error: unknown, customMessage?: string) => {
-    console.error('Error caught:', error);
+  const handleError = (error: unknown, context: string = "") => {
+    console.error(`Error in ${context}:`, error);
     
-    // Formater le message d'erreur
-    let errorMessage = customMessage || 'Une erreur est survenue';
+    // Formater différents types d'erreurs
+    let message = "Une erreur inattendue s'est produite";
     let errorCode = 'unknown_error';
     
     if (error instanceof AppError) {
-      errorMessage = error.message;
+      message = error.message;
       errorCode = error.code;
     } else if (error instanceof Error) {
-      errorMessage = error.message;
+      message = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      message = String((error as any).message);
+    } else if (typeof error === 'string') {
+      message = error;
     }
     
     // Afficher un toast
     toast({
-      title: "Erreur",
-      description: errorMessage,
+      title: `Erreur${context ? ` - ${context}` : ''}`,
+      description: message,
       variant: "destructive",
     });
     
-    // Retourner l'erreur formatée pour un traitement supplémentaire
-    return { message: errorMessage, code: errorCode };
+    return { message, context, code: errorCode };
   };
   
   return { handleError };
