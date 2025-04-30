@@ -210,7 +210,17 @@ export default function EducationalProjectPage() {
           <CardContent className="pt-6">
             <EducationalProjectForm
               onSubmit={(data) => {
-                createProject(data).then((newProject) => {
+                // Fixed: Now we're passing a complete Project object with all required fields
+                const completeData = {
+                  title: data.title || "",
+                  objectives: data.objectives || "",
+                  status: data.status || "planned",
+                  start_date: data.start_date || new Date().toISOString(),
+                  end_date: data.end_date || new Date().toISOString(),
+                  profile_id: profileId || ""
+                };
+                
+                return createProject(completeData).then((newProject) => {
                   if (newProject && newProject.id) {
                     navigate(`/young_profiles/${profileId}/projects/${newProject.id}`);
                   }
@@ -345,9 +355,15 @@ export default function EducationalProjectPage() {
           <ObjectivesList 
             objectives={project.objectives && Array.isArray(project.objectives) ? project.objectives : []}
             projectId={project.id}
-            onAddObjective={addObjective}
-            onUpdateObjective={updateObjective}
-            onDeleteObjective={deleteObjective}
+            onAddObjective={(objective) => {
+              return addObjective(objective).then(() => {});
+            }}
+            onUpdateObjective={(objectiveId, updates) => {
+              return updateObjective(objectiveId, updates).then(() => {});
+            }}
+            onDeleteObjective={(objectiveId) => {
+              return deleteObjective(objectiveId).then(() => {});
+            }}
           />
         </TabsContent>
         
@@ -383,7 +399,7 @@ export default function EducationalProjectPage() {
                 profile_id: project.profile_id
               }}
               onSubmit={(data) => {
-                updateProject(project.id, data).then(() => {
+                return updateProject(project.id, data).then(() => {
                   setIsEditProjectOpen(false);
                 });
               }}

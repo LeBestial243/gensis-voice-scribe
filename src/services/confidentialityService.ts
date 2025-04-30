@@ -35,9 +35,9 @@ export const confidentialityService = {
       
       // Handle the data safely, checking if it exists before accessing properties
       if (data && typeof data === 'object' && 'confidentiality_level' in data) {
-        // Fixed: Use optional chaining to safely access the property
+        // Fixed: Use null check before accessing the property
         const confidentialityLevel = data?.confidentiality_level as ConfidentialityLevel;
-        return confidentialityLevel;
+        return confidentialityLevel || null;
       }
       
       return null;
