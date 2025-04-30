@@ -1,271 +1,232 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { confidentialityService } from "@/services/confidentialityService";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Shield, Lock, UserCheck } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { ConfidentialityLevel, confidentialityLevels } from "@/types/confidentiality";
-import { AccessLevelBadge } from "./AccessLevelBadge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 
+import React, { useState, useEffect } from "react";
+import { useConfidentiality } from "@/hooks/useConfidentiality";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Shield, AlertCircle } from "lucide-react";
+import { AuditLogViewer } from "./AuditLogViewer";
+import { RoleAccessEditor } from "./RoleAccessEditor";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ConfidentialitySettings } from "@/types/casf";
+
+// Main confidentiality management component
 export function ConfidentialityManager() {
-  const [settings, setSettings] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("defaults");
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const [userId] = useState<string>("current-user-id"); // In a real app, get this from auth context
+  const [activeTab, setActiveTab] = useState("settings");
   
+  const {
+    settings,
+    isLoadingSettings,
+    isUpdatingSettings,
+    updateSettings,
+  } = useConfidentiality(userId);
+  
+  // Local state for editing settings
+  const [editedSettings, setEditedSettings] = useState<ConfidentialitySettings | undefined>(settings);
+  
+  // Update local state when settings are loaded
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setIsLoading(true);
-        const data = await confidentialityService.getDefaultSettings();
-        setSettings(data);
-      } catch (error) {
-        console.error("Failed to load confidentiality settings:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les paramètres de confidentialité",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadSettings();
-  }, [toast]);
-  
-  const updateDefaultLevel = async (resourceType: string, level: ConfidentialityLevel) => {
-    try {
-      // Mise à jour locale de l'état
-      setSettings(prev => ({
-        ...prev,
-        defaultLevels: {
-          ...prev.defaultLevels,
-          [resourceType]: level
-        }
-      }));
-      
-      toast({
-        title: "Succès",
-        description: `Niveau par défaut pour ${resourceType} mis à jour`,
-      });
-      
-      // Dans une implémentation réelle, vous appelleriez ici votre API pour persister les changements
-    } catch (error) {
-      console.error("Failed to update default level:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le niveau par défaut",
-        variant: "destructive"
-      });
+    if (settings) {
+      setEditedSettings(settings);
     }
-  };
+  }, [settings]);
   
-  if (isLoading) {
+  if (isLoadingSettings) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Paramètres de confidentialité</CardTitle>
-          <CardDescription>Chargement en cours...</CardDescription>
-        </CardHeader>
+      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-md">
+        <CardContent className="pt-6">
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
       </Card>
     );
   }
   
-  if (!settings) {
+  const handleSaveSettings = () => {
+    if (editedSettings) {
+      updateSettings(editedSettings);
+    }
+  };
+  
+  if (!editedSettings) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Paramètres de confidentialité</CardTitle>
-          <CardDescription>Impossible de charger les paramètres</CardDescription>
-        </CardHeader>
+      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-md">
+        <CardContent className="pt-6">
+          <div className="flex justify-center items-center h-40">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <span className="ml-2">Impossible de charger les paramètres de confidentialité.</span>
+          </div>
+        </CardContent>
       </Card>
     );
   }
   
   return (
-    <Card>
+    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-md">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-2xl">Paramètres de confidentialité</CardTitle>
-            <CardDescription>Configuration des niveaux d'accès aux données sensibles</CardDescription>
-          </div>
-          <Shield className="h-8 w-8 text-primary" />
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          <span>Gestion de la confidentialité (CASF 2025)</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="defaults" className="flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              <span>Niveaux par défaut</span>
-            </TabsTrigger>
-            <TabsTrigger value="roles" className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              <span>Permissions par rôle</span>
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="settings">Paramètres généraux</TabsTrigger>
+            <TabsTrigger value="access">Niveaux d'accès</TabsTrigger>
+            <TabsTrigger value="audit">Journal d'audit</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="defaults" className="mt-4 space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Niveaux de confidentialité par défaut</h3>
-              <p className="text-muted-foreground text-sm">
-                Définissez le niveau de confidentialité par défaut pour chaque type de ressource
-              </p>
+          <TabsContent value="settings">
+            <div className="space-y-6">
+              <Alert className="bg-blue-50/50 border-blue-100">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-800">Conformité CASF 2025</AlertTitle>
+                <AlertDescription className="text-blue-700">
+                  Les paramètres de confidentialité vous permettent de respecter les obligations du Code de l'Action Sociale et des Familles, notamment concernant le secret professionnel et la transmission des informations.
+                </AlertDescription>
+              </Alert>
               
-              <Separator className="my-4" />
+              <h3 className="font-medium text-lg">Niveaux de confidentialité par défaut</h3>
+              <p className="text-sm text-gray-500 mb-4">Définissez les niveaux d'accès par défaut pour chaque type de contenu.</p>
               
-              <div className="grid gap-6">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Transcriptions</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.transcriptions}
-                    onChange={(value) => updateDefaultLevel('transcriptions', value as ConfidentialityLevel)}
-                  />
+              {/* Default levels table */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type de contenu</TableHead>
+                    <TableHead>Niveau de confidentialité</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(editedSettings.defaultLevels).map(([resourceType, level]) => (
+                    <TableRow key={resourceType}>
+                      <TableCell className="font-medium">
+                        {resourceTypeToLabel(resourceType)}
+                      </TableCell>
+                      <TableCell>
+                        <select 
+                          className="p-2 border rounded-md w-full"
+                          value={level}
+                          onChange={(e) => {
+                            setEditedSettings({
+                              ...editedSettings,
+                              defaultLevels: {
+                                ...editedSettings.defaultLevels,
+                                [resourceType]: e.target.value as any
+                              }
+                            });
+                          }}
+                        >
+                          <option value="public">Public - Tous les intervenants</option>
+                          <option value="restricted">Restreint - Intervenants directs</option>
+                          <option value="confidential">Confidentiel - Référent uniquement</option>
+                          <option value="strict">Strict - Direction uniquement</option>
+                        </select>
+                      </TableCell>
+                      <TableCell>
+                        {getConfidentialityLevelDescription(level)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              <h3 className="font-medium text-lg mt-6">Options de transmission</h3>
+              <p className="text-sm text-gray-500 mb-4">Configurez les règles de partage et transmission des informations.</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Demander confirmation avant export</h4>
+                    <p className="text-sm text-gray-500">Ajouter une étape de vérification avant l'export de documents</p>
+                  </div>
+                  <Switch defaultChecked />
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Notes</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.notes}
-                    onChange={(value) => updateDefaultLevel('notes', value as ConfidentialityLevel)}
-                  />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Anonymisation automatique</h4>
+                    <p className="text-sm text-gray-500">Anonymiser les informations sensibles dans les rapports partagés</p>
+                  </div>
+                  <Switch defaultChecked />
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Projets</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.projects}
-                    onChange={(value) => updateDefaultLevel('projects', value as ConfidentialityLevel)}
-                  />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Journal de transmission</h4>
+                    <p className="text-sm text-gray-500">Enregistrer toutes les actions de partage et d'export</p>
+                  </div>
+                  <Switch defaultChecked />
                 </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Rapports</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.reports}
-                    onChange={(value) => updateDefaultLevel('reports', value as ConfidentialityLevel)}
-                  />
-                </div>
+              </div>
+              
+              <div className="flex justify-end pt-4 mt-4 border-t">
+                <Button 
+                  onClick={handleSaveSettings}
+                  disabled={isUpdatingSettings}
+                >
+                  {isUpdatingSettings ? "Enregistrement..." : "Enregistrer les paramètres"}
+                </Button>
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="roles" className="mt-4">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Permissions par rôle</h3>
-              <p className="text-muted-foreground text-sm">
-                Configurez quels rôles peuvent accéder à chaque niveau de confidentialité
-              </p>
-              
-              <Separator className="my-4" />
-              
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Rôle</th>
-                      {Object.entries(confidentialityLevels).map(([level, { label, color }]) => (
-                        <th key={level} className="p-2">
-                          <div className="flex flex-col items-center">
-                            <span className={`w-3 h-3 rounded-full ${color} mb-1`}></span>
-                            <span>{label}</span>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(settings.roleAccess).map(([role, levels]) => (
-                      <tr key={role} className="border-b">
-                        <td className="p-2 font-medium capitalize">{role}</td>
-                        {Object.entries(confidentialityLevels).map(([levelKey]) => {
-                          const access = (levels as any)[levelKey as ConfidentialityLevel];
-                          let badgeColor = "bg-gray-200 text-gray-700";
-                          
-                          if (access === 'read') {
-                            badgeColor = "bg-blue-100 text-blue-800";
-                          } else if (access === 'write') {
-                            badgeColor = "bg-green-100 text-green-800";
-                          } else {
-                            badgeColor = "bg-red-100 text-red-800";
-                          }
-                          
-                          return (
-                            <td key={levelKey} className="p-2 text-center">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`}>
-                                {access === 'write' ? 'Écriture' : access === 'read' ? 'Lecture' : 'Aucun'}
-                              </span>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="mt-4 p-4 bg-muted rounded-md">
-                <p className="text-sm text-muted-foreground">
-                  Pour modifier les permissions des rôles, veuillez contacter l'administrateur système.
-                </p>
-              </div>
+          <TabsContent value="access">
+            <RoleAccessEditor 
+              roleAccess={editedSettings.roleAccess}
+              onChange={(newRoleAccess) => {
+                setEditedSettings({
+                  ...editedSettings,
+                  roleAccess: newRoleAccess
+                });
+              }}
+            />
+            
+            <div className="flex justify-end pt-4 mt-4 border-t">
+              <Button 
+                onClick={handleSaveSettings}
+                disabled={isUpdatingSettings}
+              >
+                {isUpdatingSettings ? "Enregistrement..." : "Enregistrer les paramètres d'accès"}
+              </Button>
             </div>
+          </TabsContent>
+          
+          <TabsContent value="audit">
+            <AuditLogViewer userId={userId} maxItems={10} />
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter>
-        <Button variant="outline" className="w-full">
-          Enregistrer les modifications
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
 
-interface ResourceConfidentialitySelectorProps {
-  value: ConfidentialityLevel;
-  onChange: (value: string) => void;
-  showDescription?: boolean;
+// Utility functions
+function resourceTypeToLabel(resourceType: string): string {
+  const labels: Record<string, string> = {
+    'files': 'Fichiers',
+    'notes': 'Notes',
+    'templates': 'Templates',
+    'educational_projects': 'Projets éducatifs',
+    'activity_reports': 'Rapports d\'activité'
+  };
+  
+  return labels[resourceType] || resourceType;
 }
 
-export function ResourceConfidentialitySelector({ 
-  value, 
-  onChange,
-  showDescription = true 
-}: ResourceConfidentialitySelectorProps) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <Label htmlFor="confidentiality">Niveau de confidentialité</Label>
-        <AccessLevelBadge level={value} />
-      </div>
-      
-      <Select value={value || 'public'} onValueChange={onChange}>
-        <SelectTrigger id="confidentiality" className="w-full">
-          <SelectValue placeholder="Sélectionner un niveau" />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(confidentialityLevels).map(([key, { label, description, color }]) => (
-            <SelectItem key={key} value={key} className="flex items-center py-2">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${color}`} />
-                  <span>{label}</span>
-                </div>
-                {showDescription && (
-                  <span className="text-xs text-muted-foreground mt-1">{description}</span>
-                )}
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
+function getConfidentialityLevelDescription(level: string): string {
+  const descriptions: Record<string, string> = {
+    'public': 'Accessible à tous les intervenants',
+    'restricted': 'Accessible aux intervenants directs et superviseurs',
+    'confidential': 'Accessible uniquement aux intervenants autorisés',
+    'strict': 'Accessible uniquement au référent et à la direction'
+  };
+  
+  return descriptions[level] || level;
 }
