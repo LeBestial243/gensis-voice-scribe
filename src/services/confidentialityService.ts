@@ -4,16 +4,35 @@ import { ConfidentialityLevel } from "@/types/confidentiality";
 import { AuditAction, ResourceType } from "@/types/audit";
 import { auditService } from "./auditService";
 
+// Define tables that support confidentiality levels
+type ConfidentialityTable = 'files' | 'notes' | 'projects' | 'reports' | 'transcriptions';
+
+// Type guard to check if a string is a valid confidentiality table
+function isConfidentialityTable(table: string): table is ConfidentialityTable {
+  return ['files', 'notes', 'projects', 'reports', 'transcriptions'].includes(table);
+}
+
 export const confidentialityService = {
-  async getResourceConfidentiality(resourceType: string, resourceId: string) {
-    const { data, error } = await supabase
-      .from(resourceType)
-      .select('confidentiality_level')
-      .eq('id', resourceId)
-      .single();
-      
-    if (error) throw error;
-    return data?.confidentiality_level as ConfidentialityLevel;
+  async getResourceConfidentiality(resourceType: string, resourceId: string): Promise<ConfidentialityLevel | null> {
+    // Validate if resourceType is a known table with confidentiality support
+    if (!isConfidentialityTable(resourceType)) {
+      console.error(`Table "${resourceType}" does not support confidentiality levels`);
+      return null;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from(resourceType)
+        .select('confidentiality_level')
+        .eq('id', resourceId)
+        .single();
+        
+      if (error) throw error;
+      return data?.confidentiality_level as ConfidentialityLevel || null;
+    } catch (error) {
+      console.error(`Error fetching confidentiality level: ${error}`);
+      return null;
+    }
   },
   
   async setResourceConfidentiality(
@@ -22,24 +41,34 @@ export const confidentialityService = {
     level: ConfidentialityLevel,
     userId: string
   ) {
-    const { data, error } = await supabase
-      .from(resourceType)
-      .update({ confidentiality_level: level })
-      .eq('id', resourceId)
-      .select()
-      .single();
+    // Validate if resourceType is a known table with confidentiality support
+    if (!isConfidentialityTable(resourceType)) {
+      throw new Error(`Table "${resourceType}" does not support confidentiality levels`);
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from(resourceType)
+        .update({ confidentiality_level: level })
+        .eq('id', resourceId)
+        .select()
+        .single();
+        
+      if (error) throw error;
       
-    if (error) throw error;
-    
-    // Log de l'action
-    await auditService.logAction(
-      'update' as AuditAction,
-      resourceType as ResourceType,
-      resourceId,
-      { newLevel: level }
-    );
-    
-    return data;
+      // Log the action
+      await auditService.logAction(
+        'update' as AuditAction,
+        resourceType as ResourceType,
+        resourceId,
+        { newLevel: level }
+      );
+      
+      return data;
+    } catch (error) {
+      console.error(`Error setting confidentiality level: ${error}`);
+      throw error; // Re-throw to allow handling by caller
+    }
   },
   
   async getDefaultSettings() {
