@@ -284,7 +284,11 @@ export default function EducationalProjectPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Objectifs généraux</h3>
-                <p className="mt-1">{project?.objectives || "Aucun objectif général défini."}</p>
+                <p className="mt-1">
+                  {typeof project?.objectives === 'string' 
+                    ? project.objectives 
+                    : "Aucun objectif général défini."}
+                </p>
               </div>
               
               <Separator />
@@ -320,31 +324,28 @@ export default function EducationalProjectPage() {
             projectId={project?.id || ''}
             onAddObjective={async (objective) => {
               await addObjectiveMutation.mutateAsync(objective);
-              return;
             }}
             onUpdateObjective={async (objectiveId, updates) => {
               await updateObjectiveMutation.mutateAsync({ objectiveId, updates });
-              return;
             }}
             onDeleteObjective={async (objectiveId) => {
               await deleteObjectiveMutation.mutateAsync(objectiveId);
-              return;
             }}
           />
         </TabsContent>
         
         <TabsContent value="timeline" className="mt-6">
           <ProjectTimeline 
-            objectives={project.objectives || []}
-            startDate={project.start_date}
-            endDate={project.end_date}
+            objectives={project?.objectives && Array.isArray(project.objectives) ? project.objectives : []}
+            startDate={project?.start_date || ''}
+            endDate={project?.end_date || ''}
           />
         </TabsContent>
         
         <TabsContent value="history" className="mt-6">
           <AuditLogViewer 
             resourceType="project"
-            resourceId={project.id}
+            resourceId={project?.id}
           />
         </TabsContent>
       </Tabs>

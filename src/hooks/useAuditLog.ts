@@ -8,14 +8,18 @@ export function useAuditLog(defaultUserId?: string) {
   const [isLogging, setIsLogging] = useState(false);
   
   const logMutation = useMutation({
-    mutationFn: (params: {
-      userId: string;
+    mutationFn: async ({ action, resourceType, resourceId, details }: {
       action: AuditAction; 
       resourceType: ResourceType;
       resourceId: string;
       details?: Record<string, any>;
     }) => {
-      return auditService.logAction(params);
+      return auditService.logAction(
+        action,
+        resourceType,
+        resourceId,
+        details
+      );
     },
     onMutate: () => {
       setIsLogging(true);
@@ -29,17 +33,10 @@ export function useAuditLog(defaultUserId?: string) {
     action: AuditAction,
     resourceType: ResourceType,
     resourceId: string,
-    details?: Record<string, any>,
-    userId = defaultUserId
+    details?: Record<string, any>
   ) => {
-    if (!userId) {
-      console.error('User ID is required for audit logging');
-      return null;
-    }
-    
     try {
       return await logMutation.mutateAsync({
-        userId,
         action,
         resourceType,
         resourceId,

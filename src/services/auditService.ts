@@ -48,15 +48,19 @@ export const auditService = {
   
   async logAction(
     action: AuditAction, 
-    resourceType: string, 
+    resourceType: ResourceType, 
     resourceId: string,
     details?: Record<string, any>
   ): Promise<void> {
     try {
+      // Fix: Properly await the user ID resolution
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
       const { error } = await supabase.rpc(
         'log_audit_action',
         {
-          p_user_id: supabase.auth.getUser().then(res => res.data.user?.id) || null,
+          p_user_id: userId || null,
           p_action: action,
           p_resource_type: resourceType,
           p_resource_id: resourceId,
