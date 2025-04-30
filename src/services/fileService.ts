@@ -1,9 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FileType } from "@/types/files";
 import { formatSupabaseError } from "@/utils/errorHandler";
-
-export type ConfidentialityLevel = 'public' | 'restricted' | 'confidential' | 'strict';
+import { ConfidentialityLevel } from "@/types/confidentiality";
 
 // Service centralisé pour la gestion des fichiers
 export const fileService = {
@@ -43,7 +41,7 @@ export const fileService = {
             .single();
             
           if (dbError) throw formatSupabaseError(dbError);
-          return data;
+          return data as FileType;
         }
         throw formatSupabaseError(storageError);
       }
@@ -63,7 +61,7 @@ export const fileService = {
         .single();
         
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as FileType;
     } catch (error) {
       console.error('Error uploading file:', error);
       throw error;
@@ -178,7 +176,7 @@ export const fileService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as FileType;
     } catch (error) {
       console.error('Error updating file confidentiality:', error);
       throw error;
@@ -203,7 +201,7 @@ export const fileService = {
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw formatSupabaseError(error);
-      return data || [];
+      return data as FileType[] || [];
     } catch (error) {
       console.error('Error getting files:', error);
       throw error;

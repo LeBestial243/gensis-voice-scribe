@@ -1,13 +1,15 @@
 
+import { Json } from "@/integrations/supabase/types";
+
 export type ReportType = 'monthly' | 'quarterly' | 'yearly' | 'custom';
 
 export interface ActivityReport {
   id: string;
   title: string;
-  report_type: ReportType;
+  report_type: ReportType | string;
   period_start: string;
   period_end: string;
-  content?: any;
+  content?: Json | Record<string, any>;
   user_id: string;
   created_at?: string;
 }

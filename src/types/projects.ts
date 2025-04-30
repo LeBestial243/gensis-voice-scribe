@@ -9,7 +9,7 @@ export interface Project {
   objectives?: string | null;
   start_date: string;
   end_date: string;
-  status: ProjectStatus;
+  status: ProjectStatus | string;
   created_at?: string;
   updated_at?: string;
 }
@@ -20,7 +20,7 @@ export interface ProjectObjective {
   title: string;
   description?: string | null;
   target_date: string;
-  status: ObjectiveStatus;
+  status: ObjectiveStatus | string;
   notes?: string | null;
   created_at?: string;
   updated_at?: string;

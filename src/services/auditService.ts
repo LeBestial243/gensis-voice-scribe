@@ -1,16 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatSupabaseError } from "@/utils/errorHandler";
-
-export interface AuditLog {
-  id: string;
-  user_id: string;
-  action: string;
-  resource_type: string;
-  resource_id: string;
-  details?: Record<string, any>;
-  created_at?: string;
-}
+import { AuditLog } from "@/types/audit";
 
 export const auditService = {
   async logAction(
@@ -79,7 +70,7 @@ export const auditService = {
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw formatSupabaseError(error);
-      return data || [];
+      return data as AuditLog[] || [];
     } catch (error) {
       throw error;
     }

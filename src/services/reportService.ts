@@ -1,21 +1,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatSupabaseError } from "@/utils/errorHandler";
-
-export interface ActivityReport {
-  id: string;
-  title: string;
-  report_type: 'monthly' | 'quarterly' | 'yearly' | 'custom';
-  period_start: string;
-  period_end: string;
-  content?: Record<string, any>;
-  user_id: string;
-  created_at?: string;
-}
+import { ActivityReport, ReportType } from "@/types/reports";
 
 export const reportService = {
   async getReports(filters?: { 
-    report_type?: ActivityReport['report_type'], 
+    report_type?: ReportType | string, 
     start_date?: string, 
     end_date?: string 
   }): Promise<ActivityReport[]> {
@@ -40,7 +30,7 @@ export const reportService = {
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw formatSupabaseError(error);
-      return data || [];
+      return data as ActivityReport[] || [];
     } catch (error) {
       throw error;
     }
@@ -55,7 +45,7 @@ export const reportService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as ActivityReport;
     } catch (error) {
       throw error;
     }
@@ -70,7 +60,7 @@ export const reportService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as ActivityReport;
     } catch (error) {
       throw error;
     }
@@ -86,7 +76,7 @@ export const reportService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as ActivityReport;
     } catch (error) {
       throw error;
     }

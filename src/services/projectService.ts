@@ -1,34 +1,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatSupabaseError } from "@/utils/errorHandler";
-
-export interface EducationalProject {
-  id: string;
-  profile_id: string;
-  title: string;
-  objectives?: string;
-  start_date: string;
-  end_date: string;
-  status: 'draft' | 'active' | 'completed' | 'archived';
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface ProjectObjective {
-  id: string;
-  project_id: string;
-  title: string;
-  description?: string;
-  target_date: string;
-  status: 'pending' | 'in_progress' | 'achieved' | 'canceled';
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { Project, ProjectObjective, ProjectStatus, ObjectiveStatus } from "@/types/projects";
 
 export const projectService = {
   // Projets éducatifs
-  async getProjects(profileId: string): Promise<EducationalProject[]> {
+  async getProjects(profileId: string): Promise<Project[]> {
     try {
       const { data, error } = await supabase
         .from('educational_projects')
@@ -37,13 +14,13 @@ export const projectService = {
         .order('created_at', { ascending: false });
       
       if (error) throw formatSupabaseError(error);
-      return data || [];
+      return data as Project[] || [];
     } catch (error) {
       throw error;
     }
   },
 
-  async getProjectById(projectId: string): Promise<EducationalProject> {
+  async getProjectById(projectId: string): Promise<Project> {
     try {
       const { data, error } = await supabase
         .from('educational_projects')
@@ -52,13 +29,13 @@ export const projectService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as Project;
     } catch (error) {
       throw error;
     }
   },
 
-  async createProject(project: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>): Promise<EducationalProject> {
+  async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     try {
       const { data, error } = await supabase
         .from('educational_projects')
@@ -67,13 +44,13 @@ export const projectService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as Project;
     } catch (error) {
       throw error;
     }
   },
 
-  async updateProject(projectId: string, updates: Partial<Omit<EducationalProject, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>): Promise<EducationalProject> {
+  async updateProject(projectId: string, updates: Partial<Omit<Project, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>): Promise<Project> {
     try {
       const { data, error } = await supabase
         .from('educational_projects')
@@ -83,7 +60,7 @@ export const projectService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as Project;
     } catch (error) {
       throw error;
     }
@@ -114,7 +91,7 @@ export const projectService = {
         .order('target_date', { ascending: true });
       
       if (error) throw formatSupabaseError(error);
-      return data || [];
+      return data as ProjectObjective[] || [];
     } catch (error) {
       throw error;
     }
@@ -129,7 +106,7 @@ export const projectService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as ProjectObjective;
     } catch (error) {
       throw error;
     }
@@ -145,7 +122,7 @@ export const projectService = {
         .single();
       
       if (error) throw formatSupabaseError(error);
-      return data;
+      return data as ProjectObjective;
     } catch (error) {
       throw error;
     }
