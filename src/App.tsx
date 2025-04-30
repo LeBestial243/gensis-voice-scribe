@@ -13,6 +13,7 @@ import YoungProfilePage from "./pages/YoungProfilePage";
 import TemplatesPage from "./pages/TemplatesPage";
 import CASFReportsPage from "./pages/CASFReportsPage";
 import EducationalProjectPage from "./pages/EducationalProjectPage";
+import ConfidentialitySettingsPage from "./pages/ConfidentialitySettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/casf-reports" element={<CASFReportsPage />} />
             <Route path="/young_profiles/:id/projects" element={<EducationalProjectPage />} />
             <Route path="/young_profiles/:id/projects/:projectId" element={<EducationalProjectPage />} />
+            <Route path="/confidentiality" element={<ConfidentialitySettingsPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

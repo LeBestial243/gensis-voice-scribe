@@ -27,3 +27,65 @@ export const confidentialityLevels: Record<ConfidentialityLevel, {
     color: 'bg-red-500'
   }
 };
+
+export interface ConfidentialitySettings {
+  defaultLevels: {
+    transcriptions: ConfidentialityLevel;
+    notes: ConfidentialityLevel;
+    projects: ConfidentialityLevel;
+    reports: ConfidentialityLevel;
+  };
+  roleAccess: Record<string, Record<ConfidentialityLevel, 'none' | 'read' | 'write'>>;
+}
+
+// Default confidentiality settings
+export const defaultConfidentialitySettings: ConfidentialitySettings = {
+  defaultLevels: {
+    transcriptions: 'restricted',
+    notes: 'restricted',
+    projects: 'public',
+    reports: 'restricted'
+  },
+  roleAccess: {
+    admin: {
+      public: 'write',
+      restricted: 'write',
+      confidential: 'write',
+      strict: 'write'
+    },
+    educator: {
+      public: 'write',
+      restricted: 'write',
+      confidential: 'read',
+      strict: 'none'
+    },
+    observer: {
+      public: 'read',
+      restricted: 'read',
+      confidential: 'none',
+      strict: 'none'
+    }
+  }
+};
+
+// Helper function to check if a user with a certain role can access content with a specific confidentiality level
+export function canAccessContent(
+  userRole: string,
+  contentLevel: ConfidentialityLevel,
+  requiredAccess: 'read' | 'write' = 'read',
+  settings: ConfidentialitySettings = defaultConfidentialitySettings
+): boolean {
+  const roleSettings = settings.roleAccess[userRole];
+  
+  if (!roleSettings) {
+    return false;
+  }
+  
+  const accessLevel = roleSettings[contentLevel];
+  
+  if (requiredAccess === 'read') {
+    return accessLevel === 'read' || accessLevel === 'write';
+  } else {
+    return accessLevel === 'write';
+  }
+}

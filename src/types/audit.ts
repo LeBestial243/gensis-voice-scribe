@@ -35,4 +35,3 @@ export type ResourceType =
   | 'profile'
   | 'system'
   | 'transcription';
-

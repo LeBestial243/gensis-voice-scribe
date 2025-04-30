@@ -1,5 +1,5 @@
 
-import { Home, Users, FileCode, LogOut, PanelLeft, FileText } from "lucide-react";
+import { Home, Users, FileCode, LogOut, PanelLeft, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,11 +39,15 @@ export function AppSidebar() {
       label: "Mes templates",
       icon: <FileCode className="h-5 w-5" />
     },
-    // Nouvel élément de navigation
     {
       path: "/casf-reports",
       label: "Rapports CASF",
       icon: <FileText className="h-5 w-5" />
+    },
+    {
+      path: "/confidentiality",
+      label: "Confidentialité",
+      icon: <Shield className="h-5 w-5" />
     }
   ];
 
