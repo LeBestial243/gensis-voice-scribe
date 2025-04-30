@@ -1,91 +1,37 @@
 
-import { ConfidentialityLevel } from "./confidentiality";
-import { Json } from "@/integrations/supabase/types";
+export type ConfidentialityLevel = 'public' | 'restricted' | 'confidential' | 'strict';
 
-export interface EducationalProject {
-  id: string;
-  profile_id: string;
-  title: string;
-  objectives: string;
-  start_date: string;
-  end_date: string;
-  status: 'draft' | 'active' | 'completed' | 'archived';
-  confidentiality_level: ConfidentialityLevel;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProjectObjective {
-  id: string;
-  project_id: string;
-  title: string;
-  description: string;
-  target_date: string;
-  status: 'pending' | 'in_progress' | 'achieved' | 'canceled';
-  notes: string;
-}
-
-export interface StandardizedReport {
-  id: string;
-  title: string;
-  profile_id: string;
-  report_type: 'admission' | 'evaluation' | 'periodic' | 'incident' | 'custom';
-  content: Record<string, any> | Json;
-  confidentiality_level: ConfidentialityLevel;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-}
-
-export interface ReportSection {
-  id: string;
-  title: string;
-  content: string;
-  type: 'text' | 'assessment' | 'checklist' | 'rating';
-  order: number;
-}
-
-export interface ReportTemplate {
-  id: string;
-  title: string;
-  description: string;
-  sections: ReportSection[];
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ActivityReport {
-  id: string;
-  title: string;
-  period_start: string;
-  period_end: string;
-  report_type: 'monthly' | 'quarterly' | 'yearly' | 'custom';
-  content: Record<string, any> | Json;
-  user_id: string;
-  created_at: string;
-}
-
-export interface ActivityMetric {
+export interface AccessRole {
   id: string;
   name: string;
-  value: number;
-  unit: string;
-  period_start: string;
-  period_end: string;
-  category: string;
+  description: string;
 }
 
-export interface RegulatoryUpdate {
+export interface ResourceAccess {
+  resourceType: string;
+  accessLevel: 'none' | 'read' | 'write';
+}
+
+export interface RoleAccess {
+  role: string;
+  resources: Record<string, 'none' | 'read' | 'write'>;
+}
+
+export interface ConfidentialitySettings {
+  defaultLevels: Record<string, ConfidentialityLevel>;
+  roleAccess: RoleAccess[];
+}
+
+export interface AuditLogEntry {
   id: string;
-  title: string;
-  summary: string;
-  content: string;
-  publication_date: string;
-  effective_date: string;
-  source: string;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
+  user_id: string;
+  timestamp: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  details?: Record<string, any>;
 }
 
+// Re-export existing types for consistency
+export * from '../types/reports';
+export * from '../types/projects';

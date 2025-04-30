@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ConfidentialityLevel, AccessPermission, defaultConfidentialitySettings } from "@/types/confidentiality";
+import { AccessPermission, ConfidentialityLevel, defaultConfidentialitySettings } from "@/types/confidentiality";
+import { ConfidentialitySettings as CASTConfidentialitySettings, RoleAccess } from "@/types/casf";
 import { formatSupabaseError } from "@/utils/errorHandler";
 
 export const confidentialityService = {
@@ -45,10 +46,20 @@ export const confidentialityService = {
   /**
    * Get the default confidentiality settings
    */
-  async getDefaultSettings() {
+  async getDefaultSettings(): Promise<CASTConfidentialitySettings> {
     try {
-      // This is a mock implementation - in a real app we would fetch this from a database
-      return defaultConfidentialitySettings;
+      // Convert from the existing format to the new CAST format
+      const roleAccess: RoleAccess[] = Object.entries(defaultConfidentialitySettings.roleAccess).map(
+        ([roleName, accessLevels]) => ({
+          role: roleName,
+          resources: accessLevels as Record<string, 'none' | 'read' | 'write'>
+        })
+      );
+
+      return {
+        defaultLevels: defaultConfidentialitySettings.defaultLevels,
+        roleAccess
+      };
     } catch (error) {
       throw error;
     }

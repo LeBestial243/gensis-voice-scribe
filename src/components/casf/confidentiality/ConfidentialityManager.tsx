@@ -246,7 +246,7 @@ export function ResourceConfidentialitySelector({
         <AccessLevelBadge level={value} />
       </div>
       
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value || 'public'} onValueChange={onChange}>
         <SelectTrigger id="confidentiality" className="w-full">
           <SelectValue placeholder="Sélectionner un niveau" />
         </SelectTrigger>
