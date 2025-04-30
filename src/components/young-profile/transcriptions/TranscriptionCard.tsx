@@ -16,13 +16,21 @@ import { FilePreviewDialog } from "@/components/file-display/FilePreviewDialog";
 import type { FileData } from "@/types/files";
 import { MorphCard } from "@/components/ui/MorphCard";
 
-interface TranscriptionCardProps {
+export interface TranscriptionCardProps {
   file: FileData;
   onDelete: (id: string) => void;
   onDownload: (file: FileData) => void;
+  isDownloading?: boolean;
+  isDeleting?: boolean;
 }
 
-export function TranscriptionCard({ file, onDelete, onDownload }: TranscriptionCardProps) {
+export function TranscriptionCard({ 
+  file, 
+  onDelete, 
+  onDownload,
+  isDownloading = false,
+  isDeleting = false 
+}: TranscriptionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -58,10 +66,22 @@ export function TranscriptionCard({ file, onDelete, onDownload }: TranscriptionC
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDownload(file)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8" 
+                  onClick={() => onDownload(file)}
+                  disabled={isDownloading}
+                >
                   <Download className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(file.id)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-destructive" 
+                  onClick={() => onDelete(file.id)}
+                  disabled={isDeleting}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
