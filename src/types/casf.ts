@@ -32,6 +32,70 @@ export interface AuditLogEntry {
   details?: Record<string, any>;
 }
 
+// Report types
+export type StandardizedReportType = 'admission' | 'evaluation' | 'periodic' | 'incident' | 'custom';
+export type ActivityReportType = 'monthly' | 'quarterly' | 'yearly' | 'custom';
+
+export interface ReportSection {
+  title: string;
+  content: string;
+}
+
+export interface ReportTemplate {
+  id: string;
+  title: string;
+  description: string;
+  sections: ReportSection[];
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StandardizedReport {
+  id: string;
+  title: string;
+  profile_id: string;
+  report_type: StandardizedReportType;
+  content: {
+    sections?: ReportSection[];
+    template_id?: string | null;
+    [key: string]: any;
+  };
+  confidentiality_level: ConfidentialityLevel;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+}
+
+export interface ActivityMetric {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  period_start: string;
+  period_end: string;
+  category?: string;
+}
+
+export interface ActivityReport {
+  id: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  report_type: ActivityReportType;
+  content: {
+    sections?: ReportSection[];
+    metrics?: Array<{
+      name: string;
+      value: number;
+      unit: string;
+    }>;
+    [key: string]: any;
+  };
+  user_id: string;
+  created_at: string;
+}
+
 // Re-export existing types for consistency
 export * from '../types/reports';
 export * from '../types/projects';
