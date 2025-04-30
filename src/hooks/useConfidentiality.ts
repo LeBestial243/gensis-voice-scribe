@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { confidentialityService } from "@/services/confidentialityService";
 import { ConfidentialityLevel, ConfidentialitySettings, AuditLogEntry } from "@/types/casf";
@@ -9,12 +9,15 @@ import { useToast } from "@/hooks/use-toast";
 // Define the resource types that can have confidentiality levels
 type ResourceWithConfidentiality = 'files' | 'notes';
 
-export function useConfidentiality(userId: string) {
+export function useConfidentiality(userId?: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
   
-  // Récupérer les paramètres de confidentialité
+  // Get the current user's role
+  const [userRole, setUserRole] = useState<string>("user");
+  
+  // Fetch confidentiality settings
   const { 
     data: settings,
     isLoading: isLoadingSettings,
@@ -22,13 +25,15 @@ export function useConfidentiality(userId: string) {
   } = useQuery({
     queryKey: ['confidentiality_settings'],
     queryFn: () => confidentialityService.getSettings(),
-    onError: (error) => handleError(error, "Récupération des paramètres de confidentialité")
+    meta: {
+      onError: (error: any) => handleError(error, "Récupération des paramètres de confidentialité")
+    }
   });
   
-  // Mutation pour mettre à jour les paramètres
+  // Mutation to update confidentiality settings
   const updateSettingsMutation = useMutation({
     mutationFn: (newSettings: ConfidentialitySettings) => 
-      confidentialityService.updateSettings(newSettings, userId),
+      confidentialityService.updateSettings(newSettings, userId || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidentiality_settings'] });
       toast({
@@ -39,13 +44,14 @@ export function useConfidentiality(userId: string) {
     onError: (error) => handleError(error, "Mise à jour des paramètres de confidentialité")
   });
   
-  // Vérifier si un utilisateur peut accéder à une ressource
+  // Check if a user can access a resource
   const checkAccess = async (
     resourceType: string,
     resourceId: string,
     requiredAccess: 'read' | 'write'
   ) => {
     try {
+      if (!userId) return false;
       return await confidentialityService.canUserAccess(
         userId,
         resourceType,
@@ -58,7 +64,7 @@ export function useConfidentiality(userId: string) {
     }
   };
   
-  // Récupérer les logs d'audit
+  // Get audit logs
   const getAuditLogs = async (
     filters: {
       userId?: string;
@@ -78,13 +84,14 @@ export function useConfidentiality(userId: string) {
     }
   };
   
-  // Définir le niveau de confidentialité d'une ressource
+  // Set confidentiality level for a resource
   const setResourceConfidentiality = async (
     resourceType: ResourceWithConfidentiality,
     resourceId: string,
     level: ConfidentialityLevel
   ) => {
     try {
+      if (!userId) return false;
       await confidentialityService.setResourceConfidentiality(
         resourceType,
         resourceId,
@@ -92,7 +99,7 @@ export function useConfidentiality(userId: string) {
         userId
       );
       
-      // Invalider les requêtes potentiellement affectées
+      // Invalidate potentially affected queries
       queryClient.invalidateQueries({ queryKey: [resourceType, resourceId] });
       
       toast({
@@ -107,7 +114,7 @@ export function useConfidentiality(userId: string) {
     }
   };
   
-  // Vérifier si un niveau de confidentialité est accessible
+  // Check if the current user can access content with the specified confidentiality level
   const canAccess = async (
     level: ConfidentialityLevel, 
     action: 'view' | 'edit' = 'view'
@@ -120,11 +127,28 @@ export function useConfidentiality(userId: string) {
     }
   };
   
-  return {
-    // Données
-    settings,
+  // Function to update default confidentiality level for a resource type
+  const updateDefaultLevel = (resourceType: string, level: ConfidentialityLevel) => {
+    if (!settings) return;
     
-    // États
+    const newSettings: ConfidentialitySettings = {
+      ...settings,
+      defaultLevels: {
+        ...settings.defaultLevels,
+        [resourceType]: level
+      }
+    };
+    
+    updateSettingsMutation.mutate(newSettings);
+  };
+  
+  return {
+    // Data
+    settings,
+    userRole,
+    
+    // States
+    isLoading: isLoadingSettings,
     isLoadingSettings,
     isUpdatingSettings: updateSettingsMutation.isPending,
     
@@ -135,8 +159,9 @@ export function useConfidentiality(userId: string) {
     getAuditLogs,
     setResourceConfidentiality,
     canAccess,
+    updateDefaultLevel,
     
-    // Utilitaires
+    // Utilities
     getDefaultLevelForResource: (resourceType: string): ConfidentialityLevel => 
       settings?.defaultLevels[resourceType] || 'public'
   };

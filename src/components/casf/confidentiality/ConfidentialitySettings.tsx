@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResourceConfidentialitySelector } from './ConfidentialityManager';
@@ -8,15 +8,20 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Shield, Lock, UserCheck } from 'lucide-react';
 import { confidentialityLevels, ConfidentialityLevel } from '@/types/confidentiality';
+import { useToast } from '@/hooks/use-toast';
 
 export function ConfidentialitySettings() {
+  // Use current user ID if available, or pass an admin ID for demo
+  const [userId] = useState<string>("current-user-id");
   const { 
     settings,
     userRole,
     isLoading,
     updateDefaultLevel,
     canAccess
-  } = useConfidentiality();
+  } = useConfidentiality(userId);
+
+  const { toast } = useToast();
 
   // Check if the user has admin access
   const isAdmin = userRole === 'admin';
@@ -47,6 +52,17 @@ export function ConfidentialitySettings() {
             </p>
           </div>
         </CardContent>
+      </Card>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Paramètres de confidentialité</CardTitle>
+          <CardDescription>Impossible de charger les paramètres</CardDescription>
+        </CardHeader>
       </Card>
     );
   }
@@ -85,37 +101,15 @@ export function ConfidentialitySettings() {
               <Separator className="my-4" />
               
               <div className="grid gap-6">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Transcriptions</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.transcriptions}
-                    onChange={(value) => updateDefaultLevel('transcriptions', value as ConfidentialityLevel)}
-                  />
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Notes</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.notes}
-                    onChange={(value) => updateDefaultLevel('notes', value as ConfidentialityLevel)}
-                  />
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Projets</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.projects}
-                    onChange={(value) => updateDefaultLevel('projects', value as ConfidentialityLevel)}
-                  />
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Rapports</h4>
-                  <ResourceConfidentialitySelector
-                    value={settings.defaultLevels.reports}
-                    onChange={(value) => updateDefaultLevel('reports', value as ConfidentialityLevel)}
-                  />
-                </div>
+                {Object.entries(settings.defaultLevels).map(([resourceType, level]) => (
+                  <div key={resourceType}>
+                    <h4 className="text-sm font-medium mb-2 capitalize">{resourceType}</h4>
+                    <ResourceConfidentialitySelector
+                      value={level}
+                      onChange={(value) => updateDefaultLevel(resourceType, value as ConfidentialityLevel)}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </TabsContent>
@@ -145,11 +139,11 @@ export function ConfidentialitySettings() {
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(settings.roleAccess).map(([role, levels]) => (
-                      <tr key={role} className="border-b">
-                        <td className="p-2 font-medium capitalize">{role}</td>
+                    {settings.roleAccess.map((roleAccess) => (
+                      <tr key={roleAccess.role} className="border-b">
+                        <td className="p-2 font-medium capitalize">{roleAccess.role}</td>
                         {Object.entries(confidentialityLevels).map(([levelKey]) => {
-                          const access = levels[levelKey as ConfidentialityLevel];
+                          const access = roleAccess.resources[levelKey];
                           let badgeColor = "bg-gray-200 text-gray-700";
                           
                           if (access === 'read') {
@@ -184,7 +178,16 @@ export function ConfidentialitySettings() {
         </Tabs>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full">
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => {
+            toast({
+              title: "Paramètres enregistrés",
+              description: "Les paramètres de confidentialité ont été sauvegardés."
+            });
+          }}
+        >
           Enregistrer les modifications
         </Button>
       </CardFooter>
