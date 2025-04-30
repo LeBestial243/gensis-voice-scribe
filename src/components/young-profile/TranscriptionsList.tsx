@@ -21,7 +21,11 @@ interface TranscriptionsListProps {
 export function TranscriptionsList({ profileId, folderId, searchQuery }: TranscriptionsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { files, isLoading, folderIds } = useTranscriptions(profileId, folderId, searchQuery);
+  const { 
+    data: { files, folderIds },
+    status: { isLoading }
+  } = useTranscriptions(profileId, folderId, searchQuery);
+  
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const deleteMutation = useMutation({

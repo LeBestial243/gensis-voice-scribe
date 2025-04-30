@@ -34,7 +34,10 @@ export function TranscriptionsList({
   // Get folder IDs to filter by
   const filterFolderIds = folderId ? [folderId] : folderIds;
   
-  const { files, isLoading, totalCount } = useTranscriptions(
+  const { 
+    data: { files, totalCount, folderIds: fetchedFolderIds },
+    status: { isLoading }
+  } = useTranscriptions(
     profileId, 
     folderId, 
     searchQuery, 
