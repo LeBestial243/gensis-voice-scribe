@@ -8,7 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ProjectObjective, ObjectiveStatus } from '@/types/projects';
+import { ProjectObjective } from '@/types/projects';
 import { Calendar, Loader2, Save } from 'lucide-react';
 
 const objectiveFormSchema = z.object({
@@ -56,6 +56,8 @@ export function ObjectiveForm({
     onSubmit({
       ...values,
       project_id: projectId,
+      title: values.title, // Ensure title is required
+      status: values.status || 'not_started', // Ensure status is required
     });
   };
 

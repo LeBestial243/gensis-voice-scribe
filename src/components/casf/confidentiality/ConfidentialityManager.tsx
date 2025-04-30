@@ -29,7 +29,7 @@ export function ConfidentialityManager({
         </SelectTrigger>
         <SelectContent>
           {Object.entries(confidentialityLevels).map(([key, { label, description, color }]) => (
-            <SelectItem key={key} value={key} className="flex items-center py-2">
+            <SelectItem key={key} value={key || 'default'} className="flex items-center py-2">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${color}`} />
