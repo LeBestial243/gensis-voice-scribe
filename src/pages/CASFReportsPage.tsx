@@ -30,8 +30,9 @@ export default function CASFReportsPage() {
   const [selectedReport, setSelectedReport] = useState<ActivityReport | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
+  // Update the filtering logic to handle the "all" value
   const { reports: activityReports = [], isLoadingReports } = useActivityReport({
-    filters: reportTypeFilter ? { report_type: reportTypeFilter } : undefined
+    filters: reportTypeFilter && reportTypeFilter !== 'all' ? { report_type: reportTypeFilter } : undefined
   });
 
   // In the real app, this would be based on a selected profile
@@ -104,7 +105,6 @@ export default function CASFReportsPage() {
   
   const viewReport = async (reportId: string) => {
     try {
-      // For now, we'll just use our activity report service since that's what we have implemented
       const report = await activityReportService.getReportById(reportId);
       setSelectedReport(report);
       setIsPreviewOpen(true);
@@ -115,6 +115,11 @@ export default function CASFReportsPage() {
         variant: "destructive"
       });
     }
+  };
+
+  // Function to handle report type filter changes
+  const handleReportTypeChange = (value: string) => {
+    setReportTypeFilter(value === 'all' ? null : value);
   };
 
   return (
@@ -140,7 +145,7 @@ export default function CASFReportsPage() {
               />
             </div>
             
-            <Select value={reportTypeFilter || undefined} onValueChange={(value) => setReportTypeFilter(value || null)}>
+            <Select value={reportTypeFilter || 'all'} onValueChange={handleReportTypeChange}>
               <SelectTrigger className="w-[180px] shrink-0">
                 <SelectValue placeholder="Type de rapport" />
               </SelectTrigger>
