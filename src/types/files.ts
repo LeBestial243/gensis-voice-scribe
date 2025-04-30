@@ -1,5 +1,4 @@
 
-
 import { AuditableEntity, ConfidentialityLevel } from "./index";
 
 export interface FileData extends AuditableEntity {
