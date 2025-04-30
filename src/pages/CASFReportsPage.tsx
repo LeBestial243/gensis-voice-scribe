@@ -140,12 +140,12 @@ export default function CASFReportsPage() {
               />
             </div>
             
-            <Select value={reportTypeFilter || ''} onValueChange={(value) => setReportTypeFilter(value || null)}>
+            <Select value={reportTypeFilter || undefined} onValueChange={(value) => setReportTypeFilter(value || null)}>
               <SelectTrigger className="w-[180px] shrink-0">
                 <SelectValue placeholder="Type de rapport" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les types</SelectItem>
+                <SelectItem value="all">Tous les types</SelectItem>
                 <SelectItem value="monthly">Mensuel</SelectItem>
                 <SelectItem value="quarterly">Trimestriel</SelectItem>
                 <SelectItem value="yearly">Annuel</SelectItem>
