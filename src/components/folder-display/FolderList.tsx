@@ -1,11 +1,6 @@
 
 import { FolderCard } from "../young-profile/FolderCard";
-
-interface Folder {
-  id: string;
-  title: string;
-  created_at?: string; // Made optional to match usage
-}
+import { Folder } from "@/types";
 
 interface FolderListProps {
   folders: Folder[];
@@ -32,7 +27,11 @@ export function FolderList({
         return (
           <FolderCard
             key={folder.id}
-            folder={folder}
+            folder={{
+              id: folder.id,
+              title: folder.title,
+              created_at: folder.created_at || new Date().toISOString() // Provide a fallback if created_at is undefined
+            }}
             fileCount={folderCounts[folder.id] || 0}
             isActive={isActive}
             onToggle={() => onFolderSelect(folder.id)}
