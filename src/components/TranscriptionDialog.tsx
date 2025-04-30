@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,7 +10,11 @@ import { TranscriptionForm } from "./transcription-dialog/TranscriptionForm";
 import { TranscriptionActions } from "./transcription-dialog/TranscriptionActions";
 import { ConfidentialityLevel } from "@/types/confidentiality";
 import { confidentialityService } from "@/services/confidentialityService";
-import { ResourceConfidentialitySelector } from "./casf/confidentiality/ResourceConfidentialitySelector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/lib/auth";
+import { AccessLevelBadge } from "@/components/casf/confidentiality/AccessLevelBadge";
+import { useConfidentiality } from "@/hooks/useConfidentiality";
+import { AlertTriangle } from "lucide-react";
 
 interface Folder {
   id: string;
@@ -41,6 +46,16 @@ export function TranscriptionDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inconsistencies, setInconsistencies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("professional");
+  
+  // Auth and confidentiality hooks
+  const { user } = useAuth();
+  const userId = user?.id || "";
+  const { 
+    getDefaultLevelForResource,
+    setResourceConfidentiality 
+  } = useConfidentiality(userId);
+  
+  // Confidentiality level state
   const [confidentialityLevel, setConfidentialityLevel] = useState<ConfidentialityLevel>("restricted");
   
   const { toast } = useToast();
@@ -50,15 +65,20 @@ export function TranscriptionDialog({
   useEffect(() => {
     const loadDefaultSettings = async () => {
       try {
-        const settings = await confidentialityService.getDefaultSettings();
-        setConfidentialityLevel(settings.defaultLevels.transcriptions);
+        if (userId) {
+          const defaultLevel = getDefaultLevelForResource('files');
+          setConfidentialityLevel(defaultLevel);
+        } else {
+          const settings = await confidentialityService.getDefaultSettings();
+          setConfidentialityLevel(settings.defaultLevels.transcriptions);
+        }
       } catch (error) {
         console.error("Failed to load default settings:", error);
       }
     };
     
     loadDefaultSettings();
-  }, []);
+  }, [getDefaultLevelForResource, userId]);
   
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId, originalText }: { text: string; folderId: string; originalText?: string }) => {
@@ -79,7 +99,7 @@ export function TranscriptionDialog({
           size: new Blob([text]).size,
           path: filePath,
           content: text, // Texte reformulé
-          confidentiality_level: confidentialityLevel, // Ajouter le niveau de confidentialité
+          confidentiality_level: confidentialityLevel, // Niveau de confidentialité
           // Ici, on pourrait également stocker le texte original et les incohérences
           // si la structure de la base de données le permet
         })
@@ -129,7 +149,7 @@ export function TranscriptionDialog({
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['files', selectedFolderId] });
       queryClient.invalidateQueries({ queryKey: ['folders_file_count'] }); 
       
@@ -142,6 +162,11 @@ export function TranscriptionDialog({
         description: hasTranscriptionError ? "Veuillez vérifier et corriger si nécessaire" : undefined,
         variant: hasTranscriptionError ? "destructive" : "default"
       });
+      
+      // If we have a file ID, also update its confidentiality
+      if (data?.id && userId) {
+        setResourceConfidentiality('files', data.id, confidentialityLevel);
+      }
       
       handleReset();
       onOpenChange(false);
@@ -236,8 +261,13 @@ export function TranscriptionDialog({
 
   const loadDefaultSettings = async () => {
     try {
-      const settings = await confidentialityService.getDefaultSettings();
-      setConfidentialityLevel(settings.defaultLevels.transcriptions);
+      if (userId) {
+        const defaultLevel = getDefaultLevelForResource('files');
+        setConfidentialityLevel(defaultLevel);
+      } else {
+        const settings = await confidentialityService.getDefaultSettings();
+        setConfidentialityLevel(settings.defaultLevels.transcriptions);
+      }
     } catch (error) {
       console.error("Failed to load default settings:", error);
     }
@@ -283,10 +313,47 @@ export function TranscriptionDialog({
               
               <div className="space-y-2 mt-4">
                 <label className="text-sm font-medium">Niveau de confidentialité</label>
-                <ResourceConfidentialitySelector 
-                  value={confidentialityLevel}
-                  onChange={(value) => setConfidentialityLevel(value as ConfidentialityLevel)}
-                />
+                <Select value={confidentialityLevel} onValueChange={(value) => setConfidentialityLevel(value as ConfidentialityLevel)}>
+                  <SelectTrigger className={hasTranscriptionError ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Choisir un niveau">
+                      <div className="flex items-center gap-2">
+                        <AccessLevelBadge level={confidentialityLevel} />
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">
+                      <div className="flex items-center gap-2">
+                        <AccessLevelBadge level="public" />
+                        <span>Public - Tous les intervenants</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="restricted">
+                      <div className="flex items-center gap-2">
+                        <AccessLevelBadge level="restricted" />
+                        <span>Restreint - Intervenants directs</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="confidential">
+                      <div className="flex items-center gap-2">
+                        <AccessLevelBadge level="confidential" />
+                        <span>Confidentiel - Référent uniquement</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="strict">
+                      <div className="flex items-center gap-2">
+                        <AccessLevelBadge level="strict" />
+                        <span>Strict - Direction uniquement</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {hasTranscriptionError && (
+                  <div className="flex items-start gap-2 mt-1 text-amber-600 text-xs">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <p>Recommandation: utilisez un niveau plus restrictif pour les transcriptions contenant des erreurs ou incohérences potentielles.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
