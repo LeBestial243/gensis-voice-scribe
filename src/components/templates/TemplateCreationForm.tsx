@@ -1,15 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Plus, Trash2, GripVertical, Save } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Loader2 } from "lucide-react";
+import { TemplateHeader } from "./template-form/TemplateHeader";
+import { SectionsList } from "./template-form/SectionsList";
+import { TemplateActions } from "./template-form/TemplateActions";
 
 interface Section {
   id: string;
@@ -223,118 +219,25 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="template-title">Titre du template</Label>
-        <Input
-          id="template-title"
-          value={templateTitle}
-          onChange={(e) => setTemplateTitle(e.target.value)}
-          placeholder="Ex: Rapport d'entretien individuel"
-          className="max-w-md"
-        />
-      </div>
+      <TemplateHeader 
+        templateTitle={templateTitle}
+        setTemplateTitle={setTemplateTitle}
+      />
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">Sections du template</h3>
-          <Button type="button" onClick={handleAddSection} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Ajouter une section
-          </Button>
-        </div>
+      <SectionsList
+        sections={sections}
+        onAddSection={handleAddSection}
+        onRemoveSection={handleRemoveSection}
+        onSectionChange={handleSectionChange}
+        onDragEnd={handleDragEnd}
+      />
 
-        <ScrollArea className="h-[400px] pr-4">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="sections">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-4"
-                >
-                  {sections.map((section, index) => (
-                    <Draggable key={section.id} draggableId={section.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className="border rounded-md p-4 bg-card"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="font-medium">Section {index + 1}</div>
-                            <div className="flex items-center gap-2">
-                              <div {...provided.dragHandleProps} className="cursor-grab">
-                                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveSection(index)}
-                                className="h-8 w-8 p-0 text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Supprimer</span>
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor={`section-${index}-title`}>Titre de la section</Label>
-                              <Input
-                                id={`section-${index}-title`}
-                                value={section.title}
-                                onChange={(e) => handleSectionChange(index, 'title', e.target.value)}
-                                placeholder="Ex: Contexte de l'entretien"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor={`section-${index}-instructions`}>
-                                Instructions pour l'IA (optionnel)
-                              </Label>
-                              <Textarea
-                                id={`section-${index}-instructions`}
-                                value={section.instructions}
-                                onChange={(e) => handleSectionChange(index, 'instructions', e.target.value)}
-                                placeholder="Ex: Résumer le contexte de l'échange en 3-4 phrases, mentionner le lieu et l'ambiance"
-                                rows={3}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </ScrollArea>
-      </div>
-
-      <div className="flex justify-end pt-4">
-        {editingTemplateId && (
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onEditComplete} 
-            className="mr-2"
-          >
-            Annuler
-          </Button>
-        )}
-        <Button
-          type="button"
-          onClick={() => saveTemplate.mutate()}
-          disabled={isSubmitting}
-        >
-          <Save className="h-4 w-4 mr-1" />
-          {editingTemplateId ? "Mettre à jour" : "Enregistrer le template"}
-        </Button>
-      </div>
+      <TemplateActions
+        onSave={() => saveTemplate.mutate()}
+        onCancel={onEditComplete}
+        isSubmitting={isSubmitting}
+        isEditing={!!editingTemplateId}
+      />
     </div>
   );
 }

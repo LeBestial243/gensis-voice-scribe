@@ -1,15 +1,13 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Folder, Plus, Loader2, AlertCircle, File, UploadCloud } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FolderCard } from "./young-profile/FolderCard";
+import { Loader2 } from "lucide-react";
+import { FolderHeader } from "./folder-display/FolderHeader";
+import { EmptyFolderState } from "./folder-display/EmptyFolderState";
+import { FolderList } from "./folder-display/FolderList";
+import { CreateFolderDialog } from "./folder-display/CreateFolderDialog";
+import { UploadFileDialog } from "./folder-display/UploadFileDialog";
 
 interface FolderDisplayProps {
   profileId: string;
@@ -28,8 +26,6 @@ export function FolderDisplay({
   const queryClient = useQueryClient();
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   
   console.log("FolderDisplay: Rendering with activeFolderId", activeFolderId);
@@ -54,7 +50,7 @@ export function FolderDisplay({
   });
 
   // Fetch folder counts query
-  const { data: folderCounts = {}, refetch: refetchFolderCounts } = useQuery({
+  const { data: folderCounts = {} } = useQuery({
     queryKey: ['folder_counts', profileId],
     queryFn: async () => {
       const folderIds = folders.map(folder => folder.id);
@@ -105,7 +101,6 @@ export function FolderDisplay({
         title: "Dossier créé", 
         description: `Le dossier "${data.title}" a été créé avec succès` 
       });
-      setNewFolderName("");
       setIsCreateFolderOpen(false);
       onFolderSelect(data.id);
     },
@@ -119,7 +114,7 @@ export function FolderDisplay({
     }
   });
 
-  // New mutation for deleting folders
+  // Delete folder mutation
   const deleteFolder = useMutation({
     mutationFn: async (folderId: string) => {
       console.log("FolderDisplay: Starting folder deletion for folder", folderId);
@@ -263,13 +258,11 @@ export function FolderDisplay({
       return data;
     },
     onSuccess: () => {
-      console.log("FolderDisplay: File upload successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ['files'] });
       if (uploadFolderId) {
         queryClient.invalidateQueries({ queryKey: ['files', uploadFolderId] });
       }
       queryClient.invalidateQueries({ queryKey: ['folder_counts'] });
-      refetchFolderCounts();
       
       toast({ 
         title: "Fichier téléchargé", 
@@ -289,31 +282,22 @@ export function FolderDisplay({
     }
   });
 
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) {
-      toast({
-        title: "Nom du dossier requis",
-        description: "Veuillez saisir un nom pour le dossier",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    createFolder.mutate(newFolderName);
+  const handleCreateFolder = (folderName: string) => {
+    createFolder.mutate(folderName);
   };
 
-  const handleUploadFile = () => {
-    if (!fileToUpload || !uploadFolderId) {
+  const handleUploadFile = (file: File) => {
+    if (!uploadFolderId) {
       toast({
-        title: "Informations manquantes",
-        description: "Veuillez sélectionner un fichier et un dossier",
+        title: "Dossier non sélectionné",
+        description: "Veuillez sélectionner un dossier pour télécharger le fichier",
         variant: "destructive",
       });
       return;
     }
     
-    console.log("FolderDisplay: Uploading file", fileToUpload.name, "to folder", uploadFolderId);
-    uploadFile.mutate({ file: fileToUpload, folderId: uploadFolderId });
+    console.log("FolderDisplay: Uploading file", file.name, "to folder", uploadFolderId);
+    uploadFile.mutate({ file, folderId: uploadFolderId });
   };
 
   const handleOpenUpload = (folderId: string, event?: React.MouseEvent) => {
@@ -329,7 +313,7 @@ export function FolderDisplay({
     onFolderSelect(folderId === activeFolderId ? null : folderId);
   };
 
-  // New handler for folder deletion
+  // Handler for folder deletion
   const handleDeleteFolder = (folderId: string) => {
     console.log("FolderDisplay: Handling delete for folder", folderId);
     deleteFolder.mutate(folderId);
@@ -351,161 +335,38 @@ export function FolderDisplay({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Dossiers</h2>
-        <Button 
-          onClick={() => setIsCreateFolderOpen(true)}
-          className="bg-primary text-white hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Créer un dossier
-        </Button>
-      </div>
+      <FolderHeader onCreateFolder={() => setIsCreateFolderOpen(true)} />
       
       {filteredFolders.length === 0 ? (
-        searchQuery ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <Folder className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun résultat</h3>
-            <p className="text-muted-foreground">
-              Aucun dossier ne correspond à "{searchQuery}"
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/50">
-            <Folder className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun dossier</h3>
-            <p className="text-muted-foreground">
-              Créez votre premier dossier pour commencer à organiser vos fichiers
-            </p>
-            <Button 
-              onClick={() => setIsCreateFolderOpen(true)} 
-              className="mt-4"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Créer un dossier
-            </Button>
-          </div>
-        )
+        <EmptyFolderState 
+          searchQuery={searchQuery} 
+          onCreateFolder={() => setIsCreateFolderOpen(true)} 
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFolders.map((folder) => {
-            const isActive = folder.id === activeFolderId;
-            console.log(`Rendering folder ${folder.id} with isActive=${isActive}`);
-            return (
-              <FolderCard
-                key={folder.id}
-                folder={folder}
-                fileCount={folderCounts[folder.id] || 0}
-                isActive={isActive}
-                onToggle={() => handleFolderClick(folder.id)}
-                onUploadClick={handleOpenUpload}
-                onDeleteFolder={handleDeleteFolder}
-              />
-            );
-          })}
-        </div>
+        <FolderList 
+          folders={filteredFolders}
+          folderCounts={folderCounts}
+          activeFolderId={activeFolderId}
+          onFolderSelect={handleFolderClick}
+          onUploadClick={handleOpenUpload}
+          onDeleteFolder={handleDeleteFolder}
+        />
       )}
       
-      <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Créer un nouveau dossier</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="folderName">Nom du dossier</Label>
-              <Input
-                id="folderName"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Ex: Rapports médicaux"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsCreateFolderOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleCreateFolder}
-              disabled={createFolder.isPending}
-            >
-              {createFolder.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateFolderDialog
+        isOpen={isCreateFolderOpen}
+        onOpenChange={setIsCreateFolderOpen}
+        onCreateFolder={handleCreateFolder}
+        isPending={createFolder.isPending}
+      />
       
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ajouter un fichier</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="file">Sélectionner un fichier</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files && files.length > 0) {
-                    setFileToUpload(files[0]);
-                  }
-                }}
-              />
-              {fileToUpload && (
-                <p className="text-sm text-muted-foreground">
-                  Fichier sélectionné: {fileToUpload.name} ({(fileToUpload.size / 1024).toFixed(1)} KB)
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsUploadOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleUploadFile}
-              disabled={uploadFile.isPending || !fileToUpload}
-            >
-              {uploadFile.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Téléchargement...
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  Télécharger
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UploadFileDialog
+        isOpen={isUploadOpen}
+        onOpenChange={setIsUploadOpen}
+        onUploadFile={handleUploadFile}
+        isPending={uploadFile.isPending}
+        folderId={uploadFolderId}
+      />
     </div>
   );
 }

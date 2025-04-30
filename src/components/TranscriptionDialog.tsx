@@ -1,19 +1,11 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InconsistenciesAlert } from "@/components/InconsistenciesAlert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TranscriptionForm } from "./transcription-dialog/TranscriptionForm";
+import { TranscriptionActions } from "./transcription-dialog/TranscriptionActions";
 
 interface Folder {
   id: string;
@@ -48,8 +40,6 @@ export function TranscriptionDialog({
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const currentDate = format(new Date(), "PPP 'à' HH:mm", { locale: fr });
   
   const saveTranscriptionMutation = useMutation({
     mutationFn: async ({ text, folderId, originalText }: { text: string; folderId: string; originalText?: string }) => {
@@ -245,92 +235,29 @@ export function TranscriptionDialog({
               youngProfile={youngProfile}
             />
           ) : (
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold">Transcription</h3>
-              <p className="text-sm text-muted-foreground">{currentDate}</p>
-              
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              
-              {hasTranscriptionError && (
-                <InconsistenciesAlert 
-                  inconsistencies={inconsistencies?.map(msg => ({
-                    type: 'other',
-                    message: msg,
-                    severity: 'warning'
-                  }))} 
-                />
-              )}
-              
-              <Card className={`neumorphic ${hasTranscriptionError ? 'border-2 border-red-500' : ''}`}>
-                <CardContent className="pt-6">
-                  <Textarea
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                    className={`min-h-[150px] max-h-[300px] bg-transparent border-0 focus-visible:ring-0 p-0 resize-none ${
-                      hasTranscriptionError ? 'text-red-600' : ''
-                    }`}
-                    placeholder="Votre transcription apparaîtra ici..."
-                  />
-                </CardContent>
-              </Card>
-              
-              {audioURL && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Écouter l'enregistrement</p>
-                  <audio controls src={audioURL} className="w-full" />
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Sélectionner un dossier</label>
-                <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-                  <SelectTrigger className={hasTranscriptionError ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Choisir un dossier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {folders.map((folder) => (
-                      <SelectItem key={folder.id} value={folder.id}>
-                        {folder.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <TranscriptionForm 
+              transcript={transcript}
+              setTranscript={setTranscript}
+              selectedFolderId={selectedFolderId}
+              setSelectedFolderId={setSelectedFolderId}
+              audioURL={audioURL}
+              hasTranscriptionError={hasTranscriptionError}
+              errorMessage={errorMessage}
+              inconsistencies={inconsistencies}
+              folders={folders}
+              error={error}
+            />
           )}
         </div>
         
         {transcript && (
-          <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-              disabled={saveTranscriptionMutation.isPending}
-            >
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleSaveTranscription}
-              disabled={saveTranscriptionMutation.isPending || !selectedFolderId}
-              variant={hasTranscriptionError ? "destructive" : "default"}
-            >
-              {saveTranscriptionMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                hasTranscriptionError ? 
-                  "Valider malgré l'erreur" : 
-                  "Valider et classer"
-              )}
-            </Button>
-          </div>
+          <TranscriptionActions
+            onSave={handleSaveTranscription}
+            onCancel={handleReset}
+            isPending={saveTranscriptionMutation.isPending}
+            hasError={hasTranscriptionError}
+            hasSelectedFolder={!!selectedFolderId}
+          />
         )}
       </DialogContent>
     </Dialog>
