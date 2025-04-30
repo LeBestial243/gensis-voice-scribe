@@ -113,16 +113,30 @@ export function useConfidentiality(): UseConfidentialityReturn {
   ) => {
     try {
       // In a real implementation, you would update the settings in the database
-      setSettings(prev => ({
-        ...prev,
-        roleAccess: {
-          ...prev.roleAccess,
-          [role]: {
-            ...(prev.roleAccess[role] || {}),
-            [level]: access
+      setSettings(prev => {
+        // Create a new role access map for the specific role
+        const updatedRoleAccess = {
+          ...(prev.roleAccess[role] || {}),
+          [level]: access
+        };
+        
+        // Ensure all required confidentiality levels are present
+        const confidentialityLevels: ConfidentialityLevel[] = ['public', 'restricted', 'confidential', 'strict'];
+        confidentialityLevels.forEach(confidentialityLevel => {
+          if (updatedRoleAccess[confidentialityLevel] === undefined) {
+            updatedRoleAccess[confidentialityLevel] = 
+              prev.roleAccess[role]?.[confidentialityLevel] || 'none';
           }
-        }
-      }));
+        });
+        
+        return {
+          ...prev,
+          roleAccess: {
+            ...prev.roleAccess,
+            [role]: updatedRoleAccess as Record<ConfidentialityLevel, 'none' | 'read' | 'write'>
+          }
+        };
+      });
       
       toast({
         title: 'Paramètres mis à jour',
