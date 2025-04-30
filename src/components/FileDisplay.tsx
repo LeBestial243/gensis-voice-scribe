@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText } from "lucide-react";
@@ -17,14 +16,9 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
   const [newFileName, setNewFileName] = useState("");
 
   const {
-    files,
-    isLoading,
-    isDownloading,
-    handleDownload,
-    deleteFile,
-    isDeleting,
-    renameFile,
-    isRenaming,
+    data: { files },
+    operations: { handleDownload, deleteFile, renameFile },
+    status: { isLoading, isDeleting, isRenaming, isDownloading },
   } = useFiles(folderId);
 
   // Debug logs
@@ -92,7 +86,7 @@ export function FileDisplay({ folderId }: FileDisplayProps) {
             <FileCard
               key={file.id}
               file={file}
-              isDownloading={isDownloading === file.id}
+              isDownloading={isDownloading(file.id)}
               isDeleting={isDeleting}
               onDownload={handleDownload}
               onDelete={handleDeleteClick}

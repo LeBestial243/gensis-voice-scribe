@@ -1,15 +1,23 @@
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorHandler } from '@/utils/errorHandler';
 
 export function useFileStorage(folderId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
   
-  // Check if storage bucket exists
-  useQuery({
+  // 1. Standardized loading state
+  const [loading, setLoading] = useState({
+    deleting: false,
+    uploading: false,
+  });
+
+  // 2. Consistent query structure for bucket check
+  const bucketQuery = useQuery({
     queryKey: ['storage-bucket-check'],
     queryFn: async () => {
       try {
@@ -34,16 +42,17 @@ export function useFileStorage(folderId: string) {
         
         return true;
       } catch (error) {
-        console.error('Error checking/creating storage bucket:', error);
+        handleError(error, "Vérification du bucket de stockage", false);
         return false;
       }
     },
     staleTime: Infinity, // Only check once per session
   });
 
-  // Delete file function with proper error handling
-  const deleteFile = useMutation({
+  // 3. Standardized mutation structure
+  const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
+      setLoading(prev => ({ ...prev, deleting: true }));
       console.log("useFileStorage: Starting deletion of file with ID", fileId);
       
       // Get the file info first to get the path
@@ -106,16 +115,25 @@ export function useFileStorage(folderId: string) {
       });
     },
     onError: (error) => {
-      console.error("useFileStorage: Error in delete mutation:", error);
-      toast({
-        title: "Erreur lors de la suppression",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite",
-        variant: "destructive",
-      });
+      handleError(error, "Suppression du fichier");
+    },
+    onSettled: () => {
+      setLoading(prev => ({ ...prev, deleting: false }));
     }
   });
 
+  // 4. Standardized return structure
   return {
-    deleteFile
+    data: {
+      bucketStatus: bucketQuery.data,
+    },
+    operations: {
+      deleteFile: (fileId: string) => deleteMutation.mutate(fileId),
+    },
+    status: {
+      isDeleting: deleteMutation.isPending,
+      isBucketLoading: bucketQuery.isLoading,
+      loadingState: loading
+    }
   };
 }

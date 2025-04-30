@@ -12,10 +12,15 @@ export function useFiles(folderId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
-  const [isDownloading, setIsDownloading] = useState<string | null>(null);
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  
+  // 1. Standardized loading state
+  const [loading, setLoading] = useState({
+    downloading: null as string | null,
+    deleting: null as string | null,
+  });
 
-  const { data: files = [], isLoading, error } = useQuery({
+  // 2. Consistent query structure
+  const filesQuery = useQuery({
     queryKey: ['files', folderId],
     queryFn: () => fileService.getFiles(folderId),
     enabled: !!folderId,
@@ -26,33 +31,10 @@ export function useFiles(folderId: string) {
     }
   });
 
-  const handleDownload = async (file: FileType) => {
-    try {
-      setIsDownloading(file.id);
-      
-      const signedUrl = await fileService.downloadFile(file);
-      
-      const a = document.createElement('a');
-      a.href = signedUrl;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Téléchargement réussi",
-        description: `Le fichier "${file.name}" a été téléchargé`,
-      });
-    } catch (error) {
-      handleError(error, "Téléchargement du fichier");
-    } finally {
-      setIsDownloading(null);
-    }
-  };
-
+  // 3. Standardized mutation structure
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      setDeletingFileId(fileId);
+      setLoading(prev => ({ ...prev, deleting: fileId }));
       return await fileService.deleteFile(fileId);
     },
     onSuccess: () => {
@@ -68,7 +50,7 @@ export function useFiles(folderId: string) {
       handleError(error, "Suppression du fichier");
     },
     onSettled: () => {
-      setDeletingFileId(null);
+      setLoading(prev => ({ ...prev, deleting: null }));
     }
   });
 
@@ -89,16 +71,49 @@ export function useFiles(folderId: string) {
     },
   });
 
+  // 4. Standardized operation functions
+  const handleDownload = async (file: FileType) => {
+    try {
+      setLoading(prev => ({ ...prev, downloading: file.id }));
+      
+      const signedUrl = await fileService.downloadFile(file);
+      
+      const a = document.createElement('a');
+      a.href = signedUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Téléchargement réussi",
+        description: `Le fichier "${file.name}" a été téléchargé`,
+      });
+    } catch (error) {
+      handleError(error, "Téléchargement du fichier");
+    } finally {
+      setLoading(prev => ({ ...prev, downloading: null }));
+    }
+  };
+
+  // 5. Standardized return structure
   return {
-    files,
-    isLoading,
-    error,
-    isDownloading,
-    handleDownload,
-    deleteFile: (fileId: string) => deleteMutation.mutate(fileId),
-    isDeleting: deleteMutation.isPending,
-    isDeletingFile: (fileId: string) => deletingFileId === fileId,
-    renameFile: renameMutation.mutate,
-    isRenaming: renameMutation.isPending,
+    data: {
+      files: filesQuery.data || [],
+    },
+    operations: {
+      handleDownload,
+      deleteFile: (fileId: string) => deleteMutation.mutate(fileId),
+      renameFile: renameMutation.mutate,
+    },
+    status: {
+      isLoading: filesQuery.isLoading,
+      isError: !!filesQuery.error,
+      isDeleting: deleteMutation.isPending,
+      isRenaming: renameMutation.isPending,
+      isDownloading: (fileId: string) => loading.downloading === fileId,
+      isDeletingFile: (fileId: string) => loading.deleting === fileId,
+      loadingState: loading
+    }
   };
 }
