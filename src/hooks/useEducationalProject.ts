@@ -1,11 +1,17 @@
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectService } from '@/services/projectService';
-import { EducationalProject, ProjectObjective, ProjectNote, ProjectEventLog, ProjectStatus } from '@/types/casf';
-import { useToast } from '@/hooks/use-toast';
-import { useAuditLog } from './useAuditLog';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { projectService } from "@/services/projectService";
+import { 
+  EducationalProject, 
+  ProjectObjective, 
+  ProjectNote, 
+  ProjectStatus,
+  ObjectiveStatus
+} from "@/types/casf";
+import { useToast } from "@/hooks/use-toast";
 
+// Properly type the hook parameters
 interface UseEducationalProjectProps {
   profileId: string;
   projectId?: string;
@@ -14,31 +20,40 @@ interface UseEducationalProjectProps {
 export function useEducationalProject({ profileId, projectId }: UseEducationalProjectProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { logAction } = useAuditLog();
   
-  // State for tracking loading states
-  const [isCreating, setIsCreating] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Fetch projects
-  const {
-    data: projects = [],
-    isLoading: isLoadingProjects,
-    refetch: refetchProjects
-  } = useQuery({
-    queryKey: ['projects', profileId],
-    queryFn: () => projectService.getProjects(profileId),
-    enabled: !!profileId,
+  // État pour le formulaire de projet
+  const [projectForm, setProjectForm] = useState<Partial<EducationalProject>>({
+    profile_id: profileId,
+    title: "",
+    objectives: "",
+    start_date: new Date().toISOString(),
+    end_date: new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000).toISOString(), // +6 mois
+    status: "planned" as ProjectStatus,
+    confidentiality_level: "restricted"
   });
   
-  // Fetch single project with objectives
-  const {
-    data: project,
-    isLoading: isLoadingProject,
-    refetch: refetchProject
-  } = useQuery({
-    queryKey: ['project', projectId],
+  // État pour le formulaire d'objectif
+  const [objectiveForm, setObjectiveForm] = useState<Partial<ProjectObjective>>({
+    title: "",
+    description: "",
+    target_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +1 mois
+    status: "not_started" as ObjectiveStatus,
+    progress: 0
+  });
+  
+  const [noteContent, setNoteContent] = useState("");
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
+  
+  // Requête pour tous les projets du profil
+  const projectsQuery = useQuery({
+    queryKey: ['educational_projects', profileId],
+    queryFn: () => projectService.getProjects(profileId),
+    enabled: !!profileId
+  });
+  
+  // Requête pour un projet spécifique
+  const projectQuery = useQuery({
+    queryKey: ['educational_project', projectId],
     queryFn: async () => {
       if (!projectId) return null;
       
@@ -55,298 +70,249 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
       };
     },
     enabled: !!projectId,
+    onSuccess: (data) => {
+      if (data) {
+        // Mettre à jour le formulaire avec les données du projet
+        setProjectForm({
+          ...data,
+          // Ne pas écraser profile_id pour éviter de changer le profil
+          profile_id: profileId
+        });
+      }
+    }
   });
   
-  // Create project mutation
+  // Requête pour les objectifs du projet
+  const objectivesQuery = useQuery({
+    queryKey: ['project_objectives', projectId],
+    queryFn: () => projectService.getProjectObjectives(projectId!),
+    enabled: !!projectId
+  });
+  
+  // Requête pour les notes du projet
+  const notesQuery = useQuery({
+    queryKey: ['project_notes', projectId, selectedObjectiveId],
+    queryFn: () => projectService.getProjectNotes(projectId!, selectedObjectiveId || undefined),
+    enabled: !!projectId
+  });
+  
+  // Requête pour le journal d'événements
+  const eventsQuery = useQuery({
+    queryKey: ['project_events', projectId, selectedObjectiveId],
+    queryFn: () => projectService.getProjectEventLogs(projectId!, selectedObjectiveId || undefined),
+    enabled: !!projectId
+  });
+  
+  // Mutation pour créer un projet
   const createProjectMutation = useMutation({
-    mutationFn: ({ projectData, userId }: { 
-      projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, 
-      userId: string 
-    }) => {
-      setIsCreating(true);
-      return projectService.createProject(projectData, userId);
-    },
+    mutationFn: (userId: string) => 
+      projectService.createProject({
+        ...projectForm as Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>,
+        status: projectForm.status as ProjectStatus
+      }, userId),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['educational_projects', profileId] });
       toast({
         title: "Projet créé",
-        description: "Le projet a été créé avec succès"
+        description: "Le projet éducatif a été créé avec succès."
       });
-      
-      logAction('create', 'project', data.id, { title: data.title });
-      
-      queryClient.invalidateQueries({ queryKey: ['projects', profileId] });
       return data;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la création du projet",
-        variant: "destructive"
-      });
-      console.error("Error creating project:", error);
-    },
-    onSettled: () => {
-      setIsCreating(false);
     }
   });
   
-  // Update project mutation
+  // Mutation pour mettre à jour un projet
   const updateProjectMutation = useMutation({
-    mutationFn: ({ projectId, updates, userId }: { 
-      projectId: string, 
-      updates: Partial<Omit<EducationalProject, 'id' | 'profile_id' | 'created_at' | 'created_by'>>,
-      userId: string
-    }) => {
-      setIsUpdating(true);
-      return projectService.updateProject(projectId, updates, userId);
-    },
+    mutationFn: ({ userId }: { userId: string }) => 
+      projectService.updateProject(
+        projectId!, 
+        {
+          ...projectForm as Partial<Omit<EducationalProject, 'id' | 'profile_id' | 'created_at' | 'created_by'>>,
+          status: projectForm.status as ProjectStatus
+        }, 
+        userId
+      ),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['educational_projects', profileId] });
       toast({
         title: "Projet mis à jour",
-        description: "Le projet a été mis à jour avec succès"
+        description: "Le projet éducatif a été mis à jour avec succès."
       });
-      
-      logAction('update', 'project', data.id, { title: data.title });
-      
-      queryClient.invalidateQueries({ queryKey: ['project', data.id] });
-      queryClient.invalidateQueries({ queryKey: ['projects', profileId] });
       return data;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour du projet",
-        variant: "destructive"
-      });
-      console.error("Error updating project:", error);
-    },
-    onSettled: () => {
-      setIsUpdating(false);
     }
   });
   
-  // Delete project mutation
-  const deleteProjectMutation = useMutation({
-    mutationFn: ({ projectId, userId }: { projectId: string, userId: string }) => {
-      setIsDeleting(true);
-      return projectService.deleteProject(projectId, userId);
-    },
-    onSuccess: (_, { projectId }) => {
-      toast({
-        title: "Projet supprimé",
-        description: "Le projet a été supprimé avec succès"
-      });
-      
-      logAction('delete', 'project', projectId);
-      
-      queryClient.invalidateQueries({ queryKey: ['projects', profileId] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression du projet",
-        variant: "destructive"
-      });
-      console.error("Error deleting project:", error);
-    },
-    onSettled: () => {
-      setIsDeleting(false);
-    }
-  });
-  
-  // Objective mutations
-  const addObjectiveMutation = useMutation({
-    mutationFn: ({ objective, userId }: {
-      objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>,
-      userId: string
-    }) => {
-      return projectService.createObjective(objective, userId);
-    },
+  // Mutation pour créer un objectif
+  const createObjectiveMutation = useMutation({
+    mutationFn: ({ userId }: { userId: string }) => 
+      projectService.createObjective({
+        ...objectiveForm as Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>,
+        project_id: projectId!,
+        status: objectiveForm.status as ObjectiveStatus
+      }, userId),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['project_objectives', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
       toast({
         title: "Objectif ajouté",
-        description: "L'objectif a été ajouté avec succès"
+        description: "L'objectif a été ajouté avec succès."
       });
-      
-      logAction('create', 'objective', data.id, { 
-        title: data.title,
-        projectId: data.project_id 
+      // Réinitialiser le formulaire
+      setObjectiveForm({
+        title: "",
+        description: "",
+        target_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "not_started" as ObjectiveStatus,
+        progress: 0
       });
-      
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      }
-      
       return data;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'ajout de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error adding objective:", error);
     }
   });
   
+  // Mutation pour mettre à jour un objectif
   const updateObjectiveMutation = useMutation({
-    mutationFn: ({ objectiveId, updates, userId }: {
-      objectiveId: string, 
-      updates: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at'>>,
-      userId: string
-    }) => {
-      return projectService.updateObjective(objectiveId, updates, userId);
-    },
+    mutationFn: ({ objectiveId, updates, userId }: { 
+      objectiveId: string; 
+      updates: Partial<ProjectObjective>;
+      userId: string;
+    }) => 
+      projectService.updateObjective(objectiveId, {
+        ...updates,
+        status: updates.status as ObjectiveStatus
+      }, userId),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['project_objectives', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project_events', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
       toast({
         title: "Objectif mis à jour",
-        description: "L'objectif a été mis à jour avec succès"
+        description: "L'objectif a été mis à jour avec succès."
       });
-      
-      logAction('update', 'objective', data.id, { 
-        title: data.title,
-        projectId: data.project_id 
-      });
-      
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      }
-      
       return data;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error updating objective:", error);
     }
   });
   
-  const deleteObjectiveMutation = useMutation({
-    mutationFn: ({ objectiveId, userId }: { objectiveId: string, userId: string }) => {
-      return projectService.deleteObjective(objectiveId, userId);
-    },
-    onSuccess: (_, { objectiveId }) => {
-      toast({
-        title: "Objectif supprimé",
-        description: "L'objectif a été supprimé avec succès"
-      });
-      
-      logAction('delete', 'objective', objectiveId);
-      
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      }
-      
-      return true;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression de l'objectif",
-        variant: "destructive"
-      });
-      console.error("Error deleting objective:", error);
-    }
-  });
-  
-  // Project notes mutations
+  // Mutation pour ajouter une note
   const addNoteMutation = useMutation({
-    mutationFn: ({ note, userId }: {
-      note: Omit<ProjectNote, 'id' | 'created_at'>,
-      userId: string
-    }) => {
-      return projectService.addProjectNote(note, userId);
-    },
+    mutationFn: ({ userId }: { userId: string }) => 
+      projectService.addProjectNote({
+        project_id: projectId!,
+        objective_id: selectedObjectiveId || undefined,
+        content: noteContent
+      }, userId),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['project_notes', projectId, selectedObjectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['project_events', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
       toast({
         title: "Note ajoutée",
-        description: "La note a été ajoutée avec succès"
+        description: "La note a été ajoutée avec succès."
       });
-      
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      }
-      
+      setNoteContent("");
       return data;
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'ajout de la note",
-        variant: "destructive"
-      });
-      console.error("Error adding note:", error);
     }
   });
   
-  // Handle project operations
-  const createProject = (projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
-    return createProjectMutation.mutateAsync({ projectData, userId });
+  // Calculer les statistiques du projet
+  const calculateProjectStats = () => {
+    if (!objectivesQuery.data) return { totalObjectives: 0, completedObjectives: 0, progress: 0 };
+    
+    const totalObjectives = objectivesQuery.data.length;
+    const completedObjectives = objectivesQuery.data.filter(
+      obj => obj.status === 'completed'
+    ).length;
+    
+    const progress = totalObjectives === 0 
+      ? 0 
+      : Math.round((completedObjectives / totalObjectives) * 100);
+    
+    return {
+      totalObjectives,
+      completedObjectives,
+      progress
+    };
   };
   
-  const updateProject = (projectId: string, updates: Partial<Omit<EducationalProject, 'id' | 'profile_id' | 'created_at' | 'created_by'>>, userId: string) => {
-    return updateProjectMutation.mutateAsync({ projectId, updates, userId });
+  // Fonctions utilitaires
+  const createProject = (userId: string) => {
+    return createProjectMutation.mutateAsync(userId);
   };
   
-  const deleteProject = (projectId: string, userId: string) => {
-    return deleteProjectMutation.mutateAsync({ projectId, userId });
+  const updateProject = (userId: string) => {
+    return updateProjectMutation.mutateAsync({ userId });
   };
   
-  // Handle objectives operations
-  const addObjective = (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
-    return addObjectiveMutation.mutateAsync({ objective, userId });
+  const createObjective = (userId: string) => {
+    return createObjectiveMutation.mutateAsync({ userId });
   };
   
-  const updateObjective = (objectiveId: string, updates: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at'>>, userId: string) => {
-    return updateObjectiveMutation.mutateAsync({ objectiveId, updates, userId });
+  const updateObjectiveStatus = (objectiveId: string, status: ObjectiveStatus, userId: string) => {
+    return updateObjectiveMutation.mutateAsync({
+      objectiveId,
+      updates: { status },
+      userId
+    });
   };
   
-  const deleteObjective = (objectiveId: string, userId: string) => {
-    return deleteObjectiveMutation.mutateAsync({ objectiveId, userId });
+  const updateObjectiveProgress = (objectiveId: string, progress: number, userId: string) => {
+    return updateObjectiveMutation.mutateAsync({
+      objectiveId,
+      updates: { progress },
+      userId
+    });
   };
   
-  // Handle notes operations
-  const addNote = (note: Omit<ProjectNote, 'id' | 'created_at'>, userId: string) => {
-    return addNoteMutation.mutateAsync({ note, userId });
+  const addNote = (userId: string) => {
+    return addNoteMutation.mutateAsync({ userId });
   };
   
   // Filter projects by status
   const getProjectsByStatus = (status: ProjectStatus | ProjectStatus[]) => {
+    if (!projectsQuery.data) return [];
     const statusArray = Array.isArray(status) ? status : [status];
-    return projects.filter(p => statusArray.includes(p.status as ProjectStatus));
+    return projectsQuery.data.filter(p => statusArray.includes(p.status as ProjectStatus));
   };
   
   return {
-    // Data
-    projects,
-    project,
+    // Données
+    projects: projectsQuery.data || [],
+    project: projectQuery.data,
+    objectives: objectivesQuery.data || [],
+    notes: notesQuery.data || [],
+    events: eventsQuery.data || [],
+    projectStats: calculateProjectStats(),
     
-    // Loading states
-    isLoadingProjects,
-    isLoadingProject,
-    isCreating,
-    isUpdating,
-    isDeleting,
+    // Formulaires
+    projectForm,
+    objectiveForm,
+    noteContent,
+    selectedObjectiveId,
     
-    // Refetch methods
-    refetchProjects,
-    refetchProject,
+    // États
+    isLoadingProjects: projectsQuery.isLoading,
+    isLoadingProject: projectQuery.isLoading,
+    isLoadingObjectives: objectivesQuery.isLoading,
+    isCreatingProject: createProjectMutation.isPending,
+    isUpdatingProject: updateProjectMutation.isPending,
+    isCreatingObjective: createObjectiveMutation.isPending,
+    isUpdatingObjective: updateObjectiveMutation.isPending,
+    isAddingNote: addNoteMutation.isPending,
     
-    // Project operations
+    // Actions
+    setProjectForm,
+    setObjectiveForm,
+    setNoteContent,
+    setSelectedObjectiveId,
     createProject,
     updateProject,
-    deleteProject,
+    createObjective,
+    updateObjectiveStatus,
+    updateObjectiveProgress,
+    addNote,
     getProjectsByStatus,
     
-    // Objective operations
-    addObjective,
-    updateObjective,
-    deleteObjective,
-    
-    // Note operations
-    addNote
+    // Refetch methods
+    refetchProjects: projectsQuery.refetch,
+    refetchProject: projectQuery.refetch
   };
 }
