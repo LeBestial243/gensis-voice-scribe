@@ -35,7 +35,7 @@ export function StandardizedReportForm({
     }
   );
   
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
   const [sections, setSections] = useState<{ title: string; content: string }[]>(() => {
     const content = formData.content || {};
     if (typeof content === 'object' && 'sections' in content) {
@@ -150,7 +150,7 @@ export function StandardizedReportForm({
                 <SelectValue placeholder="Sélectionner un modèle (optionnel)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun modèle</SelectItem>
+                <SelectItem value="custom">Aucun modèle</SelectItem>
                 {templates.map(template => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.title}
