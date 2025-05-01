@@ -15,17 +15,23 @@ import { fr } from "date-fns/locale";
 interface ObjectivesListProps {
   projectId: string;
   objectives: ProjectObjective[];
-  isLoading: boolean;
-  onCreateObjective: () => void;
-  onUpdateStatus: (objectiveId: string, status: ObjectiveStatus) => void;
-  onUpdateProgress: (objectiveId: string, progress: number) => void;
-  onSelectObjective: (objectiveId: string) => void;
+  isLoading?: boolean;
+  onAddObjective: (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>) => Promise<ProjectObjective>;
+  onUpdateObjective: (objectiveId: string, updates: Partial<ProjectObjective>) => Promise<ProjectObjective>;
+  onDeleteObjective: (objectiveId: string) => Promise<boolean>;
+  onCreateObjective?: () => void;
+  onUpdateStatus?: (objectiveId: string, status: ObjectiveStatus) => void;
+  onUpdateProgress?: (objectiveId: string, progress: number) => void;
+  onSelectObjective?: (objectiveId: string) => void;
 }
 
 export function ObjectivesList({
   projectId,
   objectives,
-  isLoading,
+  isLoading = false,
+  onAddObjective,
+  onUpdateObjective,
+  onDeleteObjective,
   onCreateObjective,
   onUpdateStatus,
   onUpdateProgress,
@@ -34,6 +40,7 @@ export function ObjectivesList({
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [editingObjective, setEditingObjective] = useState<ProjectObjective | null>(null);
   
   // Filtrer les objectifs selon l'onglet actif
   const filteredObjectives = objectives.filter(objective => {
@@ -81,6 +88,44 @@ export function ObjectivesList({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  const handleUpdateStatus = (objectiveId: string, status: ObjectiveStatus) => {
+    if (onUpdateStatus) {
+      onUpdateStatus(objectiveId, status);
+    } else {
+      onUpdateObjective(objectiveId, { status });
+    }
+  };
+
+  const handleUpdateProgress = (objectiveId: string, progress: number) => {
+    if (onUpdateProgress) {
+      onUpdateProgress(objectiveId, progress);
+    } else {
+      onUpdateObjective(objectiveId, { progress });
+    }
+  };
+
+  const handleSelectObjective = (objectiveId: string) => {
+    if (onSelectObjective) {
+      onSelectObjective(objectiveId);
+    }
+  };
+
+  const handleSubmitObjective = async (data: Omit<ProjectObjective, 'id' | 'created_at'>) => {
+    if (editingObjective) {
+      await onUpdateObjective(editingObjective.id, data);
+    } else {
+      await onAddObjective(data);
+    }
+    
+    // If there's an additional callback, call it
+    if (onCreateObjective) {
+      onCreateObjective();
+    }
+    
+    setEditingObjective(null);
+    setIsDialogOpen(false);
+  };
   
   if (isLoading) {
     return (
@@ -97,7 +142,10 @@ export function ObjectivesList({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Objectifs spécifiques</CardTitle>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => {
+            setEditingObjective(null);
+            setIsDialogOpen(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Ajouter un objectif
           </Button>
@@ -163,7 +211,7 @@ export function ObjectivesList({
                             {getStatusIcon(objective.status)}
                           </div>
                           <div>
-                            <h3 className="font-medium" onClick={() => onSelectObjective(objective.id)}>
+                            <h3 className="font-medium" onClick={() => handleSelectObjective(objective.id)}>
                               {objective.title}
                             </h3>
                             <p className="text-sm text-gray-500 mt-1">{objective.description}</p>
@@ -210,7 +258,7 @@ export function ObjectivesList({
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => onSelectObjective(objective.id)}
+                            onClick={() => handleSelectObjective(objective.id)}
                           >
                             Détails
                           </Button>
@@ -219,7 +267,7 @@ export function ObjectivesList({
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => onUpdateStatus(objective.id, "achieved")}
+                              onClick={() => handleUpdateStatus(objective.id, "achieved")}
                               className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             >
                               <Check className="h-3 w-3 mr-1" />
@@ -233,7 +281,7 @@ export function ObjectivesList({
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => onUpdateStatus(objective.id, "in_progress")}
+                              onClick={() => handleUpdateStatus(objective.id, "in_progress")}
                             >
                               <Clock className="h-3 w-3 mr-1" />
                               Démarrer
@@ -244,7 +292,7 @@ export function ObjectivesList({
                             <select
                               className="p-1 text-xs border rounded-md"
                               value={objective.progress}
-                              onChange={(e) => onUpdateProgress(objective.id, parseInt(e.target.value))}
+                              onChange={(e) => handleUpdateProgress(objective.id, parseInt(e.target.value))}
                             >
                               {Array.from({ length: 11 }, (_, i) => i * 10).map((value) => (
                                 <option key={value} value={value}>{value}%</option>
@@ -265,11 +313,9 @@ export function ObjectivesList({
       <ObjectiveFormDialog 
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onSubmit={() => {
-          onCreateObjective();
-          setIsDialogOpen(false);
-        }}
+        onSubmit={handleSubmitObjective}
         projectId={projectId}
+        initialData={editingObjective || undefined}
       />
     </>
   );

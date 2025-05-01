@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,13 +32,34 @@ export function ObjectiveFormDialog({
   const formattedToday = today.toISOString().split('T')[0];
   
   const [formData, setFormData] = useState<Partial<ProjectObjective>>({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    status: initialData?.status || 'pending',
-    target_date: initialData?.target_date ? new Date(initialData.target_date).toISOString().split('T')[0] : formattedToday,
-    progress: initialData?.progress || 0,
+    title: '',
+    description: '',
+    status: 'pending' as ObjectiveStatus,
+    target_date: formattedToday,
+    progress: 0,
     project_id: projectId
   });
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        ...initialData,
+        target_date: initialData.target_date ? new Date(initialData.target_date).toISOString().split('T')[0] : formattedToday,
+        project_id: projectId
+      });
+    } else {
+      // Reset form data when no initialData is provided
+      setFormData({
+        title: '',
+        description: '',
+        status: 'pending' as ObjectiveStatus,
+        target_date: formattedToday,
+        progress: 0,
+        project_id: projectId
+      });
+    }
+  }, [initialData, projectId, formattedToday]);
 
   const handleChange = (field: keyof ProjectObjective, value: any) => {
     setFormData({
