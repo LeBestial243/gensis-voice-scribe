@@ -224,11 +224,12 @@ export default function EducationalProjectPage() {
                   profile_id: profileId || ""
                 };
                 
-                return createProject(completeData, userId).then((newProject) => {
-                  if (newProject && newProject.id) {
+                return createProject(completeData, userId)
+                  .then(newProject => {
+                    // Navigate to the new project
                     navigate(`/young_profiles/${profileId}/projects/${newProject.id}`);
-                  }
-                });
+                    return newProject;
+                  });
               }}
               profileId={profileId || ''}
               isLoading={isCreating}
