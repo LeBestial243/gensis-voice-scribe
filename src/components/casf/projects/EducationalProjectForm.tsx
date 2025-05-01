@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { EducationalProject, ProjectStatus, ConfidentialityLevel } from "@/types/casf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,8 @@ import { Loader2, Save } from "lucide-react";
 
 interface EducationalProjectFormProps {
   project?: Partial<EducationalProject>;
-  onSubmit: () => void;
-  onChange: (project: Partial<EducationalProject>) => void;
+  onSubmit: (data: Partial<EducationalProject>) => void | Promise<any>;
+  onChange?: (project: Partial<EducationalProject>) => void;
   isSubmitting: boolean;
 }
 
@@ -24,16 +24,24 @@ export function EducationalProjectForm({
   onChange,
   isSubmitting
 }: EducationalProjectFormProps) {
+  const [formState, setFormState] = useState<Partial<EducationalProject>>(project || {});
+  
   const handleChange = (field: keyof EducationalProject, value: any) => {
-    onChange({
-      ...project,
+    const updatedProject = {
+      ...formState,
       [field]: value
-    });
+    };
+    
+    setFormState(updatedProject);
+    
+    if (onChange) {
+      onChange(updatedProject);
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    onSubmit(formState);
   };
   
   return (
@@ -49,7 +57,7 @@ export function EducationalProjectForm({
             <Label htmlFor="title">Titre du projet</Label>
             <Input
               id="title"
-              value={project?.title || ""}
+              value={formState?.title || ""}
               onChange={(e) => handleChange("title", e.target.value)}
               placeholder="Ex: Projet d'autonomisation et insertion sociale"
               required
@@ -60,7 +68,7 @@ export function EducationalProjectForm({
             <Label htmlFor="objectives">Objectifs généraux</Label>
             <Textarea
               id="objectives"
-              value={project?.objectives || ""}
+              value={formState?.objectives || ""}
               onChange={(e) => handleChange("objectives", e.target.value)}
               placeholder="Décrivez les objectifs généraux de ce projet éducatif..."
               rows={4}
@@ -73,7 +81,7 @@ export function EducationalProjectForm({
               <Label htmlFor="start_date">Date de début</Label>
               <DatePicker
                 id="start_date"
-                date={project?.start_date ? new Date(project.start_date) : new Date()}
+                date={formState?.start_date ? new Date(formState.start_date) : new Date()}
                 setDate={(date) => 
                   handleChange("start_date", date ? date.toISOString() : new Date().toISOString())
                 }
@@ -83,7 +91,7 @@ export function EducationalProjectForm({
               <Label htmlFor="end_date">Date de fin prévue</Label>
               <DatePicker
                 id="end_date"
-                date={project?.end_date ? new Date(project.end_date) : undefined}
+                date={formState?.end_date ? new Date(formState.end_date) : undefined}
                 setDate={(date) => 
                   handleChange("end_date", date ? date.toISOString() : "")
                 }
@@ -95,7 +103,7 @@ export function EducationalProjectForm({
             <div className="space-y-2">
               <Label htmlFor="status">Statut du projet</Label>
               <Select
-                value={project?.status || "draft"}
+                value={formState?.status || "planned"}
                 onValueChange={(value) => handleChange("status", value)}
               >
                 <SelectTrigger id="status">
@@ -113,16 +121,16 @@ export function EducationalProjectForm({
             <div className="space-y-2">
               <Label htmlFor="confidentiality">Niveau de confidentialité</Label>
               <Select
-                value={project?.confidentiality_level || "restricted"}
+                value={formState?.confidentiality_level || "restricted"}
                 onValueChange={(value) => 
                   handleChange("confidentiality_level", value as ConfidentialityLevel)
                 }
               >
                 <SelectTrigger id="confidentiality">
                   <SelectValue placeholder="Choisir un niveau">
-                    {project?.confidentiality_level && (
+                    {formState?.confidentiality_level && (
                       <div className="flex items-center gap-2">
-                        <AccessLevelBadge level={project.confidentiality_level as any} />
+                        <AccessLevelBadge level={formState.confidentiality_level as any} />
                       </div>
                     )}
                   </SelectValue>
