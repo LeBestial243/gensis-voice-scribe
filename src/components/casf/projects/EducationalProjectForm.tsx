@@ -16,8 +16,8 @@ interface EducationalProjectFormProps {
   initialData?: Partial<EducationalProject>; // Adding to support both naming patterns
   onSubmit: (data: Partial<EducationalProject>) => void | Promise<any>;
   onChange?: (project: Partial<EducationalProject>) => void;
-  isSubmitting: boolean;
-  isLoading?: boolean; // Adding alternative name for isSubmitting
+  isSubmitting?: boolean; // Made this optional
+  isLoading?: boolean; // Alternative name for isSubmitting
   profileId?: string; // Adding this to match what the page is sending
 }
 
@@ -26,7 +26,7 @@ export function EducationalProjectForm({
   initialData,
   onSubmit,
   onChange,
-  isSubmitting,
+  isSubmitting = false, // Default value for isSubmitting
   isLoading,
   profileId
 }: EducationalProjectFormProps) {
