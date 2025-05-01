@@ -98,7 +98,7 @@ export interface ActivityReport {
 
 // Project types
 export type ProjectStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
-export type ObjectiveStatus = 'not_started' | 'in_progress' | 'completed' | 'cancelled';
+export type ObjectiveStatus = 'not_started' | 'in_progress' | 'completed' | 'cancelled' | 'pending' | 'achieved' | 'canceled';
 export type ProjectEventType = 'creation' | 'update' | 'status_change';
 
 export interface EducationalProject {

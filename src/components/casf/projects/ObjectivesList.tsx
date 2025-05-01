@@ -1,224 +1,276 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ProjectObjective, ObjectiveStatus } from '@/types/projects';
-import { Calendar, CheckCircle, Clock, PlusCircle, XCircle, AlertCircle, Edit, Trash2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ObjectiveForm } from './ObjectiveForm';
-import { useToast } from '@/hooks/use-toast';
+
+import React, { useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProjectObjective, ObjectiveStatus } from "@/types/casf";
+import { Plus, Check, Clock, AlertTriangle, Target, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { ObjectiveFormDialog } from "./ObjectiveFormDialog";
+import { format, formatDistance } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface ObjectivesListProps {
-  objectives: ProjectObjective[];
   projectId: string;
-  onAddObjective: (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>) => Promise<any>;
-  onUpdateObjective: (objectiveId: string, updates: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at' | 'updated_at'>>) => Promise<any>;
-  onDeleteObjective: (objectiveId: string) => Promise<any>;
+  objectives: ProjectObjective[];
+  isLoading: boolean;
+  onCreateObjective: () => void;
+  onUpdateStatus: (objectiveId: string, status: ObjectiveStatus) => void;
+  onUpdateProgress: (objectiveId: string, progress: number) => void;
+  onSelectObjective: (objectiveId: string) => void;
 }
 
-export function ObjectivesList({ 
-  objectives, 
-  projectId, 
-  onAddObjective,
-  onUpdateObjective,
-  onDeleteObjective
+export function ObjectivesList({
+  projectId,
+  objectives,
+  isLoading,
+  onCreateObjective,
+  onUpdateStatus,
+  onUpdateProgress,
+  onSelectObjective
 }: ObjectivesListProps) {
-  const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [objectiveToEdit, setObjectiveToEdit] = useState<ProjectObjective | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("all");
   
-  const handleAddObjective = async (data: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      setIsLoading(true);
-      await onAddObjective({ ...data, project_id: projectId });
-      setIsAddDialogOpen(false);
-      toast({
-        title: "Objectif ajouté",
-        description: "L'objectif a été ajouté avec succès."
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'ajout de l'objectif.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Filtrer les objectifs selon l'onglet actif
+  const filteredObjectives = objectives.filter(objective => {
+    if (activeTab === "all") return true;
+    if (activeTab === "pending") return objective.status === "pending";
+    if (activeTab === "in_progress") return objective.status === "in_progress";
+    if (activeTab === "achieved") return objective.status === "achieved";
+    return true;
+  });
   
-  const handleUpdateObjective = async (data: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at' | 'updated_at'>>) => {
-    if (!objectiveToEdit) return;
-    
-    try {
-      setIsLoading(true);
-      await onUpdateObjective(objectiveToEdit.id, data);
-      setObjectiveToEdit(null);
-      toast({
-        title: "Objectif mis à jour",
-        description: "L'objectif a été mis à jour avec succès."
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour de l'objectif.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleDeleteObjective = async (objectiveId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cet objectif ?")) return;
-    
-    try {
-      await onDeleteObjective(objectiveId);
-      toast({
-        title: "Objectif supprimé",
-        description: "L'objectif a été supprimé avec succès."
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression de l'objectif.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const renderStatusBadge = (status: ObjectiveStatus | string) => {
-    switch (status) {
-      case 'not_started':
-        return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Non commencé</Badge>;
-      case 'in_progress':
-        return <Badge variant="secondary" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> En cours</Badge>;
-      case 'completed':
-        return <Badge variant="default" className="bg-green-500 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Terminé</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" /> Annulé</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR');
-  };
-  
-  const sortedObjectives = [...objectives].sort((a, b) => {
-    // First sort by status priority: not_started -> in_progress -> completed -> cancelled
-    const statusPriority: Record<string, number> = {
-      not_started: 0,
-      in_progress: 1,
-      completed: 2,
-      cancelled: 3
-    };
-    
-    const statusA = statusPriority[a.status] || 999;
-    const statusB = statusPriority[b.status] || 999;
-    
-    if (statusA !== statusB) return statusA - statusB;
-    
-    // Then sort by target date (ascending)
+  // Trier les objectifs par date cible
+  const sortedObjectives = [...filteredObjectives].sort((a, b) => {
     return new Date(a.target_date).getTime() - new Date(b.target_date).getTime();
   });
-
+  
+  const getStatusIcon = (status: ObjectiveStatus) => {
+    switch (status) {
+      case "pending": return <Target className="h-4 w-4 text-blue-500" />;
+      case "in_progress": return <Clock className="h-4 w-4 text-amber-500" />;
+      case "achieved": return <Check className="h-4 w-4 text-green-500" />;
+      case "canceled": return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      default: return <Target className="h-4 w-4 text-blue-500" />;
+    }
+  };
+  
+  const getStatusBadge = (status: ObjectiveStatus) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700">À faire</Badge>;
+      case "in_progress":
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700">En cours</Badge>;
+      case "achieved":
+        return <Badge variant="outline" className="bg-green-50 text-green-700">Atteint</Badge>;
+      case "canceled":
+        return <Badge variant="outline" className="bg-red-50 text-red-700">Annulé</Badge>;
+      default:
+        return <Badge variant="outline">Inconnu</Badge>;
+    }
+  };
+  
+  const calculateDaysRemaining = (targetDate: string) => {
+    const today = new Date();
+    const target = new Date(targetDate);
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+  
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Objectifs du projet</CardTitle>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Ajouter un objectif
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Ajouter un objectif</DialogTitle>
-            </DialogHeader>
-            <ObjectiveForm 
-              onSubmit={handleAddObjective} 
-              projectId={projectId}
-              isLoading={isLoading}
-            />
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        {sortedObjectives.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Aucun objectif défini pour ce projet
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Titre</TableHead>
-                  <TableHead>Date cible</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedObjectives.map((objective) => (
-                  <TableRow key={objective.id}>
-                    <TableCell className="font-medium">{objective.title}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(objective.target_date)}
-                      </div>
-                    </TableCell>
-                    <TableCell>{renderStatusBadge(objective.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog open={objectiveToEdit?.id === objective.id} onOpenChange={(open) => {
-                          if (!open) setObjectiveToEdit(null);
-                          else setObjectiveToEdit(objective);
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[600px]">
-                            <DialogHeader>
-                              <DialogTitle>Modifier l'objectif</DialogTitle>
-                            </DialogHeader>
-                            {objectiveToEdit && (
-                              <ObjectiveForm 
-                                initialData={objectiveToEdit}
-                                onSubmit={handleUpdateObjective} 
-                                projectId={projectId}
-                                isLoading={isLoading}
-                              />
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Objectifs spécifiques</CardTitle>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un objectif
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">
+                Tous
+                <Badge variant="outline" className="ml-2">{objectives.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                À faire
+                <Badge variant="outline" className="ml-2">
+                  {objectives.filter(o => o.status === "pending").length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="in_progress">
+                En cours
+                <Badge variant="outline" className="ml-2">
+                  {objectives.filter(o => o.status === "in_progress").length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="achieved">
+                Atteints
+                <Badge variant="outline" className="ml-2">
+                  {objectives.filter(o => o.status === "achieved").length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="space-y-4">
+              {sortedObjectives.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <Target className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500">Aucun objectif {activeTab !== "all" ? "dans cette catégorie" : ""}</p>
+                  <Button variant="link" size="sm" onClick={() => setIsDialogOpen(true)}>
+                    Ajouter un objectif
+                  </Button>
+                </div>
+              ) : (
+                sortedObjectives.map((objective) => {
+                  const daysRemaining = calculateDaysRemaining(objective.target_date);
+                  const isOverdue = daysRemaining < 0 && objective.status !== "achieved" && objective.status !== "canceled";
+                  
+                  return (
+                    <div
+                      key={objective.id}
+                      className={`
+                        p-4 border rounded-lg transition-all duration-200 hover:shadow-sm
+                        ${isOverdue ? 'border-red-200 bg-red-50/50' : 'border-gray-200'}
+                      `}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-3">
+                          <div className={`
+                            p-2 rounded-full flex-shrink-0 mt-1
+                            ${objective.status === 'achieved' ? 'bg-green-100' :
+                              objective.status === 'in_progress' ? 'bg-amber-100' :
+                              objective.status === 'canceled' ? 'bg-red-100' :
+                              'bg-blue-100'}
+                          `}>
+                            {getStatusIcon(objective.status)}
+                          </div>
+                          <div>
+                            <h3 className="font-medium" onClick={() => onSelectObjective(objective.id)}>
+                              {objective.title}
+                            </h3>
+                            <p className="text-sm text-gray-500 mt-1">{objective.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {getStatusBadge(objective.status)}
+                          <span className="text-xs text-gray-500">
+                            {objective.status === "achieved" ? (
+                              "Objectif atteint"
+                            ) : isOverdue ? (
+                              <span className="text-red-600 font-medium">
+                                En retard de {Math.abs(daysRemaining)} jour{Math.abs(daysRemaining) > 1 ? 's' : ''}
+                              </span>
+                            ) : (
+                              <>
+                                Échéance: {format(new Date(objective.target_date), 'PPP', { locale: fr })}
+                                <span className="ml-1 text-xs">
+                                  ({daysRemaining} jour{daysRemaining > 1 ? 's' : ''})
+                                </span>
+                              </>
                             )}
-                          </DialogContent>
-                        </Dialog>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleDeleteObjective(objective.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          </span>
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                      
+                      <div className="mt-4">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-medium">Progression: {objective.progress}%</span>
+                        </div>
+                        <Progress 
+                          value={objective.progress} 
+                          className={`
+                            ${objective.status === 'achieved' ? 'bg-green-100' :
+                              objective.status === 'in_progress' ? 'bg-amber-100' :
+                              objective.status === 'canceled' ? 'bg-red-100' :
+                              'bg-blue-100'}
+                          `}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between items-center mt-4">
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => onSelectObjective(objective.id)}
+                          >
+                            Détails
+                          </Button>
+                          
+                          {objective.status !== "achieved" && objective.status !== "canceled" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => onUpdateStatus(objective.id, "achieved")}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Marquer comme atteint
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {objective.status === "pending" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => onUpdateStatus(objective.id, "in_progress")}
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Démarrer
+                            </Button>
+                          )}
+                          
+                          {objective.status === "in_progress" && (
+                            <select
+                              className="p-1 text-xs border rounded-md"
+                              value={objective.progress}
+                              onChange={(e) => onUpdateProgress(objective.id, parseInt(e.target.value))}
+                            >
+                              {Array.from({ length: 11 }, (_, i) => i * 10).map((value) => (
+                                <option key={value} value={value}>{value}%</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
+      
+      <ObjectiveFormDialog 
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSubmit={() => {
+          onCreateObjective();
+          setIsDialogOpen(false);
+        }}
+        projectId={projectId}
+      />
+    </>
   );
 }
