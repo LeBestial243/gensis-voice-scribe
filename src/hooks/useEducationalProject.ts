@@ -243,31 +243,31 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
   };
   
   // Fonctions utilitaires
-  const createProject = (projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
-    return createProjectMutation.mutateAsync({ projectData, userId });
+  const createProject = (projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<void> => {
+    return createProjectMutation.mutateAsync({ projectData, userId }).then(() => {});
   };
   
-  const updateProject = (projectId: string, updates: Partial<EducationalProject>, userId: string) => {
-    return updateProjectMutation.mutateAsync({ projectId, updates, userId });
+  const updateProject = (projectId: string, updates: Partial<EducationalProject>, userId: string): Promise<void> => {
+    return updateProjectMutation.mutateAsync({ projectId, updates, userId }).then(() => {});
   };
   
-  const deleteProject = (projectId: string, userId: string) => {
-    return deleteProjectMutation.mutateAsync({ projectId, userId });
+  const deleteProject = (projectId: string, userId: string): Promise<void> => {
+    return deleteProjectMutation.mutateAsync({ projectId, userId }).then(() => {});
   };
   
-  const addObjective = (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
-    return addObjectiveMutation.mutateAsync({ objective, userId });
+  const addObjective = (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<void> => {
+    return addObjectiveMutation.mutateAsync({ objective, userId }).then(() => {});
   };
   
-  const updateObjective = (objectiveId: string, updates: Partial<ProjectObjective>, userId: string) => {
-    return updateObjectiveMutation.mutateAsync({ objectiveId, updates, userId });
+  const updateObjective = (objectiveId: string, updates: Partial<ProjectObjective>, userId: string): Promise<void> => {
+    return updateObjectiveMutation.mutateAsync({ objectiveId, updates, userId }).then(() => {});
   };
   
-  const deleteObjective = (objectiveId: string, userId: string) => {
-    return deleteObjectiveMutation.mutateAsync({ objectiveId, userId });
+  const deleteObjective = (objectiveId: string, userId: string): Promise<void> => {
+    return deleteObjectiveMutation.mutateAsync({ objectiveId, userId }).then(() => {});
   };
   
-  const addNote = (userId: string) => {
+  const addNote = (userId: string): Promise<void> => {
     return addNoteMutation.mutateAsync({ 
       note: {
         project_id: projectId!,
@@ -275,7 +275,7 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
         content: noteContent
       }, 
       userId 
-    });
+    }).then(() => {});
   };
   
   // Filter projects by status
