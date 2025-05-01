@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,9 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 interface ObjectivesListProps {
   objectives: ProjectObjective[];
   projectId: string;
-  onAddObjective: (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  onUpdateObjective: (objectiveId: string, updates: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at' | 'updated_at'>>) => Promise<void>;
-  onDeleteObjective: (objectiveId: string) => Promise<void>;
+  onAddObjective: (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  onUpdateObjective: (objectiveId: string, updates: Partial<Omit<ProjectObjective, 'id' | 'project_id' | 'created_at' | 'updated_at'>>) => Promise<any>;
+  onDeleteObjective: (objectiveId: string) => Promise<any>;
 }
 
 export function ObjectivesList({ 
