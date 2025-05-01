@@ -13,18 +13,26 @@ import { Loader2, Save } from "lucide-react";
 
 interface EducationalProjectFormProps {
   project?: Partial<EducationalProject>;
+  initialData?: Partial<EducationalProject>; // Adding to support both naming patterns
   onSubmit: (data: Partial<EducationalProject>) => void | Promise<any>;
   onChange?: (project: Partial<EducationalProject>) => void;
   isSubmitting: boolean;
+  isLoading?: boolean; // Adding alternative name for isSubmitting
+  profileId?: string; // Adding this to match what the page is sending
 }
 
 export function EducationalProjectForm({
   project,
+  initialData,
   onSubmit,
   onChange,
-  isSubmitting
+  isSubmitting,
+  isLoading,
+  profileId
 }: EducationalProjectFormProps) {
-  const [formState, setFormState] = useState<Partial<EducationalProject>>(project || {});
+  // Use project prop if available, otherwise use initialData
+  const initialProjectData = project || initialData || {};
+  const [formState, setFormState] = useState<Partial<EducationalProject>>(initialProjectData);
   
   const handleChange = (field: keyof EducationalProject, value: any) => {
     const updatedProject = {
@@ -41,15 +49,23 @@ export function EducationalProjectForm({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formState);
+    
+    // If profileId is provided but not in formState, add it
+    const formData = profileId && !formState.profile_id 
+      ? { ...formState, profile_id: profileId }
+      : formState;
+      
+    onSubmit(formData);
   };
+  
+  const isButtonLoading = isSubmitting || isLoading;
   
   return (
     <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>
-            {project?.id ? "Modifier le projet éducatif" : "Nouveau projet éducatif"}
+            {formState?.id ? "Modifier le projet éducatif" : "Nouveau projet éducatif"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -166,13 +182,13 @@ export function EducationalProjectForm({
           </div>
           
           <div className="flex justify-end pt-4 border-t mt-4">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button type="submit" disabled={isButtonLoading}>
+              {isButtonLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              {project?.id ? "Mettre à jour" : "Créer le projet"}
+              {formState?.id ? "Mettre à jour" : "Créer le projet"}
             </Button>
           </div>
         </CardContent>
