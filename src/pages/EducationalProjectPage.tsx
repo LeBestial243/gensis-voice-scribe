@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEducationalProject } from '@/hooks/useEducationalProject';
@@ -29,8 +30,8 @@ export default function EducationalProjectPage() {
     // Loading states
     isLoadingProjects,
     isLoadingProject,
-    isCreating,
-    isUpdating,
+    isCreatingProject: isCreating,
+    isUpdatingProject: isUpdating,
     isDeleting,
     
     // Project operations
@@ -362,9 +363,10 @@ export default function EducationalProjectPage() {
               // Fix: Cast status to ObjectiveStatus
               const typedObjective = {
                 ...objective,
+                project_id: project.id,
                 status: objective.status as ObjectiveStatus
               };
-              return addObjective(typedObjective, userId).then(() => {});
+              return addObjective(typedObjective, userId);
             }}
             onUpdateObjective={(objectiveId, updates) => {
               // Fix: Cast status to ObjectiveStatus if it exists in updates
@@ -372,10 +374,10 @@ export default function EducationalProjectPage() {
                 ...updates,
                 status: updates.status ? updates.status as ObjectiveStatus : undefined
               };
-              return updateObjective(objectiveId, typedUpdates, userId).then(() => {});
+              return updateObjective(objectiveId, typedUpdates, userId);
             }}
             onDeleteObjective={(objectiveId) => {
-              return deleteObjective(objectiveId, userId).then(() => {});
+              return deleteObjective(objectiveId, userId);
             }}
           />
         </TabsContent>

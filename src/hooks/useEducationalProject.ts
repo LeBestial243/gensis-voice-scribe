@@ -69,18 +69,24 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
         events
       };
     },
-    enabled: !!projectId,
-    onSuccess: (data) => {
-      if (data) {
-        // Mettre à jour le formulaire avec les données du projet
-        setProjectForm({
-          ...data,
-          // Ne pas écraser profile_id pour éviter de changer le profil
-          profile_id: profileId
-        });
-      }
-    }
+    enabled: !!projectId
   });
+  
+  // Update form data when project data is loaded
+  if (projectId && projectQuery.data) {
+    // Ensure we don't trigger infinite loop by checking if form is different
+    if (projectForm.title !== projectQuery.data.title || 
+        projectForm.objectives !== projectQuery.data.objectives ||
+        projectForm.status !== projectQuery.data.status ||
+        projectForm.start_date !== projectQuery.data.start_date ||
+        projectForm.end_date !== projectQuery.data.end_date) {
+      setProjectForm({
+        ...projectQuery.data,
+        // Don't override profile_id to prevent changing the profile
+        profile_id: profileId
+      });
+    }
+  }
   
   // Requête pour les objectifs du projet
   const objectivesQuery = useQuery({
@@ -105,11 +111,8 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
   
   // Mutation pour créer un projet
   const createProjectMutation = useMutation({
-    mutationFn: (userId: string) => 
-      projectService.createProject({
-        ...projectForm as Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>,
-        status: projectForm.status as ProjectStatus
-      }, userId),
+    mutationFn: (data: { projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, userId: string }) => 
+      projectService.createProject(data.projectData, data.userId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['educational_projects', profileId] });
       toast({
@@ -122,15 +125,8 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
   
   // Mutation pour mettre à jour un projet
   const updateProjectMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string }) => 
-      projectService.updateProject(
-        projectId!, 
-        {
-          ...projectForm as Partial<Omit<EducationalProject, 'id' | 'profile_id' | 'created_at' | 'created_by'>>,
-          status: projectForm.status as ProjectStatus
-        }, 
-        userId
-      ),
+    mutationFn: (data: { projectId: string, updates: Partial<EducationalProject>, userId: string }) => 
+      projectService.updateProject(data.projectId, data.updates, data.userId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
       queryClient.invalidateQueries({ queryKey: ['educational_projects', profileId] });
@@ -142,14 +138,23 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
     }
   });
   
+  // Mutation pour supprimer un projet
+  const deleteProjectMutation = useMutation({
+    mutationFn: (data: { projectId: string, userId: string }) => 
+      projectService.deleteProject(data.projectId, data.userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['educational_projects', profileId] });
+      toast({
+        title: "Projet supprimé",
+        description: "Le projet éducatif a été supprimé avec succès."
+      });
+    }
+  });
+  
   // Mutation pour créer un objectif
-  const createObjectiveMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string }) => 
-      projectService.createObjective({
-        ...objectiveForm as Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>,
-        project_id: projectId!,
-        status: objectiveForm.status as ObjectiveStatus
-      }, userId),
+  const addObjectiveMutation = useMutation({
+    mutationFn: (data: { objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>, userId: string }) => 
+      projectService.createObjective(data.objective, data.userId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project_objectives', projectId] });
       queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
@@ -157,7 +162,7 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
         title: "Objectif ajouté",
         description: "L'objectif a été ajouté avec succès."
       });
-      // Réinitialiser le formulaire
+      // Reset form
       setObjectiveForm({
         title: "",
         description: "",
@@ -171,15 +176,8 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
   
   // Mutation pour mettre à jour un objectif
   const updateObjectiveMutation = useMutation({
-    mutationFn: ({ objectiveId, updates, userId }: { 
-      objectiveId: string; 
-      updates: Partial<ProjectObjective>;
-      userId: string;
-    }) => 
-      projectService.updateObjective(objectiveId, {
-        ...updates,
-        status: updates.status as ObjectiveStatus
-      }, userId),
+    mutationFn: (data: { objectiveId: string, updates: Partial<ProjectObjective>, userId: string }) => 
+      projectService.updateObjective(data.objectiveId, data.updates, data.userId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project_objectives', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project_events', projectId] });
@@ -192,14 +190,25 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
     }
   });
   
+  // Mutation pour supprimer un objectif
+  const deleteObjectiveMutation = useMutation({
+    mutationFn: (data: { objectiveId: string, userId: string }) => 
+      projectService.deleteObjective(data.objectiveId, data.userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project_objectives', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project_events', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['educational_project', projectId] });
+      toast({
+        title: "Objectif supprimé",
+        description: "L'objectif a été supprimé avec succès."
+      });
+    }
+  });
+  
   // Mutation pour ajouter une note
   const addNoteMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string }) => 
-      projectService.addProjectNote({
-        project_id: projectId!,
-        objective_id: selectedObjectiveId || undefined,
-        content: noteContent
-      }, userId),
+    mutationFn: (data: { note: Omit<ProjectNote, 'id' | 'created_at'>, userId: string }) => 
+      projectService.addProjectNote(data.note, data.userId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project_notes', projectId, selectedObjectiveId] });
       queryClient.invalidateQueries({ queryKey: ['project_events', projectId] });
@@ -234,36 +243,39 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
   };
   
   // Fonctions utilitaires
-  const createProject = (userId: string) => {
-    return createProjectMutation.mutateAsync(userId);
+  const createProject = (projectData: Omit<EducationalProject, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
+    return createProjectMutation.mutateAsync({ projectData, userId });
   };
   
-  const updateProject = (userId: string) => {
-    return updateProjectMutation.mutateAsync({ userId });
+  const updateProject = (projectId: string, updates: Partial<EducationalProject>, userId: string) => {
+    return updateProjectMutation.mutateAsync({ projectId, updates, userId });
   };
   
-  const createObjective = (userId: string) => {
-    return createObjectiveMutation.mutateAsync({ userId });
+  const deleteProject = (projectId: string, userId: string) => {
+    return deleteProjectMutation.mutateAsync({ projectId, userId });
   };
   
-  const updateObjectiveStatus = (objectiveId: string, status: ObjectiveStatus, userId: string) => {
-    return updateObjectiveMutation.mutateAsync({
-      objectiveId,
-      updates: { status },
-      userId
-    });
+  const addObjective = (objective: Omit<ProjectObjective, 'id' | 'created_at' | 'updated_at'>, userId: string) => {
+    return addObjectiveMutation.mutateAsync({ objective, userId });
   };
   
-  const updateObjectiveProgress = (objectiveId: string, progress: number, userId: string) => {
-    return updateObjectiveMutation.mutateAsync({
-      objectiveId,
-      updates: { progress },
-      userId
-    });
+  const updateObjective = (objectiveId: string, updates: Partial<ProjectObjective>, userId: string) => {
+    return updateObjectiveMutation.mutateAsync({ objectiveId, updates, userId });
+  };
+  
+  const deleteObjective = (objectiveId: string, userId: string) => {
+    return deleteObjectiveMutation.mutateAsync({ objectiveId, userId });
   };
   
   const addNote = (userId: string) => {
-    return addNoteMutation.mutateAsync({ userId });
+    return addNoteMutation.mutateAsync({ 
+      note: {
+        project_id: projectId!,
+        objective_id: selectedObjectiveId || undefined,
+        content: noteContent
+      }, 
+      userId 
+    });
   };
   
   // Filter projects by status
@@ -294,9 +306,10 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
     isLoadingObjectives: objectivesQuery.isLoading,
     isCreatingProject: createProjectMutation.isPending,
     isUpdatingProject: updateProjectMutation.isPending,
-    isCreatingObjective: createObjectiveMutation.isPending,
+    isCreatingObjective: addObjectiveMutation.isPending,
     isUpdatingObjective: updateObjectiveMutation.isPending,
     isAddingNote: addNoteMutation.isPending,
+    isDeleting: deleteProjectMutation.isPending,
     
     // Actions
     setProjectForm,
@@ -305,9 +318,10 @@ export function useEducationalProject({ profileId, projectId }: UseEducationalPr
     setSelectedObjectiveId,
     createProject,
     updateProject,
-    createObjective,
-    updateObjectiveStatus,
-    updateObjectiveProgress,
+    deleteProject,
+    addObjective,
+    updateObjective,
+    deleteObjective,
     addNote,
     getProjectsByStatus,
     
