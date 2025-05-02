@@ -30,11 +30,11 @@ export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  reportType: string;  // Changed from reportType -> reportType
-  startDate: string;   // Changed from startDate -> startDate  
-  endDate: string;     // Changed from endDate -> endDate
+  reportType: string;
+  startDate: string;
+  endDate: string;
   createdAt: string;
-  sections: {          // Changed from sections -> sections
+  sections: {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];
