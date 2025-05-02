@@ -16,10 +16,10 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   
   // State for report generation
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [periodStart, setPeriodStart] = useState<Date | undefined>(
+  const [periodStart, setPeriodStart] = useState<Date>(
     new Date(new Date().setMonth(new Date().getMonth() - 3))
   );
-  const [periodEnd, setPeriodEnd] = useState<Date | undefined>(new Date());
+  const [periodEnd, setPeriodEnd] = useState<Date>(new Date());
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeTranscriptions, setIncludeTranscriptions] = useState(true);
   const [customInstructions, setCustomInstructions] = useState("");

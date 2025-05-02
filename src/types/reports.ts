@@ -30,8 +30,8 @@ export interface ReportSection {
 export interface OfficialReport {
   id: string;
   profileId: string;
-  reportType: string;
   title: string;
+  reportType: string;
   startDate: string;
   endDate: string;
   createdAt: string;
@@ -39,4 +39,17 @@ export interface OfficialReport {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];
+}
+
+export interface OfficialReportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  structure: {
+    sections: {
+      title: string;
+      type: string;
+      placeholder?: string;
+    }[];
+  };
 }
