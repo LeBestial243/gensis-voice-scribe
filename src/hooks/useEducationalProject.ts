@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { projectService } from "@/services/projectService";
@@ -10,6 +9,7 @@ import {
   ObjectiveStatus
 } from "@/types/casf";
 import { useToast } from "@/hooks/use-toast";
+import { aiService } from "@/services/aiService"; // Updated import path from 'ai-service' to 'aiService'
 
 // Properly type the hook parameters
 interface UseEducationalProjectProps {
