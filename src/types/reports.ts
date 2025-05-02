@@ -26,7 +26,7 @@ export interface ReportSection {
   data?: any;
 }
 
-// Updated OfficialReport interface to match how it's used in the code
+// Updated OfficialReport interface to include all required properties
 export interface OfficialReport {
   id: string;
   profileId: string;
