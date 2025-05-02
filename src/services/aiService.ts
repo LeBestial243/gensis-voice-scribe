@@ -1,4 +1,3 @@
-
 interface AIServiceConfig {
   apiKey: string;
   baseURL: string;
@@ -24,7 +23,7 @@ export class AIService {
     themes: string[],
     sentiments: {positive: number, negative: number, neutral: number},
     keyPoints: string[],
-    inconsistencies: {type: string, message: string}[],
+    inconsistencies: {type: string, message: string, severity: 'low' | 'medium' | 'high'}[],
     suggestions: string[]
   }> {
     try {
