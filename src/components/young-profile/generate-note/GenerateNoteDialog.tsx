@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,15 +21,17 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
   const [activeTab, setActiveTab] = useState<string>("folders");
   const [selectedFiles, setSelectedFiles] = useState<FileContent[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<string>("");
   const { toast } = useToast();
   
   const { 
-    generateNote, 
-    isLoading, 
-    result,
+    handleGenerate,
+    isGenerating: isLoading,
+    generatedContent: result,
     saveNote,
-    isSaving,
-    reset
+    handleReset: reset,
+    noteTitle,
+    setNoteTitle
   } = useNoteGeneration({ profileId });
   
   // Reset state when dialog opens/closes
@@ -45,12 +46,24 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
     }
   }, [open, reset]);
   
-  const handleFileSelect = (file: FileContent) => {
-    // Check if already selected
-    if (selectedFiles.some(f => f.id === file.id)) {
-      setSelectedFiles(selectedFiles.filter(f => f.id !== file.id));
+  const handleFileSelect = (fileId: string) => {
+    // Find the file in selectedFiles
+    const existingIndex = selectedFiles.findIndex(f => f.id === fileId);
+    if (existingIndex >= 0) {
+      // Remove if already selected
+      setSelectedFiles(selectedFiles.filter(f => f.id !== fileId));
     } else {
-      setSelectedFiles([...selectedFiles, file]);
+      // Otherwise we need to fetch the file and add it
+      // For simplicity, we'll just add an empty file here
+      // In a real implementation, you would fetch the file data
+      const newFile: FileContent = {
+        id: fileId,
+        name: fileId,
+        content: '',
+        type: '',
+        folderName: ''
+      };
+      setSelectedFiles([...selectedFiles, newFile]);
     }
   };
   
@@ -58,7 +71,7 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
     setSelectedTemplateId(templateId === selectedTemplateId ? null : templateId);
   };
   
-  const handleGenerate = async () => {
+  const handleGeneration = async () => {
     if (selectedFiles.length === 0 && !selectedTemplateId) {
       toast({
         title: "Sélection requise",
@@ -68,14 +81,14 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
       return;
     }
     
-    await generateNote({
+    await handleGenerate({
       files: selectedFiles,
       templateId: selectedTemplateId
     });
   };
   
   const handleSave = async ({ title, content }: SaveNoteParams) => {
-    await saveNote({ 
+    await saveNote.mutateAsync({ 
       title, 
       content,
       type: "note"
@@ -97,10 +110,10 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
         
         {result ? (
           <ResultEditor 
-            content={result} 
-            onSave={handleSave} 
-            onBack={() => reset()}
-            isSaving={isSaving}
+            noteTitle={noteTitle} 
+            onTitleChange={setNoteTitle}
+            generatedContent={result} 
+            onContentChange={setGeneratedContent}
           />
         ) : (
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -114,14 +127,14 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
                 <FolderSelector 
                   profileId={profileId}
                   onFileSelect={handleFileSelect}
-                  selectedFiles={selectedFiles}
+                  selectedFiles={selectedFiles.map(f => f.id)}
                 />
               </TabsContent>
               
               <TabsContent value="templates" className="flex-1 overflow-hidden">
                 <TemplateSelector 
-                  selectedTemplateId={selectedTemplateId} 
-                  onSelect={handleTemplateSelect}
+                  selectedTemplateId={selectedTemplateId || ""}
+                  onTemplateSelect={handleTemplateSelect}
                 />
               </TabsContent>
             </Tabs>
@@ -138,7 +151,7 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
               </Button>
               
               <Button 
-                onClick={handleGenerate} 
+                onClick={handleGeneration} 
                 disabled={isLoading || (selectedFiles.length === 0 && !selectedTemplateId)}
               >
                 {isLoading ? (

@@ -327,13 +327,13 @@ export function OfficialReportGenerator() {
                       <CardHeader className="py-4">
                         <CardTitle className="text-lg">{report.title}</CardTitle>
                         <CardDescription>
-                          {report.reportType} • {format(new Date(report.startDate), 'dd/MM/yyyy')} - {format(new Date(report.endDate), 'dd/MM/yyyy')}
+                          {report.report_type || report.reportType} • {format(new Date(report.period_start || report.startDate), 'dd/MM/yyyy')} - {format(new Date(report.period_end || report.endDate), 'dd/MM/yyyy')}
                         </CardDescription>
                       </CardHeader>
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {report.sections.map((section, index) => (
+                            {(report.sections || []).map((section, index) => (
                               <div key={index} className="space-y-2">
                                 <h4 className="font-semibold text-sm">{section.title}</h4>
                                 {typeof section.content === 'string' ? (

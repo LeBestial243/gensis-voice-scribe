@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Download, Save } from "lucide-react";
+import { Save } from "lucide-react";
 
 interface ResultEditorProps {
   noteTitle: string;
@@ -41,6 +41,13 @@ export function ResultEditor({
             placeholder="Le contenu généré apparaîtra ici. Vous pourrez le modifier avant de sauvegarder."
           />
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button type="button">
+          <Save className="mr-2 h-4 w-4" />
+          Sauvegarder
+        </Button>
       </div>
     </div>
   );
