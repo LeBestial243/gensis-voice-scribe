@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,35 +13,40 @@ import TemplatesPage from "./pages/TemplatesPage";
 import CASFReportsPage from "./pages/CASFReportsPage";
 import EducationalProjectPage from "./pages/EducationalProjectPage";
 import ConfidentialitySettingsPage from "./pages/ConfidentialitySettingsPage";
+import CriticalIncidentsPage from './pages/CriticalIncidentsPage';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profiles" element={<Profiles />} />
-            <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
-            <Route path="/templates" element={<TemplatesPage />} />
-            
-            {/* Routes CASF */}
-            <Route path="/casf-reports" element={<CASFReportsPage />} />
-            <Route path="/young_profiles/:id/projects" element={<EducationalProjectPage />} />
-            <Route path="/young_profiles/:id/projects/:projectId" element={<EducationalProjectPage />} />
-            <Route path="/confidentiality" element={<ConfidentialitySettingsPage />} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profiles" element={<Profiles />} />
+              <Route path="/young_profiles/:id" element={<YoungProfilePage />} />
+              <Route path="/templates" element={<TemplatesPage />} />
+              
+              {/* Routes CASF */}
+              <Route path="/casf-reports" element={<CASFReportsPage />} />
+              <Route path="/young_profiles/:id/projects" element={<EducationalProjectPage />} />
+              <Route path="/young_profiles/:id/projects/:projectId" element={<EducationalProjectPage />} />
+              <Route path="/confidentiality" element={<ConfidentialitySettingsPage />} />
+              
+              <Route path="/young-profile/:id/incidents" element={<CriticalIncidentsPage />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
