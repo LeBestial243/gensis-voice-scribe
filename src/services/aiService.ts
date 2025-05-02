@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ConfidentialityLevel } from '@/types/confidentiality';
 
@@ -12,7 +13,7 @@ export interface AIServiceConfig {
  * Service principal pour toutes les fonctionnalités IA de l'application
  */
 export class AIService {
-  private config: AIServiceConfig;
+  config: AIServiceConfig;
   
   constructor(config: AIServiceConfig) {
     this.config = {
