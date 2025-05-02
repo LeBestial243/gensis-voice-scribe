@@ -1,170 +1,135 @@
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
-import {
-  Legend,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts";
+import { Card } from "@/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useMemo } from "react";
 
-interface EmotionPoint {
-  timestamp: number;
-  value: number;
-}
-
-interface EmotionSeries {
-  name: string;
-  data: EmotionPoint[];
+interface EmotionDataPoint {
+  date: string;
+  joy: number;
+  sadness: number;
+  anger: number;
+  fear: number;
+  surprise: number;
+  disgust: number;
+  [key: string]: string | number;
 }
 
 interface EmotionalChartProps {
-  data: EmotionSeries[];
+  data: EmotionDataPoint[];
 }
 
-// Map of emotion names to colors
-const EMOTION_COLORS: Record<string, string> = {
-  'joie': '#4ade80', // green
-  'tristesse': '#60a5fa', // blue
-  'colère': '#f87171', // red
-  'peur': '#a78bfa', // purple
-  'surprise': '#facc15', // yellow
-  'dégoût': '#a3a3a3', // gray
-  'confiance': '#2dd4bf', // teal
-};
-
-// Map of emotion names to French translations
-const EMOTION_LABELS: Record<string, string> = {
-  'joie': 'Joie',
-  'tristesse': 'Tristesse',
-  'colère': 'Colère',
-  'peur': 'Peur/Anxiété',
-  'surprise': 'Surprise',
-  'dégoût': 'Dégoût',
-  'confiance': 'Confiance',
-};
-
 export function EmotionalChart({ data }: EmotionalChartProps) {
-  // Process data for chart consumption
-  const chartData = processDataForChart(data);
-  
-  // If we have no data, show an empty state
-  if (chartData.length === 0) {
+  // If we don't have data, show a placeholder message
+  if (!data || data.length === 0) {
     return (
-      <Card className="w-full h-[300px] flex items-center justify-center">
-        <CardContent className="text-muted-foreground text-center">
-          <p>Aucune donnée émotionnelle disponible.</p>
-          <p className="text-sm">Analysez des transcriptions pour voir l'évolution émotionnelle.</p>
-        </CardContent>
-      </Card>
+      <div className="h-64 flex items-center justify-center border border-dashed rounded-lg bg-muted/20">
+        <p className="text-muted-foreground">Pas de données émotionnelles disponibles</p>
+      </div>
     );
   }
 
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle>Évolution émotionnelle</CardTitle>
-        <CardDescription>
-          Intensité des émotions détectées au fil des transcriptions
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={(timestamp) => {
-                  const date = new Date(timestamp);
-                  return `${date.getDate()}/${date.getMonth() + 1}`;
-                }}
-              />
-              <YAxis 
-                domain={[0, 1]} 
-                tickFormatter={(value) => `${Math.round(value * 100)}%`}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const date = new Date(payload[0].payload.date);
-                    
-                    return (
-                      <div className="bg-background border rounded-md shadow-md p-2">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {formatDistanceToNow(date, { addSuffix: true, locale: fr })}
-                        </p>
-                        {payload.map((entry) => (
-                          <div key={entry.name} className="flex items-center gap-2">
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: entry.color }}
-                            />
-                            <p className="text-xs">
-                              {EMOTION_LABELS[entry.name] || entry.name}: 
-                              <span className="font-medium ml-1">
-                                {Math.round(entry.value * 100)}%
-                              </span>
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Legend />
-              {data.map((series) => (
-                <Line
-                  key={series.name}
-                  type="monotone"
-                  name={EMOTION_LABELS[series.name] || series.name}
-                  dataKey={series.name}
-                  stroke={EMOTION_COLORS[series.name] || '#888888'}
-                  activeDot={{ r: 8 }}
-                  strokeWidth={2}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+  // Colors for different emotions
+  const emotionColors = {
+    joy: "#4CAF50",       // Green
+    sadness: "#2196F3",   // Blue
+    anger: "#F44336",     // Red
+    fear: "#9C27B0",      // Purple
+    surprise: "#FF9800",  // Orange
+    disgust: "#795548"    // Brown
+  };
 
-// Helper function to process data series into a format suitable for Recharts
-function processDataForChart(series: EmotionSeries[]): any[] {
-  if (!series || series.length === 0) {
-    return [];
-  }
-  
-  // Collect all timestamps
-  const allTimestamps = new Set<number>();
-  series.forEach(s => {
-    s.data.forEach(point => {
-      allTimestamps.add(point.timestamp);
-    });
-  });
-  
-  // Create a sorted array of unique timestamps
-  const timestamps = Array.from(allTimestamps).sort((a, b) => a - b);
-  
-  // Create a data point for each timestamp
-  return timestamps.map(timestamp => {
-    const dataPoint: Record<string, any> = { date: timestamp };
+  // Format date for better display on the chart
+  const formattedData = useMemo(() => {
+    return data.map(entry => ({
+      ...entry,
+      date: new Date(entry.date).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short'
+      })
+    }));
+  }, [data]);
+
+  // Custom tooltip for the chart
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-md shadow-lg">
+          <p className="font-semibold">{label}</p>
+          <div className="grid gap-1 mt-1">
+            {payload.map((item: any, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-sm capitalize">
+                  {item.name}: {Number(item.value).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Calculate moving averages for smoother lines
+  const smoothedData = useMemo(() => {
+    if (data.length <= 2) return formattedData;
     
-    // Add values for each series
-    series.forEach(s => {
-      const point = s.data.find(p => p.timestamp === timestamp);
-      dataPoint[s.name] = point ? point.value : null;
-    });
+    const emotionKeys = Object.keys(emotionColors);
+    const windowSize = 2; // Size of the moving average window
     
-    return dataPoint;
-  });
+    return formattedData.map((point, idx) => {
+      if (idx < windowSize || idx >= formattedData.length - windowSize) {
+        return point; // Return original for edges
+      }
+      
+      const smoothed = { ...point };
+      
+      emotionKeys.forEach(emotion => {
+        let sum = 0;
+        for (let i = idx - windowSize; i <= idx + windowSize; i++) {
+          if (i >= 0 && i < formattedData.length) {
+            // Convert to number explicitly before addition
+            const value = Number(formattedData[i][emotion]);
+            sum += isNaN(value) ? 0 : value;
+          }
+        }
+        smoothed[emotion] = sum / (2 * windowSize + 1);
+      });
+      
+      return smoothed;
+    });
+  }, [formattedData]);
+
+  return (
+    <div className="w-full h-72">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={smoothedData}
+          margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+          <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          {Object.entries(emotionColors).map(([emotion, color]) => (
+            <Line
+              key={emotion}
+              type="monotone"
+              dataKey={emotion}
+              stroke={color}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+              name={emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }

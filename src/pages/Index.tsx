@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { useAuth, useRequireAuth } from "@/lib/auth";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
@@ -20,16 +19,14 @@ const Index = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <AppSidebar />
-        <div className="flex-1">
-          <Header />
-          <DashboardHome />
-          {isMobile && <MobileNav className="animate-slide-up" />}
-        </div>
+    <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <AppSidebar />
+      <div className="flex-1">
+        <Header />
+        <DashboardHome />
+        {isMobile && <MobileNav className="animate-slide-up" />}
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
 
