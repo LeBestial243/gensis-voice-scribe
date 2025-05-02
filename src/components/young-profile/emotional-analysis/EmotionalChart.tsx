@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useMemo } from "react";
 
-interface EmotionDataPoint {
+export interface EmotionDataPoint {
   date: string;
   joy: number;
   sadness: number;

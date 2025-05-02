@@ -25,7 +25,7 @@ export function useEmotionalAnalysis(profileId: string) {
     }
   });
   
-  // Process the raw emotional data to get trends over time
+  // Process the raw emotional data to get trends over time formatted for the chart
   const getEmotionalTrends = () => {
     const data = emotionalDataQuery.data || [];
     
@@ -33,28 +33,39 @@ export function useEmotionalAnalysis(profileId: string) {
       return [];
     }
     
-    // Group by emotion
-    const emotionGroups: Record<string, EmotionData[]> = {};
+    // Group by date first
+    const dateGroups: Record<string, { [emotion: string]: number }> = {};
     
     data.forEach(item => {
-      if (!emotionGroups[item.emotion]) {
-        emotionGroups[item.emotion] = [];
+      const date = new Date(item.timestamp).toISOString().split('T')[0];
+      
+      if (!dateGroups[date]) {
+        dateGroups[date] = {
+          joy: 0,
+          sadness: 0,
+          anger: 0,
+          fear: 0,
+          surprise: 0,
+          disgust: 0
+        };
       }
-      emotionGroups[item.emotion].push(item);
+      
+      // Add to the appropriate emotion
+      if (item.emotion in dateGroups[date]) {
+        dateGroups[date][item.emotion] = item.score * 100; // Scale to 0-100
+      }
     });
     
-    // Create trend data by emotion
-    const trends = Object.entries(emotionGroups).map(([emotion, items]) => {
+    // Convert to array format needed by the chart
+    const trends = Object.entries(dateGroups).map(([date, emotions]) => {
       return {
-        name: emotion,
-        data: items.map(item => ({
-          timestamp: new Date(item.timestamp).getTime(),
-          value: item.score
-        }))
+        date,
+        ...emotions
       };
     });
     
-    return trends;
+    // Sort by date
+    return trends.sort((a, b) => a.date.localeCompare(b.date));
   };
   
   // Process emotional data to get dominant emotions
