@@ -1,5 +1,6 @@
+
 import { useState, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileHeader } from '@/components/young-profile/ProfileHeader';
@@ -13,8 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
 
 export default function YoungProfilePage() {
-  const { id } = useParams<{ id: string }>();
-  const profileId = id || '';
+  const { profileId } = useParams<{ profileId: string }>();
+  const id = profileId || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('transcriptions');
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -23,25 +24,26 @@ export default function YoungProfilePage() {
   const { toast } = useToast();
   const { invalidateProfile } = useQueryCache();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const refreshData = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['young_profile', profileId] });
-    queryClient.invalidateQueries({ queryKey: ['folders', profileId] });
+    queryClient.invalidateQueries({ queryKey: ['young_profile', id] });
+    queryClient.invalidateQueries({ queryKey: ['folders', id] });
     queryClient.invalidateQueries({ queryKey: ['files'] });
     queryClient.invalidateQueries({ queryKey: ['transcriptions'] });
     queryClient.invalidateQueries({ queryKey: ['notes'] });
-  }, [profileId, queryClient]);
+  }, [id, queryClient]);
 
   useEffect(() => {
     const handleProfileDataChange = () => {
-      if (profileId) {
+      if (id) {
         refreshData();
       }
     };
 
     window.addEventListener('profile:data-changed', handleProfileDataChange);
     return () => window.removeEventListener('profile:data-changed', handleProfileDataChange);
-  }, [profileId, refreshData]);
+  }, [id, refreshData]);
 
   useEffect(() => {
     setSearchQuery('');
@@ -49,17 +51,17 @@ export default function YoungProfilePage() {
     setActiveFolderId(null);
     setIsRecordingOpen(false);
     setIsGenerateNoteOpen(false);
-  }, [profileId]);
+  }, [id]);
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
-    queryKey: ['young_profile', profileId],
+    queryKey: ['young_profile', id],
     queryFn: async () => {
-      if (!profileId) throw new Error('ID de profil manquant');
+      if (!id) throw new Error('ID de profil manquant');
 
       const { data, error } = await supabase
         .from('young_profiles')
         .select('*')
-        .eq('id', profileId)
+        .eq('id', id)
         .single();
 
       if (error) {
@@ -72,17 +74,17 @@ export default function YoungProfilePage() {
       }
       return data;
     },
-    enabled: !!profileId,
+    enabled: !!id,
     staleTime: 5000,
   });
 
   const { data: folders = [] } = useQuery({
-    queryKey: ['folders', profileId],
+    queryKey: ['folders', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('folders')
         .select('id, title')
-        .eq('profile_id', profileId);
+        .eq('profile_id', id);
 
       if (error) {
         toast({
@@ -94,11 +96,9 @@ export default function YoungProfilePage() {
       }
       return data;
     },
-    enabled: !!profileId,
+    enabled: !!id,
     staleTime: 5000,
   });
-
-  const folderIds = folders.map(folder => folder.id);
 
   const handleOpenGenerateNote = useCallback(() => {
     setIsGenerateNoteOpen(true);
@@ -117,6 +117,12 @@ export default function YoungProfilePage() {
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
     setSearchQuery('');
+  };
+
+  const handleEmotionalAnalysis = () => {
+    if (id) {
+      navigate(`/emotional-analysis/${id}`);
+    }
   };
 
   if (profileLoading) {
@@ -164,7 +170,7 @@ export default function YoungProfilePage() {
 
       <main className="container py-6 space-y-6">
         <SearchTabs 
-          profileId={profileId}
+          profileId={id}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           selectedTab={selectedTab}
@@ -177,13 +183,15 @@ export default function YoungProfilePage() {
       <FloatingActions 
         onRecordingClick={() => setIsRecordingOpen(true)}
         onGenerateNoteClick={handleOpenGenerateNote}
+        onEmotionalAnalysisClick={handleEmotionalAnalysis}
+        profileId={id}
       />
 
       <TranscriptionDialog
         key={`transcription-dialog-${isRecordingOpen}`}
         open={isRecordingOpen}
         onOpenChange={handleCloseRecordingDialog}
-        profileId={profileId}
+        profileId={id}
         folders={folders}
         youngProfile={profile}
       />
@@ -192,7 +200,7 @@ export default function YoungProfilePage() {
         key={`generate-note-dialog-${isGenerateNoteOpen}`}
         open={isGenerateNoteOpen}
         onOpenChange={handleCloseGenerateNoteDialog}
-        profileId={profileId}
+        profileId={id}
       />
     </div>
   );

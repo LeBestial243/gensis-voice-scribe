@@ -8,15 +8,15 @@ import { useNavigate } from "react-router-dom";
 interface FloatingActionsProps {
   onRecordingClick: () => void;
   onGenerateNoteClick: () => void;
-  onEmotionalAnalysisClick: () => void;
-  profileId: string;
+  onEmotionalAnalysisClick?: () => void;
+  profileId?: string;
 }
 
 export function FloatingActions({
   onRecordingClick,
   onGenerateNoteClick,
-  onEmotionalAnalysisClick,
-  profileId
+  onEmotionalAnalysisClick = () => {},
+  profileId = ""
 }: FloatingActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -27,7 +27,15 @@ export function FloatingActions({
   };
 
   const handleGenerateReportClick = () => {
-    navigate(`/official-report/${profileId}`);
+    if (profileId) {
+      navigate(`/official-report/${profileId}`);
+    } else {
+      toast({
+        title: "Error",
+        description: "No profile ID available",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
