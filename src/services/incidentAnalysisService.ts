@@ -38,7 +38,7 @@ export const incidentAnalysisService = {
       
       // For now, let's generate some mock incidents and patterns based on inconsistencies
       // In a real implementation, we would use a more sophisticated AI analysis
-      const incidents = inconsistencies.map((inc, index) => ({
+      const incidents: CriticalIncident[] = inconsistencies.map((inc, index) => ({
         id: `incident-${index}`,
         date: new Date().toISOString(),
         title: `Incident potentiel: ${inc.type}`,
@@ -46,7 +46,7 @@ export const incidentAnalysisService = {
         transcriptionId: files[index % files.length].id,
         severity: inc.severity || 'medium',
         type: mapInconsistencyToType(inc.type),
-        status: 'new'
+        status: 'new' as const // Using 'as const' to ensure TypeScript recognizes this as a literal type
       }));
       
       // Generate mock patterns based on incident types
