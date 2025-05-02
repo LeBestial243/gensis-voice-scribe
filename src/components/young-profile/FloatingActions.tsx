@@ -46,7 +46,7 @@ export function FloatingActions({
             <Button
               onClick={onRecordingClick}
               size="icon"
-              className="bg-red-500 hover:bg-red-600 shadow-lg"
+              className="bg-red-500 hover:bg-red-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
               aria-label="Enregistrer une transcription"
             >
               <Mic className="h-5 w-5" />
@@ -55,7 +55,7 @@ export function FloatingActions({
             <Button
               onClick={onGenerateNoteClick}
               size="icon"
-              className="bg-purple-500 hover:bg-purple-600 shadow-lg"
+              className="bg-purple-500 hover:bg-purple-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
               aria-label="Générer une note"
             >
               <FileText className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function FloatingActions({
             <Button
               onClick={onEmotionalAnalysisClick}
               size="icon"
-              className="bg-blue-500 hover:bg-blue-600 shadow-lg"
+              className="bg-blue-500 hover:bg-blue-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
               aria-label="Analyse émotionnelle"
             >
               <Activity className="h-5 w-5" />
@@ -73,7 +73,7 @@ export function FloatingActions({
             <Button
               onClick={handleGenerateReportClick}
               size="icon"
-              className="bg-amber-500 hover:bg-amber-600 shadow-lg"
+              className="bg-amber-500 hover:bg-amber-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
               aria-label="Générer un rapport officiel"
             >
               <FileDigit className="h-5 w-5" />
@@ -84,9 +84,9 @@ export function FloatingActions({
         <Button
           onClick={toggleMenu}
           size="lg"
-          className="rounded-full shadow-xl h-14 w-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 p-0"
+          className="rounded-full shadow-xl h-14 w-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 p-0 transition-all duration-300"
         >
-          <FileUp className={`h-6 w-6 transition-transform ${isOpen ? "rotate-45" : ""}`} />
+          <FileUp className={`h-6 w-6 transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`} />
         </Button>
       </div>
     </div>
