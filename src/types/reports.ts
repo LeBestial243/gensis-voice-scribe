@@ -26,7 +26,7 @@ export interface ReportSection {
   data?: any;
 }
 
-// Updated OfficialReport interface to include all required properties
+// Updated OfficialReport interface to match the properties used in OfficialReportGenerator.tsx
 export interface OfficialReport {
   id: string;
   profileId: string;

@@ -7,10 +7,11 @@ import { aiService } from './aiService';
  */
 export function initializeAIService(): void {
   // En production, les clés API devraient être sécurisées via un service backend
-  // Pour le développement, nous utilisons une variable temporaire
+  // Pour le développement, nous utilisons les variables d'environnement
   
-  // Rôle du service: mettre à jour la configuration du service AI avec les bonnes valeurs
-  // sans exposer les clés API directement dans le code
+  // Vous pouvez configurer les paramètres du service AI ici si nécessaire
+  // Exemple: 
+  // aiService.config = { ... }
   
   console.log("Service d'IA initialisé");
 }

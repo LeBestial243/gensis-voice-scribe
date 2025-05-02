@@ -24,7 +24,7 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeTranscriptions, setIncludeTranscriptions] = useState(true);
   const [customInstructions, setCustomInstructions] = useState("");
-  const [generatedReport, setGeneratedReport] = useState<Record<string, any> | null>(null);
+  const [generatedReport, setGeneratedReport] = useState<OfficialReport | null>(null);
   
   // Fetch available report templates
   const {
@@ -49,7 +49,7 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   // Generate report mutation
   const generateMutation = useMutation({
     mutationFn: async (params: GenerateReportParams) => {
-      // Utiliser le service AI pour la génération
+      // Use the AI service for report generation
       const generatedReport = await aiService.generateOfficialReport(
         params.profileId,
         params.templateId,
@@ -65,7 +65,7 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
       return generatedReport;
     },
     onSuccess: (data) => {
-      setGeneratedReport(data);
+      setGeneratedReport(data as OfficialReport);
       toast({
         title: "Rapport généré",
         description: "Le rapport a été généré avec succès"
@@ -78,7 +78,7 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   
   // Save report mutation
   const saveMutation = useMutation({
-    mutationFn: (report: Record<string, any>) => 
+    mutationFn: (report: OfficialReport) => 
       officialReportService.saveReport(report, profileId),
     onSuccess: () => {
       toast({
@@ -122,7 +122,7 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   };
   
   // Handle report saving
-  const handleSaveReport = (report: Record<string, any>) => {
+  const handleSaveReport = (report: OfficialReport) => {
     return saveMutation.mutateAsync(report);
   };
   

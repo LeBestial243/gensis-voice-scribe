@@ -36,6 +36,7 @@ export class AIService {
     entities?: {name: string, type: string}[];
     themes?: string[];
     summary?: string;
+    suggestions?: string[]; // Added for emotionalAnalysisService
   }> {
     try {
       // Utiliser la fonction Edge de Supabase pour l'analyse
@@ -198,13 +199,22 @@ export class AIService {
         
       if (profileError) throw profileError;
       
-      // Récupération des observations récentes
+      // Récupération des observations récentes - Fix the query
+      const { data: folderIds } = await supabase
+        .from('folders')
+        .select('id')
+        .eq('profile_id', profileId);
+        
+      if (!folderIds || folderIds.length === 0) {
+        return { objectives: [] };
+      }
+      
+      const folderIdArray = folderIds.map(folder => folder.id);
+      
       const { data: recentFiles, error: filesError } = await supabase
         .from('files')
         .select('*')
-        .in('folder_id', function(query) {
-          query.select('id').from('folders').eq('profile_id', profileId);
-        })
+        .in('folder_id', folderIdArray)
         .order('created_at', { ascending: false })
         .limit(10);
         
@@ -268,12 +278,26 @@ export class AIService {
       // Récupérer les observations depuis le début du projet
       const startDate = new Date(projectData.start_date);
       
+      // Fix the query using the same approach as above
+      const { data: folderIds } = await supabase
+        .from('folders')
+        .select('id')
+        .eq('profile_id', projectData.profile_id);
+        
+      if (!folderIds || folderIds.length === 0) {
+        return {
+          overall_progress: 0,
+          objective_evaluations: [],
+          project_recommendations: []
+        };
+      }
+      
+      const folderIdArray = folderIds.map(folder => folder.id);
+      
       const { data: observations, error: obsError } = await supabase
         .from('files')
         .select('*')
-        .in('folder_id', function(query) {
-          query.select('id').from('folders').eq('profile_id', projectData.profile_id);
-        })
+        .in('folder_id', folderIdArray)
         .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: false });
         
@@ -332,6 +356,22 @@ export class AIService {
     } catch (error) {
       console.error("Erreur lors de la génération du rapport officiel:", error);
       throw error;
+    }
+  }
+  
+  /**
+   * Détecte les inconsistances dans un ensemble de transcriptions
+   * Ajouté pour résoudre l'erreur dans incidentAnalysisService.ts
+   */
+  async detectInconsistencies(transcriptions: string[]): Promise<any[]> {
+    try {
+      // Cette fonction serait normalement implémentée pour appeler une fonction Edge
+      // Pour le moment, on retourne un tableau vide
+      console.warn("Méthode detectInconsistencies appelée mais non implémentée");
+      return [];
+    } catch (error) {
+      console.error("Erreur lors de la détection des inconsistances:", error);
+      return [];
     }
   }
 }
