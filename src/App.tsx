@@ -19,6 +19,7 @@ import NotFound from '@/pages/NotFound';
 import { Header } from '@/components/Header';
 import { AppSidebar } from '@/components/AppSidebar';
 import PriorityDashboardPage from '@/pages/PriorityDashboardPage';
+import EmotionalAnalysisPage from '@/pages/EmotionalAnalysisPage';
 
 function App() {
   const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ function App() {
               <Route path="/educational-project/:projectId" element={<EducationalProjectPage />} />
               <Route path="/educational-project-generator/:profileId" element={<EducationalProjectGeneratorPage />} />
               <Route path="/casf-reports/:profileId?" element={<CASFReportsPage />} />
+              <Route path="/emotional-analysis/:profileId" element={<EmotionalAnalysisPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

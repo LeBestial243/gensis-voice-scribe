@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -94,6 +93,12 @@ export default function Profiles() {
 
   const handlePriorityDashboardClick = () => {
     navigate('/priority-dashboard');
+  };
+
+  const handleEmotionalAnalysisClick = () => {
+    if (selectedProfileId) {
+      navigate(`/emotional-analysis/${selectedProfileId}`);
+    }
   };
 
   if (!selectedProfileId) {
@@ -203,6 +208,8 @@ export default function Profiles() {
       <FloatingActions 
         onRecordingClick={() => setIsRecorderOpen(true)}
         onGenerateNoteClick={handleGenerateNoteClick}
+        onEmotionalAnalysisClick={handleEmotionalAnalysisClick}
+        profileId={selectedProfileId}
       />
 
       <TranscriptionDialog 
