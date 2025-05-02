@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Card,
@@ -18,7 +18,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useOfficialReport } from '@/hooks/useOfficialReport';
-import { OfficialReport, OfficialReportTemplate } from '@/types/reports';
+import { OfficialReport } from '@/types/reports';
 import { ReportPreview } from './ReportPreview';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,8 +85,8 @@ export function OfficialReportGenerator() {
       await handleGenerateReport({
         profileId,
         templateId: selectedTemplateId,
-        startDate: periodStart.toISOString(),
-        endDate: periodEnd.toISOString(),
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString(),
         includeNotes,
         includeTranscriptions,
         customInstructions
@@ -123,30 +123,29 @@ export function OfficialReportGenerator() {
   // Helper to get profile name
   const [profileName, setProfileName] = useState<string>("Profil");
   
-  // Fetch profile name only once
-  const fetchProfileName = useCallback(async () => {
+  // Fetch profile name
+  useEffect(() => {
     if (!profileId) return;
     
-    try {
-      const { data, error } = await supabase
-        .from('young_profiles')
-        .select('first_name, last_name')
-        .eq('id', profileId)
-        .single();
-      
-      if (error) throw error;
-      if (data) {
-        setProfileName(`${data.first_name} ${data.last_name}`);
+    const fetchProfileName = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('young_profiles')
+          .select('first_name, last_name')
+          .eq('id', profileId)
+          .single();
+        
+        if (error) throw error;
+        if (data) {
+          setProfileName(`${data.first_name} ${data.last_name}`);
+        }
+      } catch (error) {
+        console.error("Error fetching profile name:", error);
       }
-    } catch (error) {
-      console.error("Error fetching profile name:", error);
-    }
-  }, [profileId]);
-  
-  // Call fetchProfileName on component mount
-  useState(() => {
+    };
+    
     fetchProfileName();
-  });
+  }, [profileId]);
 
   return (
     <div className="space-y-6">
@@ -197,7 +196,6 @@ export function OfficialReportGenerator() {
                       <DatePicker 
                         date={periodStart} 
                         setDate={setPeriodStart}
-                        className="w-full" 
                       />
                     </div>
                     <div className="space-y-2">
@@ -205,7 +203,6 @@ export function OfficialReportGenerator() {
                       <DatePicker 
                         date={periodEnd}
                         setDate={setPeriodEnd}
-                        className="w-full" 
                       />
                     </div>
                   </div>
