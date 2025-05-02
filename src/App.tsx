@@ -16,6 +16,7 @@ import EducationalProjectPage from "./pages/EducationalProjectPage";
 import EducationalProjectGeneratorPage from "./pages/EducationalProjectGeneratorPage";
 import ConfidentialitySettingsPage from "./pages/ConfidentialitySettingsPage";
 import CriticalIncidentsPage from './pages/CriticalIncidentsPage';
+import TeamCollaborationPage from './pages/TeamCollaborationPage';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function App() {
               <Route path="/confidentiality" element={<ConfidentialitySettingsPage />} />
               
               <Route path="/young-profile/:id/incidents" element={<CriticalIncidentsPage />} />
+              <Route path="/young-profile/:id/team" element={<TeamCollaborationPage />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
