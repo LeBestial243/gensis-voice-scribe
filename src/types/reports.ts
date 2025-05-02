@@ -26,14 +26,15 @@ export interface ReportSection {
   data?: any;
 }
 
-// Updated to match the expected property names in components
+// Interface mise à jour avec à la fois des propriétés en camelCase et snake_case
+// pour assurer la compatibilité avec tous les composants
 export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  reportType: string;  // Changed to camelCase to match what OfficialReportGenerator expects
-  startDate: string;   // Changed to camelCase to match what OfficialReportGenerator expects
-  endDate: string;     // Changed to camelCase to match what OfficialReportGenerator expects
+  reportType: string;
+  startDate: string;
+  endDate: string;
   createdAt: string;
   sections: {
     title: string;
@@ -45,7 +46,7 @@ export interface OfficialReport {
   updatedAt?: string;
   createdBy?: string;
   
-  // Adding snake_case aliases for backward compatibility
+  // Aliases en snake_case pour la rétrocompatibilité
   report_type?: string;
   period_start?: string;
   period_end?: string;

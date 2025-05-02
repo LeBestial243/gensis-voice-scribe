@@ -43,7 +43,7 @@ export interface FileWithContent {
   content: string;
 }
 
-// Updated to match the changes in reports.ts
+// Interface mise à jour pour correspondre à celle dans reports.ts
 export interface OfficialReportType {
   id: string;
   profileId: string;
@@ -62,7 +62,7 @@ export interface OfficialReportType {
   updatedAt?: string;
   createdBy?: string;
   
-  // Adding snake_case aliases for backward compatibility
+  // Aliases en snake_case pour la rétrocompatibilité
   report_type?: string;
   period_start?: string;
   period_end?: string;

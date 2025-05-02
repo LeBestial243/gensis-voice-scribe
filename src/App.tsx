@@ -31,8 +31,9 @@ export default function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profiles" element={<Profiles />} />
-            <Route path="/young-profile/:profileId" element={<YoungProfilePage />} />
+            <Route path="/young-profile/:id" element={<YoungProfilePage />} />
             <Route path="/confidentiality-settings" element={<ConfidentialitySettingsPage />} />
+            <Route path="/critical-incidents/:id" element={<CriticalIncidentsPage />} />
             <Route path="/critical-incidents" element={<CriticalIncidentsPage />} />
             <Route path="/priority-dashboard" element={<PriorityDashboardPage />} />
             <Route path="/team-collaboration" element={<TeamCollaborationPage />} />
