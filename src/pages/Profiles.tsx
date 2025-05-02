@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/GradientButton';
-import { Plus, Search, Mic, Edit } from 'lucide-react';
+import { Plus, Search, Mic, Edit, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ import { FolderDisplay } from '@/components/FolderDisplay';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { useQueryCache } from '@/hooks/useQueryCache';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
@@ -32,6 +34,7 @@ export default function Profiles() {
   const queryClient = useQueryClient();
   const { setupKeyboardNavigation } = useAccessibility();
   const { optimizeCacheConfig } = useQueryCache();
+  const navigate = useNavigate();
 
   useEffect(() => {
     optimizeCacheConfig();
@@ -89,9 +92,49 @@ export default function Profiles() {
     setIsGenerateNoteOpen(true);
   };
 
+  const handlePriorityDashboardClick = () => {
+    navigate('/priority-dashboard');
+  };
+
   if (!selectedProfileId) {
     return (
       <div className="container mx-auto py-8 px-4 pb-24" id="profiles-container">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gensys-primary-from to-gensys-primary-to bg-clip-text text-transparent">
+              Mes profils
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              Gérez vos suivis éducatifs et accédez aux données des jeunes
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex gap-2 items-center"
+              onClick={handlePriorityDashboardClick}
+            >
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <span className="hidden sm:inline">Tableau des priorités</span>
+            </Button>
+            <Dialog open={openCreateProfile} onOpenChange={setOpenCreateProfile}>
+              <DialogTrigger asChild>
+                <GradientButton aria-label="Créer un nouveau profil">
+                  <span className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Créer un profil</span>
+                  </span>
+                </GradientButton>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Créer un nouveau profil</DialogTitle>
+                </DialogHeader>
+                <CreateProfileForm />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
         <EnhancedProfilesList onSelectProfile={setSelectedProfileId} />
         <MobileNav />
       </div>
