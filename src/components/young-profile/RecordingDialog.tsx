@@ -51,7 +51,7 @@ export function RecordingDialog({ open, onOpenChange, profileId }: RecordingDial
     };
     
     loadDefaultSettings();
-  }, []);
+  }, [confidentialityService]); // Added confidentialityService as dependency
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders', profileId],
