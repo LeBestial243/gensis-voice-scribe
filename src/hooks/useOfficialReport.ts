@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { officialReportService, GenerateReportParams } from "@/services/officialReportService";
+import { aiService } from "@/services/aiService";
 import { useToast } from "@/hooks/use-toast";
 import { useErrorHandler } from "@/utils/errorHandler";
 import { OfficialReport } from "@/types/reports";
@@ -47,8 +48,22 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   
   // Generate report mutation
   const generateMutation = useMutation({
-    mutationFn: (params: GenerateReportParams) => 
-      officialReportService.generateReport(params),
+    mutationFn: async (params: GenerateReportParams) => {
+      // Utiliser le service AI pour la génération
+      const generatedReport = await aiService.generateOfficialReport(
+        params.profileId,
+        params.templateId,
+        params.periodStart,
+        params.periodEnd,
+        {
+          includeNotes: params.includeNotes,
+          includeTranscriptions: params.includeTranscriptions,
+          customInstructions: params.customInstructions
+        }
+      );
+      
+      return generatedReport;
+    },
     onSuccess: (data) => {
       setGeneratedReport(data);
       toast({
