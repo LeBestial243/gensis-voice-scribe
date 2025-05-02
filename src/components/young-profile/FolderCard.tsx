@@ -45,7 +45,7 @@ export function FolderCard({
   onUploadClick,
   onDeleteFolder
 }: FolderCardProps) {
-  // Debug log removed as requested
+  // Debug log removed
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 

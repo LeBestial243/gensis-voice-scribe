@@ -31,9 +31,9 @@ export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  report_type: string; // Changed from reportType
-  period_start: string; // Changed from startDate
-  period_end: string; // Changed from endDate
+  reportType: string;  // Changed to camelCase to match what OfficialReportGenerator expects
+  startDate: string;   // Changed to camelCase to match what OfficialReportGenerator expects
+  endDate: string;     // Changed to camelCase to match what OfficialReportGenerator expects
   createdAt: string;
   sections: {
     title: string;
@@ -44,6 +44,11 @@ export interface OfficialReport {
   status?: "draft" | "final";
   updatedAt?: string;
   createdBy?: string;
+  
+  // Adding snake_case aliases for backward compatibility
+  report_type?: string;
+  period_start?: string;
+  period_end?: string;
 }
 
 export interface OfficialReportTemplate {

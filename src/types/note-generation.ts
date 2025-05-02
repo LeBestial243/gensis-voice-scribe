@@ -43,14 +43,14 @@ export interface FileWithContent {
   content: string;
 }
 
-// Add type definition for the OfficialReport interface to fix build errors
+// Updated to match the changes in reports.ts
 export interface OfficialReportType {
   id: string;
   profileId: string;
   title: string;
-  report_type: string;
-  period_start: string;
-  period_end: string;
+  reportType: string;
+  startDate: string;
+  endDate: string;
   createdAt: string;
   sections: {
     title: string;
@@ -61,4 +61,9 @@ export interface OfficialReportType {
   status?: "draft" | "final";
   updatedAt?: string;
   createdBy?: string;
+  
+  // Adding snake_case aliases for backward compatibility
+  report_type?: string;
+  period_start?: string;
+  period_end?: string;
 }
