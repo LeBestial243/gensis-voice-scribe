@@ -47,23 +47,26 @@ export interface FileWithContent {
 export interface OfficialReportType {
   id: string;
   profileId: string;
+  profile_id?: string;
   title: string;
   reportType: string;
+  report_type: string;
   startDate: string;
+  period_start: string;
   endDate: string;
+  period_end: string;
   createdAt: string;
+  created_at?: string;
   sections: {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];
   templateId?: string;
+  template_id?: string;
   institution?: string;
   status?: "draft" | "final";
   updatedAt?: string;
+  updated_at?: string;
   createdBy?: string;
-  
-  // Aliases en snake_case pour la rétrocompatibilité
-  report_type?: string;
-  period_start?: string;
-  period_end?: string;
+  created_by?: string;
 }
