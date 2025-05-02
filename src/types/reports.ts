@@ -1,5 +1,4 @@
 
-
 import { Json } from "@/integrations/supabase/types";
 import { AuditableEntity } from "./index";
 
@@ -25,4 +24,19 @@ export interface ReportSection {
   content: string;
   type?: 'text' | 'metrics' | 'chart' | 'table';
   data?: any;
+}
+
+// Add OfficialReport interface
+export interface OfficialReport {
+  id: string;
+  profileId: string;
+  reportType: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  sections: {
+    title: string;
+    content: string | string[] | Record<string, any>;
+  }[];
 }

@@ -1,9 +1,10 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { officialReportService, GenerateReportParams, ReportInstitution } from "@/services/officialReportService";
+import { officialReportService, GenerateReportParams } from "@/services/officialReportService";
 import { useToast } from "@/hooks/use-toast";
 import { useErrorHandler } from "@/utils/errorHandler";
+import { OfficialReport } from "@/types/reports";
 
 interface UseOfficialReportProps {
   profileId: string;
@@ -101,53 +102,18 @@ export function useOfficialReport({ profileId }: UseOfficialReportProps) {
   });
   
   // Handle report generation
-  const handleGenerateReport = () => {
-    if (!selectedTemplateId) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un modèle de rapport",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!periodStart || !periodEnd) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner une période",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    generateMutation.mutate({
-      profileId,
-      templateId: selectedTemplateId,
-      periodStart: periodStart.toISOString(),
-      periodEnd: periodEnd.toISOString(),
-      includeNotes,
-      includeTranscriptions,
-      customInstructions: customInstructions || undefined
-    });
+  const handleGenerateReport = (params: GenerateReportParams) => {
+    return generateMutation.mutateAsync(params);
   };
   
   // Handle report saving
-  const handleSaveReport = () => {
-    if (!generatedReport) {
-      toast({
-        title: "Erreur",
-        description: "Aucun rapport à sauvegarder",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    saveMutation.mutate(generatedReport);
+  const handleSaveReport = (report: Record<string, any>) => {
+    return saveMutation.mutateAsync(report);
   };
   
   // Handle PDF export
   const handleExportPdf = (reportId: string) => {
-    exportMutation.mutate(reportId);
+    return exportMutation.mutateAsync(reportId);
   };
   
   return {

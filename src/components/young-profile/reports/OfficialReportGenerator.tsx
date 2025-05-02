@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jsPDF } from 'jspdf';
 import { useOfficialReport } from '@/hooks/useOfficialReport';
-import type { OfficialReport } from '@/types/reports';
+import { OfficialReport } from '@/types/reports';
+import { supabase } from '@/integrations/supabase/client';
 
 type ReportTypeOption = {
   id: string;
@@ -61,7 +62,17 @@ export function OfficialReportGenerator() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const { generateReport, saveReport, getReportHistory, exportReportPdf } = useOfficialReport();
+  // Initialize the hook with profileId as a prop
+  const { 
+    templates,
+    existingReports,
+    isLoadingReports,
+    isGenerating,
+    handleGenerateReport: generateReportFromHook,
+    handleSaveReport: saveReportFromHook,
+    handleExportPdf: exportPdfFromHook,
+    refetchReports
+  } = useOfficialReport({ profileId: profileId || "" });
   
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['young_profile', profileId],
@@ -87,11 +98,8 @@ export function OfficialReportGenerator() {
     enabled: !!profileId,
   });
   
-  const { data: reportHistory = [], isLoading: historyLoading } = useQuery({
-    queryKey: ['report_history', profileId],
-    queryFn: () => getReportHistory(profileId!),
-    enabled: !!profileId,
-  });
+  // Use existingReports from the hook instead of a separate query
+  const reportHistory = existingReports;
   
   const handleTypeChange = (value: string) => {
     setReportType(value);
@@ -117,14 +125,16 @@ export function OfficialReportGenerator() {
     
     try {
       setGeneratingReport(true);
-      const generatedReport = await generateReport({
+      const generatedReport = await generateReportFromHook({
         profileId,
-        reportType,
-        startDate,
-        endDate
+        templateId: reportType,
+        periodStart: startDate.toISOString(),
+        periodEnd: endDate.toISOString(),
+        includeNotes: true,
+        includeTranscriptions: true
       });
       
-      setActiveReport(generatedReport);
+      setActiveReport(generatedReport as unknown as OfficialReport);
       setActiveTab("preview");
       
       toast({
@@ -146,13 +156,13 @@ export function OfficialReportGenerator() {
     if (!activeReport || !profileId) return;
     
     try {
-      await saveReport(activeReport);
+      await saveReportFromHook(activeReport as unknown as Record<string, any>);
       toast({
         title: "Rapport enregistré",
         description: "Le rapport a été sauvegardé dans l'historique."
       });
       // Refresh the report history
-      getReportHistory(profileId);
+      refetchReports();
     } catch (error) {
       toast({
         title: "Échec de l'enregistrement",
@@ -166,7 +176,7 @@ export function OfficialReportGenerator() {
     if (!activeReport) return;
     
     try {
-      await exportReportPdf(activeReport);
+      await exportPdfFromHook(activeReport.id);
       toast({
         title: "Export réussi",
         description: "Le rapport a été exporté en PDF."
@@ -254,16 +264,14 @@ export function OfficialReportGenerator() {
                   <label className="text-sm font-medium">Date de début</label>
                   <DatePicker 
                     date={startDate} 
-                    onSelect={handleStartDateChange}
-                    className="w-full"
+                    setDate={handleStartDateChange}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date de fin</label>
                   <DatePicker 
                     date={endDate} 
-                    onSelect={handleEndDateChange}
-                    className="w-full"
+                    setDate={handleEndDateChange}
                   />
                 </div>
               </div>
@@ -292,7 +300,7 @@ export function OfficialReportGenerator() {
               <CardDescription>Rapports précédemment générés pour ce jeune</CardDescription>
             </CardHeader>
             <CardContent>
-              {historyLoading ? (
+              {isLoadingReports ? (
                 <div className="space-y-2">
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />

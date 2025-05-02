@@ -49,7 +49,7 @@ export default function OfficialReportGeneratorPage() {
             </p>
           </header>
 
-          <OfficialReportGenerator profileId={profileId || ""} />
+          <OfficialReportGenerator />
           
           <MobileNav />
         </div>
