@@ -26,13 +26,14 @@ export interface ReportSection {
   data?: any;
 }
 
+// Updated to match the expected property names in components
 export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  reportType: string;
-  startDate: string;
-  endDate: string;
+  report_type: string; // Changed from reportType
+  period_start: string; // Changed from startDate
+  period_end: string; // Changed from endDate
   createdAt: string;
   sections: {
     title: string;

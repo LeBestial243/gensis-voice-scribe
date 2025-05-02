@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,25 +7,68 @@ import { processSection } from "@/services/content-processor";
 import { useSaveNote } from "@/hooks/use-save-note";
 import { isTextMatch, normalizeText } from "@/utils/text-processing";
 
-export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationProps) {
+// Extend UseNoteGenerationProps to include state and state updaters
+interface ExtendedUseNoteGenerationProps extends UseNoteGenerationProps {
+  selectedTemplateId?: string;
+  selectedFolders?: string[];
+  selectedFiles?: string[];
+  generatedContent?: string;
+  noteTitle?: string;
+  isGenerating?: boolean;
+  setSelectedTemplateId?: (id: string) => void;
+  setSelectedFolders?: (folders: string[]) => void;
+  setSelectedFiles?: (files: string[]) => void;
+  setGeneratedContent?: (content: string) => void;
+  setNoteTitle?: (title: string) => void;
+  setIsGenerating?: (isGenerating: boolean) => void;
+}
+
+export function useNoteGeneration({
+  profileId,
+  onSuccess,
+  // Accept state from reducer (optional)
+  selectedTemplateId: externalSelectedTemplateId,
+  selectedFolders: externalSelectedFolders,
+  selectedFiles: externalSelectedFiles,
+  generatedContent: externalGeneratedContent,
+  noteTitle: externalNoteTitle,
+  isGenerating: externalIsGenerating,
+  // Accept state updaters (optional)
+  setSelectedTemplateId: externalSetSelectedTemplateId,
+  setSelectedFolders: externalSetSelectedFolders,
+  setSelectedFiles: externalSetSelectedFiles,
+  setGeneratedContent: externalSetGeneratedContent,
+  setNoteTitle: externalSetNoteTitle,
+  setIsGenerating: externalSetIsGenerating
+}: ExtendedUseNoteGenerationProps) {
   const { toast } = useToast();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [generatedContent, setGeneratedContent] = useState<string>("");
-  const [noteTitle, setNoteTitle] = useState<string>(`Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
-  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Use external state if provided, otherwise use internal state
+  const [selectedTemplateId, setSelectedTemplateIdInternal] = useState<string>(externalSelectedTemplateId || "");
+  const [selectedFolders, setSelectedFoldersInternal] = useState<string[]>(externalSelectedFolders || []);
+  const [selectedFiles, setSelectedFilesInternal] = useState<string[]>(externalSelectedFiles || []);
+  const [generatedContent, setGeneratedContentInternal] = useState<string>(externalGeneratedContent || "");
+  const [noteTitle, setNoteTitleInternal] = useState<string>(externalNoteTitle || `Note IA - ${new Date().toLocaleDateString("fr-FR")}`);
+  const [isGenerating, setIsGeneratingInternal] = useState(externalIsGenerating || false);
+  
+  // Use external updaters if provided, otherwise use internal updaters
+  const setSelectedTemplateId = externalSetSelectedTemplateId || setSelectedTemplateIdInternal;
+  const setSelectedFolders = externalSetSelectedFolders || setSelectedFoldersInternal;
+  const setSelectedFiles = externalSetSelectedFiles || setSelectedFilesInternal;
+  const setGeneratedContent = externalSetGeneratedContent || setGeneratedContentInternal;
+  const setNoteTitle = externalSetNoteTitle || setNoteTitleInternal;
+  const setIsGenerating = externalSetIsGenerating || setIsGeneratingInternal;
   
   // Initialize the save note mutation, passing the profileId
   const saveNote = useSaveNote(profileId, onSuccess);
 
   const handleGenerate = async () => {
-    console.log('Starting note generation.');
-    console.log('Selected folders:', selectedFolders);
-    console.log('Selected files:', selectedFiles);
+    // Get current state values
+    const currentSelectedFolders = externalSelectedFolders || selectedFolders;
+    const currentSelectedTemplateId = externalSelectedTemplateId || selectedTemplateId;
+    const currentSelectedFiles = externalSelectedFiles || selectedFiles;
     
-    if (selectedFolders.length === 0 || !selectedTemplateId) {
-      console.log('Missing required data:', { selectedFolders, selectedTemplateId });
+    if (currentSelectedFolders.length === 0 || !currentSelectedTemplateId) {
       toast({
         title: "Données manquantes",
         description: "Veuillez sélectionner au moins un dossier et un modèle",
@@ -40,7 +84,7 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       const { data: template, error: templateError } = await supabase
         .from("templates")
         .select("*")
-        .eq("id", selectedTemplateId)
+        .eq("id", currentSelectedTemplateId)
         .single();
 
       if (templateError) throw templateError;
@@ -48,15 +92,11 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       const { data: sections, error: sectionsError } = await supabase
         .from("template_sections")
         .select("*")
-        .eq("template_id", selectedTemplateId)
+        .eq("template_id", currentSelectedTemplateId)
         .order("order_index");
 
       if (sectionsError) throw sectionsError;
-      console.log('Template and sections loaded:', { template, sectionsCount: sections?.length });
 
-      // Fetch all files for selected folders with folder information
-      console.log('Fetching files for folders:', selectedFolders);
-      
       // Prépare la requête de base
       let query = supabase
         .from("files")
@@ -67,46 +107,27 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
             title
           )
         `)
-        .in("folder_id", selectedFolders);
+        .in("folder_id", currentSelectedFolders);
       
       // Ajoute le filtre pour les fichiers sélectionnés uniquement si la liste n'est pas vide
-      if (selectedFiles.length > 0) {
-        console.log('Filtering for specific files:', selectedFiles);
-        query = query.in("id", selectedFiles);
+      if (currentSelectedFiles.length > 0) {
+        query = query.in("id", currentSelectedFiles);
       }
       
       const { data: filesWithFolders, error: filesError } = await query;
 
       if (filesError) throw filesError;
-      console.log('Files fetched with folders:', { filesCount: filesWithFolders?.length });
       
-      if (filesWithFolders && filesWithFolders.length > 0) {
-        console.log('Sample files:', filesWithFolders.slice(0, 3).map(f => ({ 
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          folderTitle: f.folders?.title
-        })));
-      }
-
       // Fetch content from storage for text files
       const fileContents: FileContent[] = [];
       
       for (const file of filesWithFolders || []) {
         if (file.type === "transcription" || file.type === "text" || file.type === "text/plain" || 
             (file.name && file.name.toLowerCase().includes('transcription'))) {
-          console.log('Processing file:', { 
-            name: file.name, 
-            type: file.type, 
-            path: file.path,
-            folderTitle: file.folders?.title 
-          });
-          
           try {
             let content: string = '';
             
             if (file.content) {
-              console.log('Using database content for:', file.name);
               content = file.content;
             } else if (file.path) {
               const { data: storageData, error: downloadError } = await supabase.storage
@@ -114,12 +135,10 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
                 .download(file.path);
               
               if (downloadError) {
-                console.error('Error downloading file:', file.path, downloadError);
                 continue;
               }
               
               content = await storageData.text();
-              console.log('Downloaded content for:', file.name, 'Content length:', content.length);
             }
             
             if (content) {
@@ -131,12 +150,6 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
                 folderName: file.folders?.title || ''
               };
               
-              console.log('Adding file to fileContents:', {
-                name: fileContent.name,
-                folderName: fileContent.folderName,
-                contentPreview: fileContent.content.substring(0, 100) + '...'
-              });
-              
               fileContents.push(fileContent);
             }
           } catch (error) {
@@ -144,11 +157,6 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
           }
         }
       }
-
-      console.log('File contents prepared:', { 
-        contentsCount: fileContents.length,
-        folders: fileContents.map(f => ({ name: f.name, folder: f.folderName }))
-      });
 
       if (fileContents.length === 0) {
         throw new Error("Aucun fichier texte trouvé dans les dossiers sélectionnés");
@@ -158,24 +166,17 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
       let content = "";
       content += `# ${template.title}\n\n`;
 
-      console.log('=== Starting to process template sections ===');
-      console.log('Sections to process:', sections?.map(s => s.title));
-
       for (const section of sections || []) {
-        console.log(`\n=== PROCESSING SECTION: "${section.title}" ===`);
         content += `## ${section.title}\n\n`;
         
         // Process content for this section
         const sectionContent = await processSection(section, fileContents);
         content += `${sectionContent}\n\n`;
-        
-        console.log(`Section "${section.title}" processed. Content: ${sectionContent.substring(0, 50)}...`);
       }
 
       setGeneratedContent(content);
       setNoteTitle(`${template.title} - ${new Date().toLocaleDateString("fr-FR")}`);
       
-      console.log('Note generation completed');
       toast({
         title: "Note générée avec succès",
         description: "Vous pouvez maintenant éditer et sauvegarder la note.",
@@ -203,17 +204,17 @@ export function useNoteGeneration({ profileId, onSuccess }: UseNoteGenerationPro
   };
 
   return {
-    selectedTemplateId,
+    selectedTemplateId: externalSelectedTemplateId || selectedTemplateId,
     setSelectedTemplateId,
-    selectedFolders,
+    selectedFolders: externalSelectedFolders || selectedFolders,
     setSelectedFolders,
-    selectedFiles,
+    selectedFiles: externalSelectedFiles || selectedFiles,
     setSelectedFiles,
-    generatedContent,
+    generatedContent: externalGeneratedContent || generatedContent,
     setGeneratedContent,
-    noteTitle,
+    noteTitle: externalNoteTitle || noteTitle,
     setNoteTitle,
-    isGenerating,
+    isGenerating: externalIsGenerating || isGenerating,
     handleGenerate,
     handleReset,
     saveNote
