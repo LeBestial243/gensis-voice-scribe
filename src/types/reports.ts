@@ -39,6 +39,11 @@ export interface OfficialReport {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];
+  templateId?: string;
+  institution?: string;
+  status?: "draft" | "final";
+  updatedAt?: string;
+  createdBy?: string;
 }
 
 export interface OfficialReportTemplate {
