@@ -193,12 +193,12 @@ export const teamCollaborationService = {
   
   async addComment(sharedNoteId: string, userId: string, content: string, userName: string): Promise<Comment> {
     // In a real implementation, insert into a comments table
-    // For demo, we'll just create a mock comment and return it
+    // For demo purposes, we'll just create a mock comment and return it
     
     try {
       await auditService.logAction(
         'create',
-        'note_comment', // Change from 'comment' to a valid resource type
+        'note', // Changed from 'note_comment' to 'note' which is a valid ResourceType
         sharedNoteId
       );
       
