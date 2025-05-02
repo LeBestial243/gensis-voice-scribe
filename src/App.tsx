@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import YoungProfilePage from "./pages/YoungProfilePage";
 import TemplatesPage from "./pages/TemplatesPage";
 import CASFReportsPage from "./pages/CASFReportsPage";
 import EducationalProjectPage from "./pages/EducationalProjectPage";
+import EducationalProjectGeneratorPage from "./pages/EducationalProjectGeneratorPage";
 import ConfidentialitySettingsPage from "./pages/ConfidentialitySettingsPage";
 import CriticalIncidentsPage from './pages/CriticalIncidentsPage';
 
@@ -36,6 +38,7 @@ function App() {
               <Route path="/casf-reports" element={<CASFReportsPage />} />
               <Route path="/young_profiles/:id/projects" element={<EducationalProjectPage />} />
               <Route path="/young_profiles/:id/projects/:projectId" element={<EducationalProjectPage />} />
+              <Route path="/young_profiles/:id/generate-project" element={<EducationalProjectGeneratorPage />} />
               <Route path="/confidentiality" element={<ConfidentialitySettingsPage />} />
               
               <Route path="/young-profile/:id/incidents" element={<CriticalIncidentsPage />} />
