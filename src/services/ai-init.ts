@@ -10,12 +10,12 @@ export function initializeAIService(): void {
   // Pour le développement, nous utilisons les variables d'environnement
   
   // Configuration de base pour le service AI
-  aiService.setConfig({
+  aiService.config = {
     apiEndpoint: "https://api.anthropic.com/v1",
     apiKey: "",
     model: "claude-3-sonnet-20240229",
     temperature: 0.3
-  });
+  };
   
   console.log("Service d'IA initialisé");
 }
