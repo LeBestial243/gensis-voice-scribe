@@ -50,9 +50,21 @@ export function useEmotionalAnalysis(profileId: string) {
         };
       }
       
+      // Convert from French to English for consistent property names
+      const emotionMap: Record<string, string> = {
+        'joie': 'joy',
+        'tristesse': 'sadness',
+        'colère': 'anger',
+        'peur': 'fear',
+        'surprise': 'surprise',
+        'dégoût': 'disgust'
+      };
+      
+      const emotionKey = emotionMap[item.emotion] || item.emotion;
+      
       // Add to the appropriate emotion
-      if (item.emotion in dateGroups[date]) {
-        dateGroups[date][item.emotion] = item.score * 100; // Scale to 0-100
+      if (emotionKey in dateGroups[date]) {
+        dateGroups[date][emotionKey] = Math.max(item.score * 100, dateGroups[date][emotionKey]); // Scale to 0-100
       }
     });
     
@@ -60,7 +72,12 @@ export function useEmotionalAnalysis(profileId: string) {
     const trends = Object.entries(dateGroups).map(([date, emotions]) => {
       return {
         date,
-        ...emotions
+        joy: emotions.joy || 0,
+        sadness: emotions.sadness || 0,
+        anger: emotions.anger || 0,
+        fear: emotions.fear || 0,
+        surprise: emotions.surprise || 0,
+        disgust: emotions.disgust || 0
       };
     });
     
