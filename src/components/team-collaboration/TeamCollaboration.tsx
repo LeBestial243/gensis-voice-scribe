@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -117,7 +116,6 @@ export function TeamCollaboration({ profileId }: TeamCollaborationProps) {
     if (!newComment[sharedNoteId]?.trim()) return;
     
     // Find the user's name, or use a placeholder
-    const { data: profiles } = supabase.auth.getSession();
     const userName = user?.email?.split('@')[0] || 'Team Member';
     
     addCommentMutation.mutate({

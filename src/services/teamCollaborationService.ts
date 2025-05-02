@@ -47,25 +47,36 @@ export const teamCollaborationService = {
     // In a real implementation, this would fetch from a team_members table
     // For demo purposes, we'll generate some mock team members
     
-    const { data: users, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url')
-      .limit(5);
+    try {
+      const { data: users, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .limit(5);
+        
+      if (error) throw error;
       
-    if (error) throw error;
-    
-    // Create mock team members based on real user profiles
-    return (users || []).map((user, index) => ({
-      id: `team-member-${index}`,
-      user_id: user.id,
-      full_name: user.full_name || 'Team Member',
-      avatar_url: user.avatar_url,
-      role: index === 0 ? 'Lead Educator' : 
-            index === 1 ? 'Psychologist' :
-            index === 2 ? 'Social Worker' : 'Educator',
-      status: index % 2 === 0 ? 'online' : 'offline' as 'online' | 'offline',
-      last_active: new Date().toISOString()
-    }));
+      // Create mock team members based on real user profiles with proper null handling
+      return (users || []).map((user, index) => {
+        const firstName = user.first_name || '';
+        const lastName = user.last_name || '';
+        const fullName = `${firstName} ${lastName}`.trim() || `Team Member ${index + 1}`;
+        
+        return {
+          id: `team-member-${index}`,
+          user_id: user.id,
+          full_name: fullName,
+          avatar_url: undefined, // No avatar_url in profiles table
+          role: index === 0 ? 'Lead Educator' : 
+                index === 1 ? 'Psychologist' :
+                index === 2 ? 'Social Worker' : 'Educator',
+          status: index % 2 === 0 ? 'online' : 'offline' as 'online' | 'offline',
+          last_active: new Date().toISOString()
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      return [];
+    }
   },
   
   async getSharedNotes(profileId: string): Promise<SharedNote[]> {
@@ -108,14 +119,17 @@ export const teamCollaborationService = {
         
       if (error) throw error;
       
-      // Get some user names for the activities
+      // Get some user names for the activities - use first_name and last_name instead of full_name
       const { data: users } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, first_name, last_name')
         .limit(3);
       
       const userMap = (users || []).reduce((acc, user) => {
-        acc[user.id] = user.full_name || 'Unknown User';
+        // Handle null first_name and last_name properly
+        const firstName = user.first_name || '';
+        const lastName = user.last_name || '';
+        acc[user.id] = `${firstName} ${lastName}`.trim() || 'Unknown User';
         return acc;
       }, {} as Record<string, string>);
       
@@ -184,7 +198,7 @@ export const teamCollaborationService = {
     try {
       await auditService.logAction(
         'create',
-        'comment',
+        'note_comment', // Change from 'comment' to a valid resource type
         sharedNoteId
       );
       
