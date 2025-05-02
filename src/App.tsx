@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
-import Index from '@/pages';
+import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import Profiles from '@/pages/Profiles';
 import YoungProfilePage from '@/pages/YoungProfilePage';
@@ -10,13 +11,13 @@ import CriticalIncidentsPage from '@/pages/CriticalIncidentsPage';
 import ConfidentialitySettingsPage from '@/pages/ConfidentialitySettingsPage';
 import TemplatesPage from '@/pages/TemplatesPage';
 import TeamCollaborationPage from '@/pages/TeamCollaborationPage';
-import Profile from '@/pages/Profile';
+import { Profile } from '@/pages/Profile';
 import EducationalProjectPage from '@/pages/EducationalProjectPage';
 import EducationalProjectGeneratorPage from '@/pages/EducationalProjectGeneratorPage';
 import CASFReportsPage from '@/pages/CASFReportsPage';
 import NotFound from '@/pages/NotFound';
-import Header from '@/components/Header';
-import AppSidebar from '@/components/AppSidebar';
+import { Header } from '@/components/Header';
+import { AppSidebar } from '@/components/AppSidebar';
 import PriorityDashboardPage from '@/pages/PriorityDashboardPage';
 
 function App() {

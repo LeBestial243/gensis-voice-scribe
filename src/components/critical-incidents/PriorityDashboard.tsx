@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { useIncidentAnalysis } from '@/hooks/useIncidentAnalysis';
 import { useToast } from '@/hooks/use-toast';
 import { teamCollaborationService } from '@/services/teamCollaborationService';
 import { CriticalIncident } from '@/types/incidents';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PriorityProfile {
   id: string;
