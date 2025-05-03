@@ -6,7 +6,6 @@ export const structureService = {
   async getStructures(): Promise<Structure[]> {
     try {
       // This is a mock implementation until the structures table is created
-      // For simplicity, we're returning a static array of structures
       return [
         {
           id: "1",
@@ -35,7 +34,7 @@ export const structureService = {
     return {
       id: `mock-${Date.now()}`,
       name,
-      description: description || "",
+      description: description || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -46,7 +45,7 @@ export const structureService = {
     return {
       id,
       name,
-      description: description || "",
+      description: description || null,
       updated_at: new Date().toISOString()
     };
   },
