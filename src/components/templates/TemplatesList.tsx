@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,11 +25,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
-interface Structure {
-  id: string;
-  name: string;
-}
+import { Structure } from "@/types/structures";
+import { structureService } from "@/services/structureService";
 
 // Define types to match the database schema
 interface Template {
@@ -36,8 +34,8 @@ interface Template {
   title: string;
   description: string | null;
   created_at: string;
-  word_template_url: string | null;
-  word_template_filename: string | null;
+  word_file_url: string | null;
+  word_file_name: string | null;
   structure_id: string | null;
   structure_name: string | null;
 }
@@ -66,12 +64,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
   const { data: structures = [] } = useQuery({
     queryKey: ['structures'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('structures')
-        .select('id, name');
-      
-      if (error) throw error;
-      return data as Structure[];
+      return structureService.getStructures();
     },
   });
 
@@ -87,8 +80,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           created_at,
           word_file_url,
           word_file_name,
-          structure_id,
-          structures:structure_id (name)
+          structure_id
         `)
         .order('created_at', { ascending: false });
       
@@ -102,7 +94,19 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template
-      return (data || []).map((template: any): Template => {
+      const transformedTemplates = await Promise.all((data || []).map(async (template: any): Promise<TransformedTemplate> => {
+        let structureName = null;
+        
+        if (template.structure_id) {
+          try {
+            // Find structure in the fetched structures
+            const structure = structures.find(s => s.id === template.structure_id);
+            structureName = structure ? structure.name : null;
+          } catch (error) {
+            console.error('Error fetching structure:', error);
+          }
+        }
+        
         return {
           id: template.id,
           title: template.title,
@@ -111,9 +115,11 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           word_template_url: template.word_file_url,
           word_template_filename: template.word_file_name,
           structure_id: template.structure_id,
-          structure_name: template.structures ? template.structures.name : null,
+          structure_name: structureName,
         };
-      });
+      }));
+      
+      return transformedTemplates;
     },
   });
 

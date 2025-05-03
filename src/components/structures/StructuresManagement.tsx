@@ -1,7 +1,5 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +26,7 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";
 import { Structure } from "@/types/structures";
+import { structureService } from "@/services/structureService";
 
 interface StructuresManagementProps {
   onManageUsers: (structureId: string, structureName: string) => void;
@@ -49,33 +48,14 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
   const { data: structures = [], isLoading } = useQuery({
     queryKey: ['structures'],
     queryFn: async () => {
-      // Utilisez as unknown pour contourner le problème de types
-      const { data, error } = await supabase
-        .from('structures')
-        .select('id, name, description')
-        .order('name');
-      
-      if (error) throw error;
-      return (data as unknown) as Structure[];
+      return structureService.getStructures();
     },
   });
 
   // Add structure mutation
   const addStructure = useMutation({
     mutationFn: async (structure: {name: string, description: string}) => {
-      const { data, error } = await supabase
-        .from('structures')
-        .insert([
-          { 
-            name: structure.name,
-            description: structure.description || null
-          }
-        ] as unknown as any[])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      return structureService.createStructure(structure.name, structure.description || null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['structures'] });
@@ -98,18 +78,7 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
   // Update structure mutation
   const updateStructure = useMutation({
     mutationFn: async (structure: Structure) => {
-      const { data, error } = await supabase
-        .from('structures')
-        .update({
-          name: structure.name,
-          description: structure.description
-        } as any)
-        .eq('id', structure.id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      return structureService.updateStructure(structure.id, structure.name, structure.description);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['structures'] });
@@ -132,26 +101,7 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
   // Delete structure mutation
   const deleteStructure = useMutation({
     mutationFn: async (structureId: string) => {
-      // First, check if there are any templates using this structure
-      const { data: templates, error: templateError } = await supabase
-        .from('templates')
-        .select('id')
-        .eq('structure_id', structureId);
-      
-      if (templateError) throw templateError;
-      
-      if (templates && templates.length > 0) {
-        throw new Error(`Impossible de supprimer cette structure : ${templates.length} template(s) y sont associés`);
-      }
-      
-      // If no templates are associated, delete the structure
-      const { error } = await supabase
-        .from('structures')
-        .delete()
-        .eq('id', structureId);
-      
-      if (error) throw error;
-      return structureId;
+      return structureService.deleteStructure(structureId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['structures'] });

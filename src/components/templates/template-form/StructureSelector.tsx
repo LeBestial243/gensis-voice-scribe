@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { 
   Select, 
   SelectContent, 
@@ -10,11 +9,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-
-interface Structure {
-  id: string;
-  name: string;
-}
+import { structureService } from '@/services/structureService';
 
 interface StructureSelectorProps {
   selectedStructureId: string | null;
@@ -26,13 +21,7 @@ export function StructureSelector({ selectedStructureId, onStructureChange }: St
   const { data: structures = [] } = useQuery({
     queryKey: ['structures'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('structures')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      return data as Structure[];
+      return structureService.getStructures();
     },
   });
   

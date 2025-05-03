@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Card, 
@@ -45,6 +43,7 @@ import {
 import { ChevronLeft, UserPlus, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { StructureUser, User } from "@/types/structures";
+import { structureService } from "@/services/structureService";
 
 interface StructureUsersManagementProps {
   structureId: string;
@@ -65,28 +64,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   const { data: structureUsers = [], isLoading } = useQuery({
     queryKey: ['structure_users', structureId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        'get_structure_users',
-        { p_structure_id: structureId }
-      );
-      
-      if (error) throw error;
-      
-      // Transform and add display names
-      const users = Array.isArray(data) ? data : [];
-      
-      return users.map((user: any) => ({
-        id: user.id,
-        user_id: user.user_id,
-        structure_id: user.structure_id,
-        role: user.role,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        display_name: user.first_name && user.last_name 
-          ? `${user.first_name} ${user.last_name}`
-          : user.email
-      })) as StructureUser[];
+      return structureService.getStructureUsers(structureId);
     },
   });
 
@@ -94,24 +72,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   const { data: availableUsers = [] } = useQuery({
     queryKey: ['available_users', structureId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        'get_available_users',
-        { p_structure_id: structureId }
-      );
-      
-      if (error) throw error;
-      
-      const users = Array.isArray(data) ? data : [];
-      
-      return users.map((user: any) => ({
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        display_name: user.first_name && user.last_name 
-          ? `${user.first_name} ${user.last_name}` 
-          : user.email
-      })) as User[];
+      return structureService.getAvailableUsers(structureId);
     },
     enabled: isAddUserDialogOpen,
   });
@@ -120,18 +81,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   const addUserToStructure = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
       if (!userId) throw new Error("Veuillez sélectionner un utilisateur");
-      
-      const { data, error } = await supabase.rpc(
-        'add_user_to_structure',
-        {
-          p_user_id: userId,
-          p_structure_id: structureId,
-          p_role: role
-        }
-      );
-      
-      if (error) throw error;
-      return data;
+      return structureService.addUserToStructure(userId, structureId, role);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['structure_users', structureId] });
@@ -155,16 +105,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   // Remove user from structure mutation
   const removeUserFromStructure = useMutation({
     mutationFn: async (userId: string) => {
-      const { data, error } = await supabase.rpc(
-        'remove_user_from_structure',
-        {
-          p_user_id: userId,
-          p_structure_id: structureId
-        }
-      );
-      
-      if (error) throw error;
-      return userId;
+      return structureService.removeUserFromStructure(userId, structureId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['structure_users', structureId] });
