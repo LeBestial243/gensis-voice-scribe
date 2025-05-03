@@ -413,7 +413,7 @@ export function OfficialReportGenerator() {
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {(report.sections || []).map((section: ReportSection, idx: number) => (
+                            {(report.sections && Array.isArray(report.sections)) ? report.sections.map((section: ReportSection, idx: number) => (
                               <div key={idx} className="space-y-2">
                                 <h4 className="font-semibold text-sm">{section.title}</h4>
                                 {typeof section.content === 'string' ? (
@@ -428,7 +428,9 @@ export function OfficialReportGenerator() {
                                   <p className="text-sm text-muted-foreground">Contenu structuré</p>
                                 )}
                               </div>
-                            ))}
+                            )) : (
+                              <p className="text-sm text-muted-foreground">Aucune section disponible</p>
+                            )}
                             <div className="flex justify-end space-x-2 pt-2">
                               <Button 
                                 variant="outline"
