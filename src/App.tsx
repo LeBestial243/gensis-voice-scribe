@@ -14,6 +14,7 @@ import CriticalIncidentsPage from "./pages/CriticalIncidentsPage";
 import PriorityDashboardPage from "./pages/PriorityDashboardPage";
 import TeamCollaborationPage from "./pages/TeamCollaborationPage";
 import TemplatesPage from "./pages/TemplatesPage";
+import StructuresManagementPage from "./pages/StructuresManagementPage";
 import YoungProfilePage from "./pages/YoungProfilePage";
 import CASFReportsPage from "./pages/CASFReportsPage";
 import EducationalProjectPage from "./pages/EducationalProjectPage";
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/priority-dashboard" element={<PriorityDashboardPage />} />
             <Route path="/team-collaboration" element={<TeamCollaborationPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/structures" element={<StructuresManagementPage />} />
             <Route path="/casf-reports" element={<CASFReportsPage />} />
             <Route path="/educational-project/:projectId" element={<EducationalProjectPage />} />
             <Route path="/educational-project-generator/:profileId" element={<EducationalProjectGeneratorPage />} />

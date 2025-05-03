@@ -8,6 +8,18 @@ import { TemplateActions } from "./template-form/TemplateActions";
 import { WordTemplateUpload } from "./template-form/WordTemplateUpload";
 import { StructureSelector } from "./template-form/StructureSelector";
 
+interface Template {
+  id: string;
+  title: string;
+  description: string | null;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  word_file_url: string | null;
+  word_file_name: string | null;
+  structure_id: string | null;
+}
+
 interface TemplateCreationFormProps {
   editingTemplateId: string | null;
   onEditComplete: () => void;
@@ -36,7 +48,7 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
       
       if (templateError) throw templateError;
       
-      return { template };
+      return { template: template as Template };
     },
     enabled: !!editingTemplateId,
   });

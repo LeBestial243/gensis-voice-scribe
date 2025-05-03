@@ -44,25 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ChevronLeft, UserPlus, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
-
-interface StructureUser {
-  id: string;
-  user_id: string;
-  structure_id: string;
-  role: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  display_name: string;
-}
-
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  display_name: string;
-}
+import { StructureUser, User } from "@/types/structures";
 
 interface StructureUsersManagementProps {
   structureId: string;
@@ -83,15 +65,17 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   const { data: structureUsers = [], isLoading } = useQuery({
     queryKey: ['structure_users', structureId],
     queryFn: async () => {
-      const { data: users, error } = await supabase
-        .rpc('get_structure_users', {
-          p_structure_id: structureId
-        });
+      const { data, error } = await supabase.rpc(
+        'get_structure_users',
+        { p_structure_id: structureId }
+      );
       
       if (error) throw error;
       
       // Transform and add display names
-      return (users || []).map((user: any) => ({
+      const users = Array.isArray(data) ? data : [];
+      
+      return users.map((user: any) => ({
         id: user.id,
         user_id: user.user_id,
         structure_id: user.structure_id,
@@ -102,7 +86,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
         display_name: user.first_name && user.last_name 
           ? `${user.first_name} ${user.last_name}`
           : user.email
-      }));
+      })) as StructureUser[];
     },
   });
 
@@ -110,14 +94,16 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   const { data: availableUsers = [] } = useQuery({
     queryKey: ['available_users', structureId],
     queryFn: async () => {
-      const { data: users, error } = await supabase
-        .rpc('get_available_users', {
-          p_structure_id: structureId
-        });
+      const { data, error } = await supabase.rpc(
+        'get_available_users',
+        { p_structure_id: structureId }
+      );
       
       if (error) throw error;
       
-      return (users || []).map((user: any) => ({
+      const users = Array.isArray(data) ? data : [];
+      
+      return users.map((user: any) => ({
         id: user.id,
         email: user.email,
         first_name: user.first_name,
@@ -125,7 +111,7 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
         display_name: user.first_name && user.last_name 
           ? `${user.first_name} ${user.last_name}` 
           : user.email
-      }));
+      })) as User[];
     },
     enabled: isAddUserDialogOpen,
   });
@@ -135,12 +121,14 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
       if (!userId) throw new Error("Veuillez sélectionner un utilisateur");
       
-      const { data, error } = await supabase
-        .rpc('add_user_to_structure', {
+      const { data, error } = await supabase.rpc(
+        'add_user_to_structure',
+        {
           p_user_id: userId,
           p_structure_id: structureId,
           p_role: role
-        });
+        }
+      );
       
       if (error) throw error;
       return data;
@@ -167,11 +155,13 @@ export function StructureUsersManagement({ structureId, structureName, onBack }:
   // Remove user from structure mutation
   const removeUserFromStructure = useMutation({
     mutationFn: async (userId: string) => {
-      const { data, error } = await supabase
-        .rpc('remove_user_from_structure', {
+      const { data, error } = await supabase.rpc(
+        'remove_user_from_structure',
+        {
           p_user_id: userId,
           p_structure_id: structureId
-        });
+        }
+      );
       
       if (error) throw error;
       return userId;

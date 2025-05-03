@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,10 +36,10 @@ interface Template {
   title: string;
   description: string | null;
   created_at: string;
-  word_file_url: string | null;
-  word_file_name: string | null;
+  word_template_url: string | null;
+  word_template_filename: string | null;
   structure_id: string | null;
-  structures?: { name: string } | null;
+  structure_name: string | null;
 }
 
 interface TransformedTemplate {
@@ -89,7 +88,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           word_file_url,
           word_file_name,
           structure_id,
-          structures (name)
+          structures:structure_id (name)
         `)
         .order('created_at', { ascending: false });
       
@@ -103,7 +102,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template
-      return (data || []).map((template: Template): TransformedTemplate => {
+      return (data || []).map((template: any): Template => {
         return {
           id: template.id,
           title: template.title,

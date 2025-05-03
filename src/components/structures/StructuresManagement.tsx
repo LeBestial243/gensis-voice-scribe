@@ -27,12 +27,7 @@ import {
   DialogDescription, 
   DialogFooter 
 } from "@/components/ui/dialog";
-
-interface Structure {
-  id: string;
-  name: string;
-  description: string | null;
-}
+import { Structure } from "@/types/structures";
 
 interface StructuresManagementProps {
   onManageUsers: (structureId: string, structureName: string) => void;
@@ -54,13 +49,14 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
   const { data: structures = [], isLoading } = useQuery({
     queryKey: ['structures'],
     queryFn: async () => {
+      // Utilisez as unknown pour contourner le problème de types
       const { data, error } = await supabase
         .from('structures')
-        .select('*')
+        .select('id, name, description')
         .order('name');
       
       if (error) throw error;
-      return data as Structure[];
+      return (data as unknown) as Structure[];
     },
   });
 
@@ -74,7 +70,7 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
             name: structure.name,
             description: structure.description || null
           }
-        ])
+        ] as unknown as any[])
         .select()
         .single();
       
@@ -107,7 +103,7 @@ export function StructuresManagement({ onManageUsers }: StructuresManagementProp
         .update({
           name: structure.name,
           description: structure.description
-        })
+        } as any)
         .eq('id', structure.id)
         .select()
         .single();
