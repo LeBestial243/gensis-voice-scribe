@@ -26,7 +26,7 @@ export function useNoteGeneration({
   const saveNote = useSaveNote(profileId, onSuccess);
 
   const handleGenerate = async ({ files, templateId }: GenerateParams) => {
-    if (!templateId && files.length === 0) {
+    if (!templateId && (!files || files.length === 0)) {
       toast({
         title: "Données manquantes",
         description: "Veuillez sélectionner au moins un fichier ou un modèle",
@@ -77,7 +77,7 @@ export function useNoteGeneration({
         
         for (const file of files) {
           content += `## ${file.name}\n\n`;
-          content += `${file.content.substring(0, 500)}...\n\n`;
+          content += `${file.content ? file.content.substring(0, 500) : "Contenu non disponible"}...\n\n`;
         }
       }
 

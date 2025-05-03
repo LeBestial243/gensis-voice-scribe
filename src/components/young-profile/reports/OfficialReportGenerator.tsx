@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -15,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useOfficialReport } from '@/hooks/useOfficialReport';
 import { OfficialReport } from '@/types/reports';
@@ -327,14 +326,14 @@ export function OfficialReportGenerator() {
                       <CardHeader className="py-4">
                         <CardTitle className="text-lg">{report.title}</CardTitle>
                         <CardDescription>
-                          {report.report_type || report.reportType} • {format(new Date(report.period_start || report.startDate), 'dd/MM/yyyy')} - {format(new Date(report.period_end || report.endDate), 'dd/MM/yyyy')}
+                          {report.report_type || report.reportType} • Du ${format(parseISO(report.period_start || report.startDate), "dd MMMM yyyy", { locale: fr })} au ${format(parseISO(report.period_end || report.endDate), "dd MMMM yyyy", { locale: fr })}
                         </CardDescription>
                       </CardHeader>
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {(report.sections || []).map((section, index) => (
-                              <div key={index} className="space-y-2">
+                            {(report.sections || []).map((section, idx) => (
+                              <div key={idx} className="space-y-2">
                                 <h4 className="font-semibold text-sm">{section.title}</h4>
                                 {typeof section.content === 'string' ? (
                                   <p className="text-sm text-muted-foreground">{section.content}</p>
