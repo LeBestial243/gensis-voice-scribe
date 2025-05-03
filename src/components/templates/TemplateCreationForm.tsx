@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { TemplateHeader } from "./template-form/TemplateHeader";
 import { SectionsList } from "./template-form/SectionsList";
 import { TemplateActions } from "./template-form/TemplateActions";
+import { WordTemplateUpload } from "./template-form/WordTemplateUpload";
 
 interface Section {
   id: string;
@@ -24,6 +26,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
     { id: "section-" + Date.now(), title: "", instructions: "" }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
+  const [wordFileName, setWordFileName] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,6 +62,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
   useEffect(() => {
     if (templateData) {
       setTemplateTitle(templateData.template.title);
+      setWordFileUrl(templateData.template.word_file_url || null);
+      setWordFileName(templateData.template.word_file_name || null);
       
       if (templateData.sections.length > 0) {
         setSections(templateData.sections.map(section => ({
@@ -73,6 +79,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
   useEffect(() => {
     if (!editingTemplateId) {
       setTemplateTitle("");
+      setWordFileUrl(null);
+      setWordFileName(null);
       setSections([{ id: "section-" + Date.now(), title: "", instructions: "" }]);
     }
   }, [editingTemplateId]);
@@ -104,7 +112,9 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
             .from('templates')
             .insert({
               title: templateTitle,
-              user_id: user.id
+              user_id: user.id,
+              word_file_url: wordFileUrl,
+              word_file_name: wordFileName
             })
             .select()
             .single();
@@ -115,7 +125,11 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
           // Update existing template
           const { error: updateError } = await supabase
             .from('templates')
-            .update({ title: templateTitle })
+            .update({ 
+              title: templateTitle,
+              word_file_url: wordFileUrl,
+              word_file_name: wordFileName
+            })
             .eq('id', editingTemplateId);
           
           if (updateError) throw updateError;
@@ -160,6 +174,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
       // Reset form if creating new template
       if (!editingTemplateId) {
         setTemplateTitle("");
+        setWordFileUrl(null);
+        setWordFileName(null);
         setSections([{ id: "section-" + Date.now(), title: "", instructions: "" }]);
       } else {
         onEditComplete();
@@ -209,6 +225,16 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
     setSections(items);
   };
 
+  const handleFileUploaded = (fileUrl: string, fileName: string) => {
+    setWordFileUrl(fileUrl);
+    setWordFileName(fileName);
+  };
+
+  const handleFileRemoved = () => {
+    setWordFileUrl(null);
+    setWordFileName(null);
+  };
+
   if (templateLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -223,6 +249,20 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
         templateTitle={templateTitle}
         setTemplateTitle={setTemplateTitle}
       />
+
+      <div className="p-4 border rounded-md bg-muted/30">
+        <h3 className="text-lg font-medium mb-4">Template Word (Optionnel)</h3>
+        <WordTemplateUpload
+          templateId={editingTemplateId}
+          existingFileUrl={wordFileUrl}
+          existingFileName={wordFileName}
+          onFileUploaded={handleFileUploaded}
+          onFileRemoved={handleFileRemoved}
+        />
+        <p className="text-sm text-muted-foreground mt-4">
+          Vous pouvez télécharger un fichier Word (.doc ou .docx) qui servira de modèle pour ce template.
+        </p>
+      </div>
 
       <SectionsList
         sections={sections}

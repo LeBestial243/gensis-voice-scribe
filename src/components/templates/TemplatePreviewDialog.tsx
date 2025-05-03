@@ -8,7 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileDown, File } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TemplatePreviewDialogProps {
   templateId: string;
@@ -59,6 +60,32 @@ export function TemplatePreviewDialog({
         <DialogHeader>
           <DialogTitle>{template?.title || "Aperçu du template"}</DialogTitle>
         </DialogHeader>
+
+        {template?.word_file_url && (
+          <div className="mb-4 p-3 border rounded-md bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <File className="h-5 w-5 text-primary" />
+                <span className="font-medium">{template.word_file_name || "Template Word"}</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild
+              >
+                <a 
+                  href={template.word_file_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-1"
+                >
+                  <FileDown className="h-4 w-4" />
+                  Télécharger
+                </a>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center p-8">

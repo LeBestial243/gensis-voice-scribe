@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -132,7 +131,7 @@ export function OfficialReportGenerator() {
         toast({
           title: "Aucune transcription disponible",
           description: "Il n'y a pas de transcriptions à inclure dans le rapport",
-          variant: "warning"
+          variant: "default"
         });
       }
       

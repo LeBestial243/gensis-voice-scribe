@@ -2,10 +2,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
 import { 
   AlertDialog,
@@ -36,6 +37,8 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           id, 
           title, 
           description,
+          word_file_url,
+          word_file_name,
           created_at,
           template_sections:template_sections(count)
         `)
@@ -45,7 +48,8 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
 
       return data.map(template => ({
         ...template,
-        sectionCount: template.template_sections[0]?.count || 0
+        sectionCount: template.template_sections[0]?.count || 0,
+        hasWordFile: !!template.word_file_url
       }));
     },
   });
@@ -54,7 +58,25 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     if (!deleteTemplateId) return;
 
     try {
-      // First delete sections
+      // First, check if there's a word file to delete from storage
+      const { data: template } = await supabase
+        .from('templates')
+        .select('word_file_url')
+        .eq('id', deleteTemplateId)
+        .single();
+      
+      if (template?.word_file_url) {
+        // Extract file path from the URL
+        const filePathMatch = template.word_file_url.match(/\/templates-files\/([^?]+)/);
+        if (filePathMatch && filePathMatch[1]) {
+          // Delete the file from storage
+          await supabase.storage
+            .from('templates-files')
+            .remove([filePathMatch[1]]);
+        }
+      }
+
+      // Delete sections
       const { error: sectionsError } = await supabase
         .from('template_sections')
         .delete()
@@ -62,7 +84,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
 
       if (sectionsError) throw sectionsError;
 
-      // Then delete the template
+      // Delete the template
       const { error: templateError } = await supabase
         .from('templates')
         .delete()
@@ -118,7 +140,14 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
             {templates.map((template) => (
               <Card key={template.id} className="overflow-hidden">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-lg">{template.title}</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {template.title}
+                    {template.hasWordFile && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <File className="h-3 w-3" /> Word
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <p className="text-sm text-muted-foreground mb-4">
