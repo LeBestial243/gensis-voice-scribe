@@ -442,7 +442,9 @@ export function OfficialReportGenerator() {
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {renderReportSections(report)}
+                            {report.sections && Array.isArray(report.sections) ? renderReportSections(report) : (
+                              <p className="text-sm text-muted-foreground">Aucune section disponible</p>
+                            )}
                             <div className="flex justify-end space-x-2 pt-2">
                               <Button 
                                 variant="outline"

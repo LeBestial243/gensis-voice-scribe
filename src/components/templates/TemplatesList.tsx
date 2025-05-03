@@ -47,7 +47,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
 
       return data.map(template => ({
         ...template,
-        sectionCount: template.template_sections[0]?.count || 0
+        sectionCount: template.template_sections?.[0]?.count || 0
       }));
     },
   });
