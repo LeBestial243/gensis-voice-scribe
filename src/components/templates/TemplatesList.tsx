@@ -40,8 +40,8 @@ interface Template {
   word_file_url: string | null;
   word_file_name: string | null;
   structure_id: string | null;
-  structures: { name: string } | null;
-  template_sections: { count: number }[] | null;
+  structures?: { name: string } | null;
+  template_sections?: { count: number }[] | null;
 }
 
 interface TransformedTemplate {
@@ -72,8 +72,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('structures')
-        .select('id, name')
-        .order('name');
+        .select('id, name');
       
       if (error) throw error;
       return data as Structure[];
@@ -93,8 +92,8 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           word_file_url,
           word_file_name,
           structure_id,
-          structures(name),
-          template_sections(count)
+          structures (name),
+          template_sections (count)
         `)
         .order('created_at', { ascending: false });
       
@@ -108,7 +107,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template and safely handle template_sections
-      return data.map((template: Template): TransformedTemplate => {
+      return (data || []).map((template: Template): TransformedTemplate => {
         // Create a new object with the template data
         const transformedTemplate: TransformedTemplate = {
           id: template.id,
