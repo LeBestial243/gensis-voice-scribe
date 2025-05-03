@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +21,30 @@ interface TemplatesListProps {
   onEditTemplate: (templateId: string) => void;
 }
 
+// Define types to match the database schema
+interface Template {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  word_file_url: string | null;
+  word_file_name: string | null;
+  template_sections?: { count: number }[];
+  structure_id?: string | null;
+}
+
+interface TransformedTemplate {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  word_template_url: string | null;
+  word_template_filename: string | null;
+  template_type: "word" | "sections";
+  sectionCount: number;
+  structure_id?: string | null;
+}
+
 export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
   const { toast } = useToast();
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
@@ -38,6 +61,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           created_at,
           word_file_url,
           word_file_name,
+          structure_id,
           template_sections(count)
         `)
         .order('created_at', { ascending: false });
@@ -45,9 +69,9 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template and safely handle template_sections
-      return data.map(template => {
+      return (data as Template[]).map(template => {
         // Create a new object with the template data
-        const transformedTemplate = {
+        const transformedTemplate: TransformedTemplate = {
           id: template.id,
           title: template.title,
           description: template.description,
@@ -55,11 +79,14 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           word_template_url: template.word_file_url, // Map from word_file_url
           word_template_filename: template.word_file_name, // Map from word_file_name
           template_type: "word", // Default to word
-          sectionCount: 0 // Default to 0
+          sectionCount: 0, // Default to 0
+          structure_id: template.structure_id
         };
         
         // Safely access template_sections if it exists
-        if (template.template_sections && template.template_sections[0]) {
+        if (template.template_sections && 
+            Array.isArray(template.template_sections) && 
+            template.template_sections.length > 0) {
           transformedTemplate.sectionCount = template.template_sections[0].count || 0;
         }
         
