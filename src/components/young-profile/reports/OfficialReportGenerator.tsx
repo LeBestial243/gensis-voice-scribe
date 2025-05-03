@@ -18,13 +18,15 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useOfficialReport } from '@/hooks/useOfficialReport';
-import { OfficialReport } from '@/types/reports';
+import { OfficialReport, ReportSection } from '@/types/reports';
 import { ReportPreview } from './ReportPreview';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export function OfficialReportGenerator() {
   const { profileId } = useParams<{ profileId: string }>();
+  const { toast } = useToast();
   
   // Use the custom hook
   const {
@@ -65,6 +67,7 @@ export function OfficialReportGenerator() {
 
   const [activeTab, setActiveTab] = useState("generate");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [availableTranscriptions, setAvailableTranscriptions] = useState<number>(0);
   
   // Helper function to format dates
   const formatDate = (date?: Date) => {
@@ -75,11 +78,62 @@ export function OfficialReportGenerator() {
   // Get the selected report
   const selectedReport = existingReports.find(report => report.id === selectedReportId);
   
+  // Fetch transcription count to inform the user
+  useEffect(() => {
+    if (!profileId) return;
+
+    const fetchTranscriptionsCount = async () => {
+      try {
+        // First get folder IDs associated with this profile
+        const { data: folders, error: foldersError } = await supabase
+          .from('folders')
+          .select('id')
+          .eq('profile_id', profileId);
+
+        if (foldersError) throw foldersError;
+        
+        if (folders && folders.length > 0) {
+          const folderIds = folders.map(folder => folder.id);
+          
+          // Now get transcriptions count from these folders
+          const { count, error: countError } = await supabase
+            .from('files')
+            .select('*', { count: 'exact', head: true })
+            .eq('type', 'transcription')
+            .in('folder_id', folderIds);
+          
+          if (countError) throw countError;
+          
+          setAvailableTranscriptions(count || 0);
+        } else {
+          setAvailableTranscriptions(0);
+        }
+      } catch (error) {
+        console.error("Error fetching transcriptions count:", error);
+      }
+    };
+    
+    fetchTranscriptionsCount();
+  }, [profileId]);
+  
   // Generate report handler
   const onGenerateReport = async () => {
     try {
       if (!profileId || !selectedTemplateId || !periodStart || !periodEnd) {
+        toast({
+          title: "Paramètres manquants",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        });
         return;
+      }
+      
+      if (includeTranscriptions && availableTranscriptions === 0) {
+        toast({
+          title: "Aucune transcription disponible",
+          description: "Il n'y a pas de transcriptions à inclure dans le rapport",
+          variant: "warning"
+        });
       }
       
       await handleGenerateReport({
@@ -96,6 +150,11 @@ export function OfficialReportGenerator() {
       setActiveTab("preview");
     } catch (error) {
       console.error("Error generating report:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la génération du rapport",
+        variant: "destructive"
+      });
     }
   };
 
@@ -108,6 +167,11 @@ export function OfficialReportGenerator() {
       setActiveTab("history");
     } catch (error) {
       console.error("Error saving report:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la sauvegarde du rapport",
+        variant: "destructive"
+      });
     }
   };
   
@@ -117,6 +181,11 @@ export function OfficialReportGenerator() {
       await handleExportPdf(reportId);
     } catch (error) {
       console.error("Error exporting report:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'export du rapport",
+        variant: "destructive"
+      });
     }
   };
 
@@ -223,7 +292,19 @@ export function OfficialReportGenerator() {
                         checked={includeTranscriptions}
                         onCheckedChange={setIncludeTranscriptions}
                       />
-                      <Label htmlFor="include-transcriptions">Inclure les transcriptions</Label>
+                      <Label htmlFor="include-transcriptions">
+                        Inclure les transcriptions
+                        {availableTranscriptions > 0 && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({availableTranscriptions} disponible{availableTranscriptions > 1 ? 's' : ''})
+                          </span>
+                        )}
+                        {availableTranscriptions === 0 && (
+                          <span className="text-xs text-orange-500 ml-2">
+                            (Aucune transcription disponible)
+                          </span>
+                        )}
+                      </Label>
                     </div>
                   </div>
                   
@@ -327,21 +408,20 @@ export function OfficialReportGenerator() {
                       <CardHeader className="py-4">
                         <CardTitle className="text-lg">{report.title}</CardTitle>
                         <CardDescription>
-                          {/* Handle both camelCase and snake_case property names for compatibility */}
-                          {report.report_type || report.reportType || ''} • Du {format(parseISO(report.periodStart || report.period_start || ''), "dd MMMM yyyy", { locale: fr })} au {format(parseISO(report.periodEnd || report.period_end || ''), "dd MMMM yyyy", { locale: fr })}
+                          {(report.report_type || report.reportType || '')} • Du {format(parseISO(report.periodStart || report.period_start || ''), "dd MMMM yyyy", { locale: fr })} au {format(parseISO(report.periodEnd || report.period_end || ''), "dd MMMM yyyy", { locale: fr })}
                         </CardDescription>
                       </CardHeader>
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {(report.sections || []).map((section, idx) => (
+                            {(report.sections || []).map((section: ReportSection, idx: number) => (
                               <div key={idx} className="space-y-2">
                                 <h4 className="font-semibold text-sm">{section.title}</h4>
                                 {typeof section.content === 'string' ? (
                                   <p className="text-sm text-muted-foreground">{section.content}</p>
                                 ) : Array.isArray(section.content) ? (
                                   <ul className="list-disc pl-5">
-                                    {section.content.map((item, i) => (
+                                    {section.content.map((item: string, i: number) => (
                                       <li key={i} className="text-sm text-muted-foreground">{item}</li>
                                     ))}
                                   </ul>

@@ -26,7 +26,6 @@ export interface ReportSection {
   data?: any;
 }
 
-// Unified interface with both camelCase and snake_case properties for compatibility
 export interface OfficialReport {
   id: string;
   profileId: string;
@@ -34,18 +33,13 @@ export interface OfficialReport {
   title: string;
   reportType?: string;
   report_type?: string;
-  startDate?: string;
-  period_start?: string;
   periodStart?: string;
-  endDate?: string;
-  period_end?: string;
+  period_start?: string;
   periodEnd?: string;
+  period_end?: string;
   createdAt?: string;
   created_at?: string;
-  sections?: {
-    title: string;
-    content: string | string[] | Record<string, any>;
-  }[];
+  sections?: ReportSection[];
   templateId?: string;
   template_id?: string;
   institution?: string;
