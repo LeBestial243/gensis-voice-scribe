@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,8 +36,8 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           title, 
           description,
           created_at,
-          word_template_url,
-          word_template_filename,
+          word_file_url,
+          word_file_name,
           template_sections(count)
         `)
         .order('created_at', { ascending: false });
@@ -51,8 +52,8 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           title: template.title,
           description: template.description,
           created_at: template.created_at,
-          word_template_url: template.word_template_url,
-          word_template_filename: template.word_template_filename,
+          word_template_url: template.word_file_url, // Map from word_file_url
+          word_template_filename: template.word_file_name, // Map from word_file_name
           template_type: "word", // Default to word
           sectionCount: 0 // Default to 0
         };
