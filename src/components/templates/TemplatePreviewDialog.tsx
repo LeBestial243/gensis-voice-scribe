@@ -70,6 +70,8 @@ export function TemplatePreviewDialog({
   const handleDownloadWord = () => {
     if (template?.word_file_url) {
       window.open(template.word_file_url, '_blank');
+    } else if (template?.word_template_url) {
+      window.open(template.word_template_url, '_blank');
     }
   };
 
@@ -82,7 +84,11 @@ export function TemplatePreviewDialog({
       );
     }
 
-    if (template?.word_file_url) {
+    // Check both old and new schema properties
+    const isWordTemplate = template?.word_file_url || template?.word_template_url || template?.template_type === "word";
+
+    if (isWordTemplate) {
+      const filename = template?.word_file_name || template?.word_template_filename || "template.docx";
       return (
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <FileQuestion className="h-16 w-16 text-primary" />
@@ -97,7 +103,7 @@ export function TemplatePreviewDialog({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {template.word_file_name || "template.docx"}
+            {filename}
           </p>
         </div>
       );

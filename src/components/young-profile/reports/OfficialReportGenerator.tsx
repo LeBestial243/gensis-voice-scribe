@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -215,7 +216,7 @@ export function OfficialReportGenerator() {
     fetchProfileName();
   }, [profileId]);
 
-  // Modified section to fix the TypeScript error
+  // Fixed renderReportSections function to properly handle section content types
   const renderReportSections = (report: any) => {
     if (!report.sections) {
       return <p className="text-sm text-muted-foreground">Aucune section disponible</p>;
