@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -92,30 +93,32 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template
-      const transformedTemplates = await Promise.all((data || []).map(async (template: Template): Promise<TransformedTemplate> => {
-        let structureName = null;
-        
-        if (template.structure_id) {
-          try {
-            // Find structure in the fetched structures
-            const structure = structures.find(s => s.id === template.structure_id);
-            structureName = structure ? structure.name : null;
-          } catch (error) {
-            console.error('Error fetching structure:', error);
+      const transformedTemplates: TransformedTemplate[] = await Promise.all(
+        (data || []).map(async (template) => {
+          let structureName = null;
+          
+          if (template.structure_id) {
+            try {
+              // Find structure in the fetched structures
+              const structure = structures.find(s => s.id === template.structure_id);
+              structureName = structure ? structure.name : null;
+            } catch (error) {
+              console.error('Error fetching structure:', error);
+            }
           }
-        }
-        
-        return {
-          id: template.id,
-          title: template.title,
-          description: template.description,
-          created_at: template.created_at,
-          word_template_url: template.word_file_url,
-          word_template_filename: template.word_file_name,
-          structure_id: template.structure_id,
-          structure_name: structureName,
-        };
-      }));
+          
+          return {
+            id: template.id,
+            title: template.title,
+            description: template.description,
+            created_at: template.created_at,
+            word_template_url: template.word_file_url,
+            word_template_filename: template.word_file_name,
+            structure_id: template.structure_id,
+            structure_name: structureName,
+          };
+        })
+      );
       
       return transformedTemplates;
     },

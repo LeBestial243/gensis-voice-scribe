@@ -1,55 +1,45 @@
-
-import { Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "./components/ui/ThemeProvider";
-import { Toaster } from "@/components/ui/toaster";
-import Index from "./pages/Index";
-import { SidebarProvider } from "./components/ui/sidebar";
-import { Profile } from "./pages/Profile";
-import NotFound from "./pages/NotFound";
-import ConfidentialitySettingsPage from "./pages/ConfidentialitySettingsPage";
-import Auth from "./pages/Auth";
-import { AuthProvider } from "./components/AuthProvider";
-import Profiles from "./pages/Profiles";
-import CriticalIncidentsPage from "./pages/CriticalIncidentsPage";
-import PriorityDashboardPage from "./pages/PriorityDashboardPage";
-import TeamCollaborationPage from "./pages/TeamCollaborationPage";
+import { Route, Routes } from "react-router-dom";
 import TemplatesPage from "./pages/TemplatesPage";
 import StructuresManagementPage from "./pages/StructuresManagementPage";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
+import YoungProfilesPage from "./pages/YoungProfilesPage";
 import YoungProfilePage from "./pages/YoungProfilePage";
-import CASFReportsPage from "./pages/CASFReportsPage";
-import EducationalProjectPage from "./pages/EducationalProjectPage";
-import EducationalProjectGeneratorPage from "./pages/EducationalProjectGeneratorPage";
-import EmotionalAnalysisPage from "./pages/EmotionalAnalysisPage";
-import OfficialReportGeneratorPage from "./pages/OfficialReportGeneratorPage";
+import NotesPage from "./pages/NotesPage";
+import NotePage from "./pages/NotePage";
+import ActivityReportsPage from "./pages/ActivityReportsPage";
+import ActivityReportPage from "./pages/ActivityReportPage";
+import { Toaster } from "./components/ui/toaster";
+import { AuthProvider } from "./lib/auth";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "./components/theme-provider";
+
+const queryClient = new QueryClient();
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <SidebarProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profiles" element={<Profiles />} />
-            <Route path="/young-profile/:id" element={<YoungProfilePage />} />
-            <Route path="/confidentiality-settings" element={<ConfidentialitySettingsPage />} />
-            <Route path="/critical-incidents/:id" element={<CriticalIncidentsPage />} />
-            <Route path="/critical-incidents" element={<CriticalIncidentsPage />} />
-            <Route path="/priority-dashboard" element={<PriorityDashboardPage />} />
-            <Route path="/team-collaboration" element={<TeamCollaborationPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/young-profiles" element={<YoungProfilesPage />} />
+            <Route path="/young-profiles/:id" element={<YoungProfilePage />} />
+            <Route path="/notes" element={<NotesPage />} />
+            <Route path="/notes/:id" element={<NotePage />} />
+            <Route path="/activity-reports" element={<ActivityReportsPage />} />
+            <Route path="/activity-reports/:id" element={<ActivityReportPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/structures" element={<StructuresManagementPage />} />
-            <Route path="/casf-reports" element={<CASFReportsPage />} />
-            <Route path="/educational-project/:projectId" element={<EducationalProjectPage />} />
-            <Route path="/educational-project-generator/:profileId" element={<EducationalProjectGeneratorPage />} />
-            <Route path="/emotional-analysis/:profileId" element={<EmotionalAnalysisPage />} />
-            <Route path="/official-report/:profileId" element={<OfficialReportGeneratorPage />} />
-            <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
         </AuthProvider>
-      </SidebarProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
