@@ -2,12 +2,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Eye, File } from "lucide-react";
+import { Edit, Trash2, Download, Sections, FileWord } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
+import { useState } from "react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +24,6 @@ interface TemplatesListProps {
 
 export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
   const { toast } = useToast();
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   const { data: templates = [], isLoading, refetch } = useQuery({
@@ -37,9 +35,10 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           id, 
           title, 
           description,
-          word_file_url,
-          word_file_name,
           created_at,
+          template_type,
+          word_template_url,
+          word_template_filename,
           template_sections:template_sections(count)
         `)
         .order('created_at', { ascending: false });
@@ -48,8 +47,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
 
       return data.map(template => ({
         ...template,
-        sectionCount: template.template_sections[0]?.count || 0,
-        hasWordFile: !!template.word_file_url
+        sectionCount: template.template_sections[0]?.count || 0
       }));
     },
   });
@@ -58,21 +56,19 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     if (!deleteTemplateId) return;
 
     try {
-      // First, check if there's a word file to delete from storage
-      const { data: template } = await supabase
-        .from('templates')
-        .select('word_file_url')
-        .eq('id', deleteTemplateId)
-        .single();
+      const template = templates.find(t => t.id === deleteTemplateId);
       
-      if (template?.word_file_url) {
-        // Extract file path from the URL
-        const filePathMatch = template.word_file_url.match(/\/templates-files\/([^?]+)/);
-        if (filePathMatch && filePathMatch[1]) {
-          // Delete the file from storage
-          await supabase.storage
+      // Delete word template file if exists
+      if (template?.word_template_url) {
+        const fileName = template.word_template_url.split('/').pop();
+        if (fileName) {
+          const { error: storageError } = await supabase.storage
             .from('templates-files')
-            .remove([filePathMatch[1]]);
+            .remove([`templates/${fileName}`]);
+          
+          if (storageError) {
+            console.error('Storage delete error:', storageError);
+          }
         }
       }
 
@@ -110,6 +106,12 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     }
   };
 
+  const handleDownloadWord = (templateUrl: string) => {
+    if (templateUrl) {
+      window.open(templateUrl, '_blank');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -140,28 +142,39 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
             {templates.map((template) => (
               <Card key={template.id} className="overflow-hidden">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {template.title}
-                    {template.hasWordFile && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <File className="h-3 w-3" /> Word
-                      </Badge>
-                    )}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{template.title}</CardTitle>
+                    <Badge variant={template.template_type === "word" ? "outline" : "secondary"}>
+                      {template.template_type === "word" ? (
+                        <FileWord className="h-3 w-3 mr-1" />
+                      ) : (
+                        <Sections className="h-3 w-3 mr-1" />
+                      )}
+                      {template.template_type === "word" ? "Word" : "Sections"}
+                    </Badge>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {template.sectionCount} {template.sectionCount > 1 ? 'sections' : 'section'}
-                  </p>
+                  {template.template_type === "word" ? (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {template.word_template_filename || "document.docx"}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {template.sectionCount} {template.sectionCount > 1 ? 'sections' : 'section'}
+                    </p>
+                  )}
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setPreviewTemplateId(template.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Aperçu
-                    </Button>
+                    {template.word_template_url && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDownloadWord(template.word_template_url!)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Télécharger
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -186,14 +199,6 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           </div>
         </CardContent>
       </Card>
-
-      {previewTemplateId && (
-        <TemplatePreviewDialog
-          templateId={previewTemplateId}
-          open={!!previewTemplateId}
-          onOpenChange={(open) => !open && setPreviewTemplateId(null)}
-        />
-      )}
 
       <AlertDialog open={!!deleteTemplateId} onOpenChange={(open) => !open && setDeleteTemplateId(null)}>
         <AlertDialogContent>
