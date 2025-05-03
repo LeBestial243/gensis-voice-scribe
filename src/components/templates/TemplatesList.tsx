@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +70,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template and safely handle template_sections
-      return (data as Template[]).map(template => {
+      return data.map(template => {
         // Create a new object with the template data
         const transformedTemplate: TransformedTemplate = {
           id: template.id,
