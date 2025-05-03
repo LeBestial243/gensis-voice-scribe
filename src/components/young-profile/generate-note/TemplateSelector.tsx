@@ -17,7 +17,7 @@ export function TemplateSelector({ selectedTemplateId, onTemplateSelect }: Templ
     queryFn: async () => {
       const { data, error } = await supabase
         .from('templates')
-        .select('*, template_sections(count)')
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

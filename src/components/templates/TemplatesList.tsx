@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Download, File, List, Building } from "lucide-react";
+import { Edit, Trash2, Download, File, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,6 @@ interface Template {
   word_file_name: string | null;
   structure_id: string | null;
   structures?: { name: string } | null;
-  template_sections?: { count: number }[] | null;
 }
 
 interface TransformedTemplate {
@@ -51,8 +50,6 @@ interface TransformedTemplate {
   created_at: string;
   word_template_url: string | null;
   word_template_filename: string | null;
-  template_type: "word" | "sections";
-  sectionCount: number;
   structure_id: string | null;
   structure_name: string | null;
 }
@@ -92,8 +89,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           word_file_url,
           word_file_name,
           structure_id,
-          structures (name),
-          template_sections (count)
+          structures (name)
         `)
         .order('created_at', { ascending: false });
       
@@ -106,30 +102,18 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       
       if (error) throw error;
 
-      // Transform each template and safely handle template_sections
+      // Transform each template
       return (data || []).map((template: Template): TransformedTemplate => {
-        // Create a new object with the template data
-        const transformedTemplate: TransformedTemplate = {
+        return {
           id: template.id,
           title: template.title,
           description: template.description,
           created_at: template.created_at,
-          word_template_url: template.word_file_url, // Map from word_file_url
-          word_template_filename: template.word_file_name, // Map from word_file_name
-          template_type: template.word_file_url ? "word" : "sections", // Determine type
+          word_template_url: template.word_file_url,
+          word_template_filename: template.word_file_name,
           structure_id: template.structure_id,
           structure_name: template.structures ? template.structures.name : null,
-          sectionCount: 0 // Default to 0
         };
-        
-        // Safely access template_sections if it exists
-        if (template.template_sections && 
-            Array.isArray(template.template_sections) && 
-            template.template_sections.length > 0) {
-          transformedTemplate.sectionCount = template.template_sections[0]?.count || 0;
-        }
-        
-        return transformedTemplate;
       });
     },
   });
@@ -153,14 +137,6 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           }
         }
       }
-
-      // Delete sections
-      const { error: sectionsError } = await supabase
-        .from('template_sections')
-        .delete()
-        .eq('template_id', deleteTemplateId);
-
-      if (sectionsError) throw sectionsError;
 
       // Delete the template
       const { error: templateError } = await supabase
@@ -253,16 +229,10 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{template.title}</CardTitle>
-                      <div className="flex gap-1">
-                        <Badge variant={template.template_type === "word" ? "outline" : "secondary"}>
-                          {template.template_type === "word" ? (
-                            <File className="h-3 w-3 mr-1" />
-                          ) : (
-                            <List className="h-3 w-3 mr-1" />
-                          )}
-                          {template.template_type === "word" ? "Word" : "Sections"}
-                        </Badge>
-                      </div>
+                      <Badge variant="outline">
+                        <File className="h-3 w-3 mr-1" />
+                        Word
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
@@ -274,15 +244,9 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
                         </span>
                       </div>
                     )}
-                    {template.template_type === "word" ? (
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {template.word_template_filename || "document.docx"}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {template.sectionCount} {template.sectionCount > 1 ? 'sections' : 'section'}
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {template.word_template_filename || "document.docx"}
+                    </p>
                     <div className="flex justify-end gap-2">
                       {template.word_template_url && (
                         <Button 
@@ -325,7 +289,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Le template et toutes ses sections seront définitivement supprimés.
+              Cette action est irréversible. Le template sera définitivement supprimé.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

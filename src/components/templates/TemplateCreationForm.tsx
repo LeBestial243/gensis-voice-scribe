@@ -3,17 +3,10 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { TemplateHeader } from "./template-form/TemplateHeader";
-import { SectionsList } from "./template-form/SectionsList";
 import { TemplateActions } from "./template-form/TemplateActions";
 import { WordTemplateUpload } from "./template-form/WordTemplateUpload";
-
-interface Section {
-  id: string;
-  title: string;
-  instructions: string;
-}
+import { StructureSelector } from "./template-form/StructureSelector";
 
 interface TemplateCreationFormProps {
   editingTemplateId: string | null;
@@ -22,12 +15,10 @@ interface TemplateCreationFormProps {
 
 export function TemplateCreationForm({ editingTemplateId, onEditComplete }: TemplateCreationFormProps) {
   const [templateTitle, setTemplateTitle] = useState("");
-  const [sections, setSections] = useState<Section[]>([
-    { id: "section-" + Date.now(), title: "", instructions: "" }
-  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wordFileUrl, setWordFileUrl] = useState<string | null>(null);
   const [wordFileName, setWordFileName] = useState<string | null>(null);
+  const [selectedStructureId, setSelectedStructureId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -44,16 +35,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
         .single();
       
       if (templateError) throw templateError;
-
-      const { data: sections, error: sectionsError } = await supabase
-        .from('template_sections')
-        .select('*')
-        .eq('template_id', editingTemplateId)
-        .order('order_index');
       
-      if (sectionsError) throw sectionsError;
-
-      return { template, sections };
+      return { template };
     },
     enabled: !!editingTemplateId,
   });
@@ -64,14 +47,7 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
       setTemplateTitle(templateData.template.title);
       setWordFileUrl(templateData.template.word_file_url || null);
       setWordFileName(templateData.template.word_file_name || null);
-      
-      if (templateData.sections.length > 0) {
-        setSections(templateData.sections.map(section => ({
-          id: section.id,
-          title: section.title,
-          instructions: section.instructions || ""
-        })));
-      }
+      setSelectedStructureId(templateData.template.structure_id);
     }
   }, [templateData]);
 
@@ -81,7 +57,7 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
       setTemplateTitle("");
       setWordFileUrl(null);
       setWordFileName(null);
-      setSections([{ id: "section-" + Date.now(), title: "", instructions: "" }]);
+      setSelectedStructureId(null);
     }
   }, [editingTemplateId]);
 
@@ -94,10 +70,9 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
         if (!templateTitle.trim()) {
           throw new Error("Le titre du template est requis");
         }
-
-        const validSections = sections.filter(s => s.title.trim());
-        if (validSections.length === 0) {
-          throw new Error("Au moins une section avec un titre est requise");
+        
+        if (!wordFileUrl) {
+          throw new Error("Un fichier Word est requis pour le template");
         }
 
         let templateId = editingTemplateId;
@@ -114,7 +89,8 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
               title: templateTitle,
               user_id: user.id,
               word_file_url: wordFileUrl,
-              word_file_name: wordFileName
+              word_file_name: wordFileName,
+              structure_id: selectedStructureId
             })
             .select()
             .single();
@@ -128,34 +104,13 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
             .update({ 
               title: templateTitle,
               word_file_url: wordFileUrl,
-              word_file_name: wordFileName
+              word_file_name: wordFileName,
+              structure_id: selectedStructureId
             })
             .eq('id', editingTemplateId);
           
           if (updateError) throw updateError;
-
-          // Delete existing sections
-          const { error: deleteError } = await supabase
-            .from('template_sections')
-            .delete()
-            .eq('template_id', editingTemplateId);
-          
-          if (deleteError) throw deleteError;
         }
-
-        // Add sections
-        const sectionsToInsert = validSections.map((section, index) => ({
-          template_id: templateId,
-          title: section.title,
-          instructions: section.instructions || null,
-          order_index: index
-        }));
-
-        const { error: sectionsError } = await supabase
-          .from('template_sections')
-          .insert(sectionsToInsert);
-        
-        if (sectionsError) throw sectionsError;
 
         return templateId;
       } finally {
@@ -176,7 +131,7 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
         setTemplateTitle("");
         setWordFileUrl(null);
         setWordFileName(null);
-        setSections([{ id: "section-" + Date.now(), title: "", instructions: "" }]);
+        setSelectedStructureId(null);
       } else {
         onEditComplete();
       }
@@ -190,41 +145,6 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
     }
   });
 
-  const handleAddSection = () => {
-    setSections([...sections, { id: "section-" + Date.now(), title: "", instructions: "" }]);
-  };
-
-  const handleRemoveSection = (index: number) => {
-    if (sections.length === 1) {
-      toast({
-        title: "Au moins une section requise",
-        description: "Vous devez avoir au moins une section dans votre template",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const newSections = [...sections];
-    newSections.splice(index, 1);
-    setSections(newSections);
-  };
-
-  const handleSectionChange = (index: number, field: 'title' | 'instructions', value: string) => {
-    const newSections = [...sections];
-    newSections[index][field] = value;
-    setSections(newSections);
-  };
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(sections);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    setSections(items);
-  };
-
   const handleFileUploaded = (fileUrl: string, fileName: string) => {
     setWordFileUrl(fileUrl);
     setWordFileName(fileName);
@@ -233,6 +153,10 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
   const handleFileRemoved = () => {
     setWordFileUrl(null);
     setWordFileName(null);
+  };
+
+  const handleStructureChange = (structureId: string | null) => {
+    setSelectedStructureId(structureId);
   };
 
   if (templateLoading) {
@@ -250,27 +174,26 @@ export function TemplateCreationForm({ editingTemplateId, onEditComplete }: Temp
         setTemplateTitle={setTemplateTitle}
       />
 
-      <div className="p-4 border rounded-md bg-muted/30">
-        <h3 className="text-lg font-medium mb-4">Template Word (Optionnel)</h3>
-        <WordTemplateUpload
-          templateId={editingTemplateId}
-          existingFileUrl={wordFileUrl}
-          existingFileName={wordFileName}
-          onFileUploaded={handleFileUploaded}
-          onFileRemoved={handleFileRemoved}
+      <div className="space-y-6">
+        <StructureSelector 
+          selectedStructureId={selectedStructureId} 
+          onStructureChange={handleStructureChange}
         />
-        <p className="text-sm text-muted-foreground mt-4">
-          Vous pouvez télécharger un fichier Word (.doc ou .docx) qui servira de modèle pour ce template.
-        </p>
-      </div>
 
-      <SectionsList
-        sections={sections}
-        onAddSection={handleAddSection}
-        onRemoveSection={handleRemoveSection}
-        onSectionChange={handleSectionChange}
-        onDragEnd={handleDragEnd}
-      />
+        <div className="p-4 border rounded-md bg-muted/30">
+          <h3 className="text-lg font-medium mb-4">Template Word</h3>
+          <WordTemplateUpload
+            templateId={editingTemplateId}
+            existingFileUrl={wordFileUrl}
+            existingFileName={wordFileName}
+            onFileUploaded={handleFileUploaded}
+            onFileRemoved={handleFileRemoved}
+          />
+          <p className="text-sm text-muted-foreground mt-4">
+            Téléchargez un fichier Word (.doc ou .docx) qui servira de modèle pour ce template.
+          </p>
+        </div>
+      </div>
 
       <TemplateActions
         onSave={() => saveTemplate.mutate()}
