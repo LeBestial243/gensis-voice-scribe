@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -217,7 +216,7 @@ export function OfficialReportGenerator() {
   }, [profileId]);
 
   // Fixed renderReportSections function to properly handle section content types
-  const renderReportSections = (report: any) => {
+  const renderReportSections = (report: OfficialReport) => {
     if (!report.sections) {
       return <p className="text-sm text-muted-foreground">Aucune section disponible</p>;
     }

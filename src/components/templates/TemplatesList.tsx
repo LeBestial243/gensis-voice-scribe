@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +35,6 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           title, 
           description,
           created_at,
-          template_type,
           word_template_url,
           word_template_filename,
           template_sections(count)
@@ -45,10 +43,27 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       
       if (error) throw error;
 
-      return data.map(template => ({
-        ...template,
-        sectionCount: template.template_sections?.[0]?.count || 0
-      }));
+      // Transform each template and safely handle template_sections
+      return data.map(template => {
+        // Create a new object with the template data
+        const transformedTemplate = {
+          id: template.id,
+          title: template.title,
+          description: template.description,
+          created_at: template.created_at,
+          word_template_url: template.word_template_url,
+          word_template_filename: template.word_template_filename,
+          template_type: "word", // Default to word
+          sectionCount: 0 // Default to 0
+        };
+        
+        // Safely access template_sections if it exists
+        if (template.template_sections && template.template_sections[0]) {
+          transformedTemplate.sectionCount = template.template_sections[0].count || 0;
+        }
+        
+        return transformedTemplate;
+      });
     },
   });
 
