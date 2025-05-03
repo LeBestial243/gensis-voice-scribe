@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,7 +36,6 @@ interface Template {
   word_file_url: string | null;
   word_file_name: string | null;
   structure_id: string | null;
-  structure_name: string | null;
 }
 
 interface TransformedTemplate {
@@ -94,7 +92,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
       if (error) throw error;
 
       // Transform each template
-      const transformedTemplates = await Promise.all((data || []).map(async (template: any): Promise<TransformedTemplate> => {
+      const transformedTemplates = await Promise.all((data || []).map(async (template: Template): Promise<TransformedTemplate> => {
         let structureName = null;
         
         if (template.structure_id) {

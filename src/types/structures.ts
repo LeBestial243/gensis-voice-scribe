@@ -15,7 +15,7 @@ export interface StructureUser {
   email: string;
   first_name: string | null;
   last_name: string | null;
-  display_name: string;
+  display_name?: string;
 }
 
 export interface User {
@@ -23,5 +23,5 @@ export interface User {
   email: string;
   first_name: string | null;
   last_name: string | null;
-  display_name: string;
+  display_name?: string;
 }
