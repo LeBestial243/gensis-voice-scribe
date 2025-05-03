@@ -414,22 +414,24 @@ export function OfficialReportGenerator() {
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {(report.sections && Array.isArray(report.sections)) ? report.sections.map((section: ReportSection, idx: number) => (
-                              <div key={idx} className="space-y-2">
-                                <h4 className="font-semibold text-sm">{section.title}</h4>
-                                {typeof section.content === 'string' ? (
-                                  <p className="text-sm text-muted-foreground">{section.content}</p>
-                                ) : Array.isArray(section.content) ? (
-                                  <ul className="list-disc pl-5">
-                                    {section.content.map((item: string, i: number) => (
-                                      <li key={i} className="text-sm text-muted-foreground">{item}</li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">Contenu structuré</p>
-                                )}
-                              </div>
-                            )) : (
+                            {(report.sections && Array.isArray(report.sections)) ? (
+                              report.sections.map((section: ReportSection, idx: number) => (
+                                <div key={idx} className="space-y-2">
+                                  <h4 className="font-semibold text-sm">{section.title}</h4>
+                                  {typeof section.content === 'string' ? (
+                                    <p className="text-sm text-muted-foreground">{section.content}</p>
+                                  ) : Array.isArray(section.content) ? (
+                                    <ul className="list-disc pl-5">
+                                      {section.content.map((item: string, i: number) => (
+                                        <li key={i} className="text-sm text-muted-foreground">{item}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">Contenu structuré</p>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
                               <p className="text-sm text-muted-foreground">Aucune section disponible</p>
                             )}
                             <div className="flex justify-end space-x-2 pt-2">
