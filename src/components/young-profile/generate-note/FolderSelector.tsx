@@ -46,6 +46,8 @@ export function FolderSelector({
     queryKey: ["folders", profileId],
     queryFn: async () => {
       try {
+        console.log("Fetching folders for profile:", profileId);
+        
         const { data, error } = await supabase
           .from("folders")
           .select(`
@@ -72,6 +74,9 @@ export function FolderSelector({
           setError("Erreur lors du chargement des dossiers");
           throw error;
         }
+
+        // Log détaillé pour le débogage
+        console.log("Raw folders data:", JSON.stringify(data, null, 2));
         
         return data as FolderWithFiles[] || [];
       } catch (err) {
@@ -111,6 +116,8 @@ export function FolderSelector({
       
       const relevantFileCount = relevantFiles.length;
       
+      console.log(`Folder "${folder.title}": ${fileCount} files, ${relevantFileCount} relevant`);
+      
       // Si des fichiers sont sélectionnés, auto-expand le dossier
       if (!expandedFolders.includes(folder.id)) {
         const hasSelectedFiles = files.some(file => selectedFiles.includes(file.id));
@@ -131,6 +138,8 @@ export function FolderSelector({
 
   // Gérer le clic sur un dossier
   const handleFolderClick = (folderId: string) => {
+    console.log("Folder clicked:", folderId);
+    
     const folder = folderStats.find(f => f.id === folderId);
     const isCurrentlySelected = selectedFolders.includes(folderId);
     
@@ -154,6 +163,7 @@ export function FolderSelector({
           .filter(fileId => !selectedFiles.includes(fileId));
         
         if (filesToAdd.length > 0) {
+          console.log(`Auto-selecting ${filesToAdd.length} files from folder:`, folder.title);
           filesToAdd.forEach(fileId => onFileSelect(fileId));
         }
       }
@@ -168,6 +178,7 @@ export function FolderSelector({
         );
         
         if (filesToRemove.length > 0) {
+          console.log(`Auto-deselecting ${filesToRemove.length} files from folder:`, folder.title);
           filesToRemove.forEach(fileId => onFileSelect(fileId));
         }
       }

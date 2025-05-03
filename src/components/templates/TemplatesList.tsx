@@ -2,11 +2,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Download, File, Building } from "lucide-react";
+import { Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -17,38 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Structure } from "@/types/structures";
-import { structureService } from "@/services/structureService";
-
-// Define types to match the database schema
-interface Template {
-  id: string;
-  title: string;
-  description: string | null;
-  created_at: string;
-  word_file_url: string | null;
-  word_file_name: string | null;
-  structure_id: string | null;
-}
-
-interface TransformedTemplate {
-  id: string;
-  title: string;
-  description: string | null;
-  created_at: string;
-  word_template_url: string | null;
-  word_template_filename: string | null;
-  structure_id: string | null;
-  structure_name: string | null;
-}
 
 interface TemplatesListProps {
   onEditTemplate: (templateId: string) => void;
@@ -56,78 +24,29 @@ interface TemplatesListProps {
 
 export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
   const { toast } = useToast();
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
-  const [selectedStructureId, setSelectedStructureId] = useState<string | null>(null);
-  
-  // Fetch available structures
-  const { data: structures = [] } = useQuery({
-    queryKey: ['structures'],
-    queryFn: async () => {
-      return structureService.getStructures();
-    },
-  });
 
   const { data: templates = [], isLoading, refetch } = useQuery({
-    queryKey: ['templates', selectedStructureId],
+    queryKey: ['templates'],
     queryFn: async () => {
-      try {
-        let query = supabase
-          .from('templates')
-          .select(`
-            id, 
-            title, 
-            description,
-            created_at,
-            word_file_url,
-            word_file_name,
-            structure_id
-          `)
-          .order('created_at', { ascending: false });
-        
-        // Filter by structure if selected
-        if (selectedStructureId) {
-          query = query.eq('structure_id', selectedStructureId);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        if (!data) return [];
+      const { data, error } = await supabase
+        .from('templates')
+        .select(`
+          id, 
+          title, 
+          description,
+          created_at,
+          template_sections:template_sections(count)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
 
-        // Transform each template
-        const transformedTemplates: TransformedTemplate[] = await Promise.all(
-          data.map(async (template: Template) => {
-            let structureName = null;
-            
-            if (template.structure_id) {
-              try {
-                // Find structure in the fetched structures
-                const structure = structures.find(s => s.id === template.structure_id);
-                structureName = structure ? structure.name : null;
-              } catch (error) {
-                console.error('Error fetching structure:', error);
-              }
-            }
-            
-            return {
-              id: template.id,
-              title: template.title,
-              description: template.description,
-              created_at: template.created_at,
-              word_template_url: template.word_file_url,
-              word_template_filename: template.word_file_name,
-              structure_id: template.structure_id,
-              structure_name: structureName,
-            };
-          })
-        );
-        
-        return transformedTemplates;
-      } catch (error) {
-        console.error("Error fetching templates:", error);
-        return [];
-      }
+      return data.map(template => ({
+        ...template,
+        sectionCount: template.template_sections[0]?.count || 0
+      }));
     },
   });
 
@@ -135,23 +54,15 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     if (!deleteTemplateId) return;
 
     try {
-      const template = templates.find(t => t.id === deleteTemplateId);
-      
-      // Delete word template file if exists
-      if (template?.word_template_url) {
-        const fileName = template.word_template_url.split('/').pop();
-        if (fileName) {
-          const { error: storageError } = await supabase.storage
-            .from('templates-files')
-            .remove([`templates/${fileName}`]);
-          
-          if (storageError) {
-            console.error('Storage delete error:', storageError);
-          }
-        }
-      }
+      // First delete sections
+      const { error: sectionsError } = await supabase
+        .from('template_sections')
+        .delete()
+        .eq('template_id', deleteTemplateId);
 
-      // Delete the template
+      if (sectionsError) throw sectionsError;
+
+      // Then delete the template
       const { error: templateError } = await supabase
         .from('templates')
         .delete()
@@ -177,16 +88,6 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     }
   };
 
-  const handleDownloadWord = (templateUrl: string) => {
-    if (templateUrl) {
-      window.open(templateUrl, '_blank');
-    }
-  };
-
-  const handleStructureChange = (structureId: string) => {
-    setSelectedStructureId(structureId === "all" ? null : structureId);
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -195,114 +96,82 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
     );
   }
 
-  return (
-    <>
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            <div className="space-y-2">
-              <Label htmlFor="structure-filter">Filtrer par structure</Label>
-              <Select 
-                value={selectedStructureId || "all"} 
-                onValueChange={handleStructureChange}
-              >
-                <SelectTrigger id="structure-filter" className="w-60">
-                  <SelectValue placeholder="Toutes les structures" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les structures</SelectItem>
-                  {structures.map((structure) => (
-                    <SelectItem key={structure.id} value={structure.id}>
-                      {structure.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+  if (templates.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">Vous n'avez pas encore créé de template.</p>
+          <p className="mt-2">Utilisez le formulaire ci-dessus pour créer votre premier template.</p>
         </CardContent>
       </Card>
+    );
+  }
 
+  return (
+    <>
       <Card>
         <CardHeader>
           <CardTitle>Templates existants</CardTitle>
         </CardHeader>
         <CardContent>
-          {templates.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Aucun template trouvé</p>
-              {selectedStructureId && (
-                <p className="mt-2">Essayez de modifier votre filtre ou créez un nouveau template</p>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((template) => (
-                <Card key={template.id} className="overflow-hidden">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{template.title}</CardTitle>
-                      <Badge variant="outline">
-                        <File className="h-3 w-3 mr-1" />
-                        Word
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    {template.structure_name && (
-                      <div className="mb-2 flex items-center">
-                        <Building className="h-3 w-3 mr-1 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                          {template.structure_name}
-                        </span>
-                      </div>
-                    )}
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {template.word_template_filename || "document.docx"}
-                    </p>
-                    <div className="flex justify-end gap-2">
-                      {template.word_template_url && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleDownloadWord(template.word_template_url!)}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Télécharger
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => onEditTemplate(template.id)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Modifier
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setDeleteTemplateId(template.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Supprimer
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((template) => (
+              <Card key={template.id} className="overflow-hidden">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-lg">{template.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {template.sectionCount} {template.sectionCount > 1 ? 'sections' : 'section'}
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPreviewTemplateId(template.id)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Aperçu
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => onEditTemplate(template.id)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setDeleteTemplateId(template.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
+
+      {previewTemplateId && (
+        <TemplatePreviewDialog
+          templateId={previewTemplateId}
+          open={!!previewTemplateId}
+          onOpenChange={(open) => !open && setPreviewTemplateId(null)}
+        />
+      )}
 
       <AlertDialog open={!!deleteTemplateId} onOpenChange={(open) => !open && setDeleteTemplateId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Le template sera définitivement supprimé.
+              Cette action est irréversible. Le template et toutes ses sections seront définitivement supprimés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

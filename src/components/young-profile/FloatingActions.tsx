@@ -1,93 +1,79 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Mic, FileText, FileDigit, Activity, FileUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Plus, Mic, FileText } from "lucide-react";
+import { useState } from "react";
 
 interface FloatingActionsProps {
   onRecordingClick: () => void;
   onGenerateNoteClick: () => void;
-  onEmotionalAnalysisClick?: () => void;
-  profileId?: string;
 }
 
-export function FloatingActions({
-  onRecordingClick,
-  onGenerateNoteClick,
-  onEmotionalAnalysisClick = () => {},
-  profileId = ""
+export function FloatingActions({ 
+  onRecordingClick, 
+  onGenerateNoteClick 
 }: FloatingActionsProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const handleGenerateReportClick = () => {
-    if (profileId) {
-      navigate(`/official-report/${profileId}`);
-    } else {
-      toast({
-        title: "Error",
-        description: "No profile ID available",
-        variant: "destructive"
-      });
-    }
-  };
-
+  const [expanded, setExpanded] = useState(false);
+  
   return (
-    <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-30">
-      <div className="flex flex-col items-end space-y-2">
-        {isOpen && (
-          <>
-            <Button
-              onClick={onRecordingClick}
-              size="icon"
-              className="bg-red-500 hover:bg-red-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-              aria-label="Enregistrer une transcription"
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-            
-            <Button
-              onClick={onGenerateNoteClick}
-              size="icon"
-              className="bg-purple-500 hover:bg-purple-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-              aria-label="Générer une note"
-            >
-              <FileText className="h-5 w-5" />
-            </Button>
-            
-            <Button
-              onClick={onEmotionalAnalysisClick}
-              size="icon"
-              className="bg-blue-500 hover:bg-blue-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-              aria-label="Analyse émotionnelle"
-            >
-              <Activity className="h-5 w-5" />
-            </Button>
-
-            <Button
-              onClick={handleGenerateReportClick}
-              size="icon"
-              className="bg-amber-500 hover:bg-amber-600 shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95"
-              aria-label="Générer un rapport officiel"
-            >
-              <FileDigit className="h-5 w-5" />
-            </Button>
-          </>
-        )}
+    <div className="fixed bottom-10 right-10 z-50">
+      <div className={cn("relative group", expanded && "is-expanded")}>
+        {/* Halo d'arrière-plan */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-r from-gensys-primary-from to-gensys-primary-to rounded-full blur",
+          "opacity-70 group-hover:opacity-100 transition-opacity",
+          "scale-75 group-hover:scale-90",
+          "transition-all duration-300"
+        )}></div>
         
+        {/* Bouton principal */}
         <Button
-          onClick={toggleMenu}
           size="lg"
-          className="rounded-full shadow-xl h-14 w-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 p-0 transition-all duration-300"
+          className="relative bg-white/90 backdrop-blur-md text-gensys-primary-to border-white/20 shadow-xl rounded-full h-14 w-14 p-0"
+          onClick={() => setExpanded(!expanded)}
         >
-          <FileUp className={`h-6 w-6 transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`} />
+          <Plus className={cn(
+            "h-6 w-6 transition-transform duration-300",
+            expanded && "rotate-45"
+          )} />
         </Button>
+        
+        {/* Menu actions */}
+        <div className={cn(
+          "absolute bottom-full right-0 mb-4 transition-all duration-300",
+          "flex flex-col gap-3 items-end",
+          expanded ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"
+        )}>
+          {/* Action d'enregistrement */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gensys-primary-from/20 rounded-full blur-sm"></div>
+            <Button
+              size="sm"
+              className="relative bg-white/90 backdrop-blur-md text-gensys-primary-from border-white/20 shadow-lg rounded-full h-10 w-10 p-0"
+              onClick={() => {
+                onRecordingClick();
+                setExpanded(false);
+              }}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Action de génération de note */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gensys-primary-to/20 rounded-full blur-sm"></div>
+            <Button
+              size="sm"
+              className="relative bg-white/90 backdrop-blur-md text-gensys-primary-to border-white/20 shadow-lg rounded-full h-10 w-10 p-0"
+              onClick={() => {
+                onGenerateNoteClick();
+                setExpanded(false);
+              }}
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
