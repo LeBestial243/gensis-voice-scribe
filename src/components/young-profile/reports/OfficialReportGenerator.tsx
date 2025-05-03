@@ -328,7 +328,7 @@ export function OfficialReportGenerator() {
                         <CardTitle className="text-lg">{report.title}</CardTitle>
                         <CardDescription>
                           {/* Handle both camelCase and snake_case property names for compatibility */}
-                          {report.reportType || report.report_type} • Du {format(parseISO(report.periodStart || report.period_start || ''), "dd MMMM yyyy", { locale: fr })} au {format(parseISO(report.periodEnd || report.period_end || ''), "dd MMMM yyyy", { locale: fr })}
+                          {report.report_type || report.reportType || ''} • Du {format(parseISO(report.periodStart || report.period_start || ''), "dd MMMM yyyy", { locale: fr })} au {format(parseISO(report.periodEnd || report.period_end || ''), "dd MMMM yyyy", { locale: fr })}
                         </CardDescription>
                       </CardHeader>
                       {selectedReportId === report.id && (
