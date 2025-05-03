@@ -43,21 +43,23 @@ export interface FileWithContent {
   content: string;
 }
 
-// Interface mise à jour pour correspondre à celle dans reports.ts
+// Interface updated to match the one in reports.ts
 export interface OfficialReportType {
   id: string;
   profileId: string;
   profile_id?: string;
   title: string;
-  reportType: string;
-  report_type: string;
-  startDate: string;
-  period_start: string;
-  endDate: string;
-  period_end: string;
-  createdAt: string;
+  reportType?: string;
+  report_type?: string;
+  startDate?: string;
+  period_start?: string;
+  periodStart?: string;
+  endDate?: string;
+  period_end?: string;
+  periodEnd?: string;
+  createdAt?: string;
   created_at?: string;
-  sections: {
+  sections?: {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];

@@ -32,15 +32,17 @@ export interface OfficialReport {
   profileId: string;
   profile_id?: string;
   title: string;
-  reportType: string;
-  report_type: string;
-  startDate: string;
-  period_start: string;
-  endDate: string;
-  period_end: string;
-  createdAt: string;
+  reportType?: string;
+  report_type?: string;
+  startDate?: string;
+  period_start?: string;
+  periodStart?: string;
+  endDate?: string;
+  period_end?: string;
+  periodEnd?: string;
+  createdAt?: string;
   created_at?: string;
-  sections: {
+  sections?: {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];

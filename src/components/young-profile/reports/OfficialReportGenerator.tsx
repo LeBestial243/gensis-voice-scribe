@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -326,7 +327,8 @@ export function OfficialReportGenerator() {
                       <CardHeader className="py-4">
                         <CardTitle className="text-lg">{report.title}</CardTitle>
                         <CardDescription>
-                          {report.report_type || report.reportType} • Du ${format(parseISO(report.period_start || report.startDate), "dd MMMM yyyy", { locale: fr })} au ${format(parseISO(report.period_end || report.endDate), "dd MMMM yyyy", { locale: fr })}
+                          {/* Handle both camelCase and snake_case property names for compatibility */}
+                          {report.reportType || report.report_type} • Du {format(parseISO(report.periodStart || report.period_start || ''), "dd MMMM yyyy", { locale: fr })} au {format(parseISO(report.periodEnd || report.period_end || ''), "dd MMMM yyyy", { locale: fr })}
                         </CardDescription>
                       </CardHeader>
                       {selectedReportId === report.id && (
