@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -216,6 +215,34 @@ export function OfficialReportGenerator() {
     fetchProfileName();
   }, [profileId]);
 
+  // Modified section to fix the TypeScript error
+  const renderReportSections = (report: any) => {
+    if (!report.sections) {
+      return <p className="text-sm text-muted-foreground">Aucune section disponible</p>;
+    }
+    
+    if (!Array.isArray(report.sections)) {
+      return <p className="text-sm text-muted-foreground">Format de sections invalide</p>;
+    }
+    
+    return report.sections.map((section: ReportSection, idx: number) => (
+      <div key={idx} className="space-y-2">
+        <h4 className="font-semibold text-sm">{section.title}</h4>
+        {typeof section.content === 'string' ? (
+          <p className="text-sm text-muted-foreground">{section.content}</p>
+        ) : Array.isArray(section.content) ? (
+          <ul className="list-disc pl-5">
+            {section.content.map((item: string, i: number) => (
+              <li key={i} className="text-sm text-muted-foreground">{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">Contenu structuré</p>
+        )}
+      </div>
+    ));
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -414,26 +441,7 @@ export function OfficialReportGenerator() {
                       {selectedReportId === report.id && (
                         <CardContent>
                           <div className="space-y-4">
-                            {(report.sections && Array.isArray(report.sections)) ? (
-                              report.sections.map((section: ReportSection, idx: number) => (
-                                <div key={idx} className="space-y-2">
-                                  <h4 className="font-semibold text-sm">{section.title}</h4>
-                                  {typeof section.content === 'string' ? (
-                                    <p className="text-sm text-muted-foreground">{section.content}</p>
-                                  ) : Array.isArray(section.content) ? (
-                                    <ul className="list-disc pl-5">
-                                      {section.content.map((item: string, i: number) => (
-                                        <li key={i} className="text-sm text-muted-foreground">{item}</li>
-                                      ))}
-                                    </ul>
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground">Contenu structuré</p>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">Aucune section disponible</p>
-                            )}
+                            {renderReportSections(report)}
                             <div className="flex justify-end space-x-2 pt-2">
                               <Button 
                                 variant="outline"

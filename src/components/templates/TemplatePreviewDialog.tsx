@@ -62,10 +62,10 @@ export function TemplatePreviewDialog({
       if (error) throw error;
       return data;
     },
-    enabled: !!templateId && open && template?.template_type !== "word",
+    enabled: !!templateId && open && !template?.word_file_url,
   });
 
-  const isLoading = templateLoading || (template?.template_type !== "word" && sectionsLoading);
+  const isLoading = templateLoading || (!template?.word_file_url && sectionsLoading);
 
   const handleDownloadWord = () => {
     if (template?.word_file_url) {
@@ -84,28 +84,21 @@ export function TemplatePreviewDialog({
 
     if (template?.word_file_url) {
       return (
-        <div className="mb-4 p-3 border rounded-md bg-muted/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileQuestion className="h-5 w-5 text-primary" />
-              <span className="font-medium">{template.word_file_name || "Template Word"}</span>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              asChild
-            >
-              <a 
-                href={template.word_file_url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-1"
-              >
-                <Download className="h-4 w-4" />
-                Télécharger
-              </a>
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <FileQuestion className="h-16 w-16 text-primary" />
+          <h3 className="text-lg font-medium text-center">Template Word</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            Ce template est basé sur un document Word. Vous pouvez le télécharger pour le visualiser.
+          </p>
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleDownloadWord}>
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger le template Word
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {template.word_file_name || "template.docx"}
+          </p>
         </div>
       );
     }
