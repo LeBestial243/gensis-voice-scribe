@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Download, Sections, FileWord } from "lucide-react";
+import { Edit, Trash2, Download, File, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
           template_type,
           word_template_url,
           word_template_filename,
-          template_sections:template_sections(count)
+          template_sections(count)
         `)
         .order('created_at', { ascending: false });
       
@@ -146,9 +146,9 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
                     <CardTitle className="text-lg">{template.title}</CardTitle>
                     <Badge variant={template.template_type === "word" ? "outline" : "secondary"}>
                       {template.template_type === "word" ? (
-                        <FileWord className="h-3 w-3 mr-1" />
+                        <File className="h-3 w-3 mr-1" />
                       ) : (
-                        <Sections className="h-3 w-3 mr-1" />
+                        <List className="h-3 w-3 mr-1" />
                       )}
                       {template.template_type === "word" ? "Word" : "Sections"}
                     </Badge>
