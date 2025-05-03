@@ -20,7 +20,7 @@ export function StructureSelector({ selectedStructureId, onStructureChange }: St
   const { data: structures = [] } = useQuery({
     queryKey: ['structures'],
     queryFn: async () => {
-      return structureService.getStructures();
+      return await structureService.getStructures();
     },
   });
   

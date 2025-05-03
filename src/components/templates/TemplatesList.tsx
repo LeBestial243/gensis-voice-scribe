@@ -70,57 +70,64 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
   const { data: templates = [], isLoading, refetch } = useQuery({
     queryKey: ['templates', selectedStructureId],
     queryFn: async () => {
-      let query = supabase
-        .from('templates')
-        .select(`
-          id, 
-          title, 
-          description,
-          created_at,
-          word_file_url,
-          word_file_name,
-          structure_id
-        `)
-        .order('created_at', { ascending: false });
-      
-      // Filter by structure if selected
-      if (selectedStructureId) {
-        query = query.eq('structure_id', selectedStructureId);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
+      try {
+        let query = supabase
+          .from('templates')
+          .select(`
+            id, 
+            title, 
+            description,
+            created_at,
+            word_file_url,
+            word_file_name,
+            structure_id
+          `)
+          .order('created_at', { ascending: false });
+        
+        // Filter by structure if selected
+        if (selectedStructureId) {
+          query = query.eq('structure_id', selectedStructureId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        if (!data) return [];
 
-      // Transform each template
-      const transformedTemplates: TransformedTemplate[] = await Promise.all(
-        (data || []).map(async (template) => {
-          let structureName = null;
-          
-          if (template.structure_id) {
-            try {
-              // Find structure in the fetched structures
-              const structure = structures.find(s => s.id === template.structure_id);
-              structureName = structure ? structure.name : null;
-            } catch (error) {
-              console.error('Error fetching structure:', error);
+        // Transform each template
+        const transformedTemplates: TransformedTemplate[] = await Promise.all(
+          data.map(async (template: Template) => {
+            let structureName = null;
+            
+            if (template.structure_id) {
+              try {
+                // Find structure in the fetched structures
+                const structure = structures.find(s => s.id === template.structure_id);
+                structureName = structure ? structure.name : null;
+              } catch (error) {
+                console.error('Error fetching structure:', error);
+              }
             }
-          }
-          
-          return {
-            id: template.id,
-            title: template.title,
-            description: template.description,
-            created_at: template.created_at,
-            word_template_url: template.word_file_url,
-            word_template_filename: template.word_file_name,
-            structure_id: template.structure_id,
-            structure_name: structureName,
-          };
-        })
-      );
-      
-      return transformedTemplates;
+            
+            return {
+              id: template.id,
+              title: template.title,
+              description: template.description,
+              created_at: template.created_at,
+              word_template_url: template.word_file_url,
+              word_template_filename: template.word_file_name,
+              structure_id: template.structure_id,
+              structure_name: structureName,
+            };
+          })
+        );
+        
+        return transformedTemplates;
+      } catch (error) {
+        console.error("Error fetching templates:", error);
+        return [];
+      }
     },
   });
 
