@@ -212,7 +212,7 @@ export default function EducationalProjectPage() {
         <Card>
           <CardContent className="pt-6">
             <EducationalProjectForm
-              onSubmit={(data) => {
+              onSubmit={function(data) {
                 // Fix: Cast status to ProjectStatus to satisfy TypeScript
                 const completeData = {
                   title: data.title || "",
@@ -413,7 +413,7 @@ export default function EducationalProjectPage() {
                 end_date: project.end_date,
                 profile_id: project.profile_id
               }}
-              onSubmit={(data) => {
+              onSubmit={function(data) {
                 // Fix: Cast status to ProjectStatus
                 const typedData = {
                   ...data,

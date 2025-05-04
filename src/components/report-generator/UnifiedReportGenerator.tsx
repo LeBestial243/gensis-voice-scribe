@@ -7,15 +7,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { TemplateSelector } from "./TemplateSelector";
-import { SourceSelector } from "./SourceSelector";
 import { ReportEditor } from "./ReportEditor";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useReportGeneration } from "@/hooks/use-unified-report-generation";
-import { Loader2, FileText, Sparkles, Copy, Download, Save } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText } from "lucide-react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+
+// Import refactored components
+import { TabHeader } from "./components/TabHeader";
+import { SelectionPanel } from "./components/SelectionPanel";
+import { SelectionActions, EditingActions } from "./components/TabActions";
+import { getReportTypeLabel, createDownloadableFile } from "./utils/report-utils";
 
 // Types
 import { StandardizedReportType } from "@/types/reports";
@@ -130,13 +132,7 @@ export function UnifiedReportGenerator({
   };
 
   const handleExportContent = () => {
-    const element = document.createElement("a");
-    const file = new Blob([generatedContent], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `${reportTitle || "rapport"}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    createDownloadableFile(generatedContent, reportTitle || "rapport");
     toast({
       title: "Exporté !",
       description: `Le fichier "${reportTitle || "rapport"}.txt" a été téléchargé`
@@ -150,28 +146,13 @@ export function UnifiedReportGenerator({
     }
   };
 
-  // Traduire le type de rapport pour l'affichage
-  const getReportTypeLabel = () => {
-    switch (reportType) {
-      case "activity":
-        return "d'activité";
-      case "standardized":
-        return "standardisé";
-      case "evaluation":
-        return "d'évaluation";
-      case "note":
-      default:
-        return "de synthèse";
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Génération de rapport {getReportTypeLabel()}
+            Génération de rapport {getReportTypeLabel(reportType)}
           </DialogTitle>
           <DialogDescription>
             Utilisez l'IA pour générer un rapport structuré à partir de vos documents
@@ -179,62 +160,29 @@ export function UnifiedReportGenerator({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="selection" disabled={isGenerating}>
-              Sélection
-              {(selectedFolders.length > 0 || selectedFiles.length > 0 || selectedTemplateId) && (
-                <div className="flex gap-2 ml-2">
-                  {selectedFolders.length > 0 && (
-                    <Badge variant="secondary">
-                      {selectedFolders.length} dossier(s)
-                    </Badge>
-                  )}
-                  {selectedFiles.length > 0 && (
-                    <Badge variant="secondary">
-                      {selectedFiles.length} fichier(s)
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="editing" disabled={!generatedContent || isGenerating}>
-              Édition
-              <Sparkles className="ml-2 h-3 w-3" />
-            </TabsTrigger>
-          </TabsList>
+          <TabHeader 
+            activeTab={activeTab}
+            selectedFolders={selectedFolders}
+            selectedFiles={selectedFiles}
+            selectedTemplateId={selectedTemplateId}
+            isGenerating={isGenerating}
+            generatedContent={generatedContent}
+          />
           
           <div className="overflow-y-auto flex-1 my-4">
             <TabsContent value="selection" className="h-full">
-              <div className="grid md:grid-cols-2 gap-6 overflow-hidden">
-                <div className="space-y-4">
-                  <TemplateSelector
-                    selectedTemplateId={selectedTemplateId}
-                    onTemplateSelect={setSelectedTemplateId}
-                    reportType={reportType}
-                  />
-                </div>
-                <div className="space-y-4">
-                  {profileId && (
-                    <SourceSelector
-                      profileId={profileId}
-                      selectedFolders={selectedFolders}
-                      onFolderSelect={handleFolderSelect}
-                      selectedFiles={selectedFiles}
-                      onFileSelect={handleFileSelect}
-                      reportMetadata={reportMetadata}
-                      onMetadataChange={setReportMetadata}
-                      reportType={reportType}
-                    />
-                  )}
-                  {!profileId && (
-                    <div className="border border-dashed rounded-lg p-6 text-center">
-                      <p className="text-gray-500">
-                        Sélection de fichiers disponible uniquement pour les rapports liés à un profil
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <SelectionPanel 
+                selectedTemplateId={selectedTemplateId}
+                setSelectedTemplateId={setSelectedTemplateId}
+                profileId={profileId}
+                selectedFolders={selectedFolders}
+                onFolderSelect={handleFolderSelect}
+                selectedFiles={selectedFiles}
+                onFileSelect={handleFileSelect}
+                reportMetadata={reportMetadata}
+                onMetadataChange={setReportMetadata}
+                reportType={reportType}
+              />
             </TabsContent>
             
             <TabsContent value="editing" className="h-full">
@@ -257,68 +205,22 @@ export function UnifiedReportGenerator({
 
         <div className="flex justify-end gap-2 mt-4 pt-4 border-t sticky bottom-0 bg-white z-10">
           {activeTab === "selection" ? (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Annuler
-              </Button>
-              <Button 
-                onClick={handleGenerate} 
-                disabled={
-                  (!selectedTemplateId && selectedFiles.length === 0) || 
-                  isGenerating
-                }
-                className="bg-gradient-to-r from-purple-500 to-indigo-600"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Génération en cours...
-                  </>
-                ) : (
-                  <>
-                    Générer avec IA
-                    {(selectedFiles.length > 0 || selectedTemplateId) && (
-                      <Badge variant="outline" className="ml-2 bg-white text-purple-600">
-                        {selectedFiles.length > 0 
-                          ? `${selectedFiles.length} fichier(s)` 
-                          : "Template"}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Button>
-            </>
+            <SelectionActions 
+              onClose={() => onOpenChange(false)}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              isDisabled={!selectedTemplateId && selectedFiles.length === 0}
+              selectedFilesCount={selectedFiles.length}
+              hasSelectedTemplate={!!selectedTemplateId}
+            />
           ) : (
-            <>
-              <Button variant="outline" onClick={handleResetGeneration}>
-                Recommencer
-              </Button>
-              <Button variant="outline" onClick={handleCopyContent} className="gap-2">
-                <Copy className="h-4 w-4" />
-                Copier
-              </Button>
-              <Button variant="outline" onClick={handleExportContent} className="gap-2">
-                <Download className="h-4 w-4" />
-                Exporter
-              </Button>
-              <Button 
-                onClick={handleSaveReport} 
-                disabled={saveReport.isPending}
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 gap-2"
-              >
-                {saveReport.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sauvegarde...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Sauvegarder
-                  </>
-                )}
-              </Button>
-            </>
+            <EditingActions 
+              onReset={handleResetGeneration}
+              onCopy={handleCopyContent}
+              onExport={handleExportContent}
+              onSave={handleSaveReport}
+              isSaving={saveReport.isPending}
+            />
           )}
         </div>
       </DialogContent>

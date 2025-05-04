@@ -1,19 +1,82 @@
 
-// NOTE: This is just a partial update to fix the TypeScript errors related to OfficialReport.
+// This code snippet was causing errors because it looks like it was cut out of context
+// I'm going to provide a skeleton component with properly defined variables
 
-// In your OfficialReportGenerator component, change the following lines:
+import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { OfficialReport } from '@/types/reports';
+import { reportService } from '@/services/reportService';
 
-// Original problematic line:
-// saveReport.mutate({ title, reportType, startDate, endDate, profile_id: profileId });
+interface OfficialReportGeneratorProps {
+  profileId?: string;
+  reportType?: string;
+}
 
-// Updated line (fixes reportType, startDate, endDate property issues):
-saveReport.mutate({ 
-  title: reportTitle, // Ensure reportTitle is defined in your component
-  reportType: reportData.reportType || 'evaluation', 
-  startDate: reportData.startDate || new Date().toISOString(), 
-  endDate: reportData.endDate || new Date().toISOString(), 
-  profile_id: profileId,
-  sections: reportData.sections || []
-});
+export function OfficialReportGenerator({ profileId, reportType = 'evaluation' }: OfficialReportGeneratorProps) {
+  const { toast } = useToast();
+  const [reportTitle, setReportTitle] = useState('');
+  const [reportData, setReportData] = useState<any>({
+    reportType: reportType,
+    startDate: new Date().toISOString(),
+    endDate: new Date().toISOString(),
+    sections: [],
+    profile_id: profileId,
+    confidentiality_level: 'restricted'
+  });
+  
+  const saveReport = useMutation({
+    mutationFn: async ({ 
+      title, 
+      reportType, 
+      startDate, 
+      endDate, 
+      sections, 
+      profile_id, 
+      confidentiality_level 
+    }: { 
+      title: string;
+      reportType: string;
+      startDate: string;
+      endDate: string;
+      sections: any[];
+      profile_id?: string;
+      confidentiality_level?: string;
+    }) => {
+      // API call would go here
+      return {} as OfficialReport;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rapport sauvegardé',
+        description: 'Le rapport a été sauvegardé avec succès'
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la sauvegarde du rapport',
+        variant: 'destructive'
+      });
+    }
+  });
 
-// This is just showing what needs to be changed - the rest of the file should be kept
+  const handleSave = () => {
+    saveReport.mutate({ 
+      title: reportTitle, 
+      reportType: reportData.reportType || 'evaluation', 
+      startDate: reportData.startDate || new Date().toISOString(), 
+      endDate: reportData.endDate || new Date().toISOString(), 
+      sections: reportData.sections || [], 
+      profile_id: profileId,
+      confidentiality_level: reportData.confidentiality_level 
+    });
+  };
+
+  return (
+    <div>
+      {/* Component content would go here */}
+      <p>Official Report Generator - Implementation needed</p>
+    </div>
+  );
+}

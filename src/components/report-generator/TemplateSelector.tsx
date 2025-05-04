@@ -33,7 +33,7 @@ export function TemplateSelector({
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as ReportTemplate[];
+      return data as unknown as ReportTemplate[];
     },
   });
 
@@ -41,6 +41,8 @@ export function TemplateSelector({
   const { data: templateSections = [] } = useQuery({
     queryKey: ['template_sections', selectedTemplateId],
     queryFn: async () => {
+      if (!selectedTemplateId) return [];
+      
       const { data, error } = await supabase
         .from('template_sections')
         .select('*')
