@@ -1,5 +1,4 @@
 
-
 export interface Structure {
   id: string;
   name: string;
@@ -26,16 +25,3 @@ export interface User {
   last_name: string | null;
   display_name?: string;
 }
-
-export interface Note {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  type?: string;
-  period_start?: string;
-  period_end?: string;
-  created_at: string;
-  updated_at: string;
-}
-

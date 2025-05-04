@@ -11,7 +11,7 @@ export function useSaveNote(profileId: string, onSuccess?: () => void) {
   const { handleError } = useErrorHandler();
 
   return useMutation({
-    mutationFn: async ({ title, content, type, periodStart, periodEnd }: SaveNoteParams) => {
+    mutationFn: async ({ title, content }: SaveNoteParams) => {
       try {
         const { data: note, error } = await supabase
           .from("notes")
@@ -19,9 +19,6 @@ export function useSaveNote(profileId: string, onSuccess?: () => void) {
             user_id: profileId,
             title,
             content,
-            type,
-            period_start: periodStart,
-            period_end: periodEnd,
           })
           .select()
           .single();

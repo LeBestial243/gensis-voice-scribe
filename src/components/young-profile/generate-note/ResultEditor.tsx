@@ -4,28 +4,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Save } from "lucide-react";
 import { useState } from "react";
-import { NoteType, NOTE_TYPES } from "@/types/note-generation";
-import { DatePicker } from "@/components/ui/date-picker";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { SaveNoteParams } from "@/types/note-generation";
+import { useSaveNote } from "@/hooks/use-save-note";
 
 interface ResultEditorProps {
   noteTitle: string;
   onTitleChange: (title: string) => void;
   generatedContent: string;
   onContentChange: (content: string) => void;
-  noteType?: NoteType;
-  onNoteTypeChange?: (type: NoteType) => void;
-  periodStart?: Date;
-  onPeriodStartChange?: (date: Date | undefined) => void;
-  periodEnd?: Date;
-  onPeriodEndChange?: (date: Date | undefined) => void;
-  onSave?: () => void;
 }
 
 export function ResultEditor({
@@ -33,13 +19,6 @@ export function ResultEditor({
   onTitleChange,
   generatedContent,
   onContentChange,
-  noteType = 'general',
-  onNoteTypeChange,
-  periodStart,
-  onPeriodStartChange,
-  periodEnd,
-  onPeriodEndChange,
-  onSave
 }: ResultEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,13 +29,11 @@ export function ResultEditor({
     
     setIsSaving(true);
     try {
-      if (onSave) {
-        await onSave();
-      }
+      // Cette fonction sera fournie par le parent via les props
+      // Nous pouvons laisser le composant parent gérer la sauvegarde
       setIsSaving(false);
     } catch (error) {
       setIsSaving(false);
-      console.error("Error saving note:", error);
     }
   };
 
@@ -72,50 +49,6 @@ export function ResultEditor({
           placeholder="Entrez un titre pour la note"
         />
       </div>
-
-      {onNoteTypeChange && (
-        <div>
-          <Label htmlFor="editor-note-type">Type de note</Label>
-          <Select 
-            value={noteType} 
-            onValueChange={(value) => onNoteTypeChange(value as NoteType)}
-          >
-            <SelectTrigger id="editor-note-type" className="w-full mt-1">
-              <SelectValue placeholder="Sélectionner un type" />
-            </SelectTrigger>
-            <SelectContent>
-              {NOTE_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      
-      {onPeriodStartChange && onPeriodEndChange && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="editor-period-start">Date de début</Label>
-            <DatePicker
-              id="editor-period-start"
-              date={periodStart}
-              setDate={onPeriodStartChange}
-              placeholder="Date de début"
-            />
-          </div>
-          <div>
-            <Label htmlFor="editor-period-end">Date de fin</Label>
-            <DatePicker
-              id="editor-period-end"
-              date={periodEnd}
-              setDate={onPeriodEndChange}
-              placeholder="Date de fin"
-            />
-          </div>
-        </div>
-      )}
 
       <div className="grid gap-2">
         <Label htmlFor="generated-content" className="text-base font-medium">Contenu de la note</Label>

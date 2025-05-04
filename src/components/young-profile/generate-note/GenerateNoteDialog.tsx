@@ -10,17 +10,7 @@ import { ResultEditor } from "./ResultEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNoteGeneration } from "@/hooks/use-note-generation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { FileContent, SaveNoteParams, NOTE_TYPES, NoteType } from "@/types/note-generation";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { format } from "date-fns";
+import { FileContent, SaveNoteParams } from "@/types/note-generation";
 
 interface GenerateNoteDialogProps {
   open: boolean;
@@ -32,9 +22,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
   const [activeTab, setActiveTab] = useState<string>("folders");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [noteType, setNoteType] = useState<NoteType>('general');
-  const [periodStart, setPeriodStart] = useState<Date | undefined>(new Date());
-  const [periodEnd, setPeriodEnd] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
   
   const { 
@@ -58,9 +45,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
         setSelectedFiles([]);
         setSelectedTemplateId(null);
         setActiveTab("folders");
-        setNoteType('general');
-        setPeriodStart(new Date());
-        setPeriodEnd(new Date());
         handleReset();
       }, 300); // Small delay to allow dialog close animation
     }
@@ -100,31 +84,20 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
         type: '',
         folderName: ''
       })),
-      templateId: selectedTemplateId,
-      metadata: {
-        type: noteType,
-        periodStart: periodStart ? format(periodStart, 'yyyy-MM-dd') : undefined,
-        periodEnd: periodEnd ? format(periodEnd, 'yyyy-MM-dd') : undefined
-      }
+      templateId: selectedTemplateId
     });
   };
   
-  const handleSave = async () => {
-    if (!noteTitle.trim() || !generatedContent.trim()) {
-      toast({
-        title: "Contenu requis",
-        description: "Le titre et le contenu sont obligatoires",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+  const handleSave = async ({ title, content }: SaveNoteParams) => {
     await saveNote.mutateAsync({ 
-      title: noteTitle, 
-      content: generatedContent,
-      type: noteType,
-      periodStart: periodStart ? format(periodStart, 'yyyy-MM-dd') : undefined,
-      periodEnd: periodEnd ? format(periodEnd, 'yyyy-MM-dd') : undefined
+      title, 
+      content
+    });
+    
+    onOpenChange(false);
+    toast({
+      title: "Note enregistrée",
+      description: "La note a été ajoutée avec succès"
     });
   };
 
@@ -141,13 +114,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
             onTitleChange={setNoteTitle}
             generatedContent={generatedContent} 
             onContentChange={setGeneratedContent}
-            onSave={handleSave}
-            noteType={noteType}
-            onNoteTypeChange={setNoteType}
-            periodStart={periodStart}
-            onPeriodStartChange={setPeriodStart}
-            periodEnd={periodEnd}
-            onPeriodEndChange={setPeriodEnd}
           />
         ) : (
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -155,7 +121,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
               <TabsList className="mb-4">
                 <TabsTrigger value="folders">Dossiers</TabsTrigger>
                 <TabsTrigger value="templates">Modèles</TabsTrigger>
-                <TabsTrigger value="settings">Paramètres</TabsTrigger>
               </TabsList>
               
               <TabsContent value="folders" className="flex-1 overflow-hidden">
@@ -171,50 +136,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
                   selectedTemplateId={selectedTemplateId || ""}
                   onTemplateSelect={handleTemplateSelect}
                 />
-              </TabsContent>
-              
-              <TabsContent value="settings" className="space-y-4">
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="note-type">Type de note</Label>
-                    <Select 
-                      value={noteType} 
-                      onValueChange={(value) => setNoteType(value as NoteType)}
-                    >
-                      <SelectTrigger id="note-type" className="w-full mt-1">
-                        <SelectValue placeholder="Sélectionner un type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {NOTE_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="period-start">Date de début</Label>
-                      <DatePicker
-                        id="period-start"
-                        date={periodStart}
-                        setDate={setPeriodStart}
-                        placeholder="Date de début"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="period-end">Date de fin</Label>
-                      <DatePicker
-                        id="period-end"
-                        date={periodEnd}
-                        setDate={setPeriodEnd}
-                        placeholder="Date de fin"
-                      />
-                    </div>
-                  </div>
-                </div>
               </TabsContent>
             </Tabs>
             

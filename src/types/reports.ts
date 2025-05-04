@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 import { AuditableEntity } from "./index";
 
@@ -60,44 +61,4 @@ export interface OfficialReportTemplate {
       placeholder?: string;
     }[];
   };
-}
-
-// New types for the unified report generator
-
-export interface ReportMetadata {
-  type?: string;
-  periodStart?: string;
-  periodEnd?: string;
-  [key: string]: any;
-}
-
-export interface ReportTemplate {
-  id: string;
-  title: string;
-  description?: string;
-  type?: string;
-  structure?: {
-    sections: {
-      title: string;
-      description?: string;
-      type?: string;
-    }[];
-  };
-}
-
-export interface SourceFile {
-  id: string;
-  name: string;
-  type?: string;
-  content?: string;
-  url?: string;
-  created_at?: string;
-  folder_id?: string;
-  folder_name?: string;
-}
-
-export interface SaveReportParams {
-  title: string;
-  content: string;
-  metadata?: ReportMetadata;
 }

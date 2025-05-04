@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UseNoteGenerationProps, FileContent, NoteType } from "@/types/note-generation";
+import { UseNoteGenerationProps, FileContent } from "@/types/note-generation";
 import { processSection } from "@/services/content-processor";
 import { useSaveNote } from "@/hooks/use-save-note";
 import { isTextMatch, normalizeText } from "@/utils/text-processing";
@@ -11,11 +11,6 @@ import { isTextMatch, normalizeText } from "@/utils/text-processing";
 interface GenerateParams {
   files: FileContent[];
   templateId: string | null;
-  metadata?: {
-    type?: NoteType;
-    periodStart?: string;
-    periodEnd?: string;
-  };
 }
 
 export function useNoteGeneration({
@@ -30,7 +25,7 @@ export function useNoteGeneration({
   // Initialize the save note mutation, passing the profileId
   const saveNote = useSaveNote(profileId, onSuccess);
 
-  const handleGenerate = async ({ files, templateId, metadata = {} }: GenerateParams) => {
+  const handleGenerate = async ({ files, templateId }: GenerateParams) => {
     if (!templateId && (!files || files.length === 0)) {
       toast({
         title: "Données manquantes",
@@ -68,15 +63,6 @@ export function useNoteGeneration({
 
         // Generate content based on template structure
         content += `# ${template.title}\n\n`;
-        
-        // Add metadata if available
-        if (metadata.type) {
-          content += `**Type**: ${metadata.type}\n\n`;
-        }
-        
-        if (metadata.periodStart && metadata.periodEnd) {
-          content += `**Période**: du ${new Date(metadata.periodStart).toLocaleDateString("fr-FR")} au ${new Date(metadata.periodEnd).toLocaleDateString("fr-FR")}\n\n`;
-        }
 
         for (const section of sections || []) {
           content += `## ${section.title}\n\n`;
@@ -89,15 +75,6 @@ export function useNoteGeneration({
         // Simple content generation without a template
         content = "# Synthèse des documents\n\n";
         
-        // Add metadata if available
-        if (metadata.type) {
-          content += `**Type**: ${metadata.type}\n\n`;
-        }
-        
-        if (metadata.periodStart && metadata.periodEnd) {
-          content += `**Période**: du ${new Date(metadata.periodStart).toLocaleDateString("fr-FR")} au ${new Date(metadata.periodEnd).toLocaleDateString("fr-FR")}\n\n`;
-        }
-        
         for (const file of files) {
           content += `## ${file.name}\n\n`;
           content += `${file.content ? file.content.substring(0, 500) : "Contenu non disponible"}...\n\n`;
@@ -107,9 +84,6 @@ export function useNoteGeneration({
       setGeneratedContent(content);
       if (templateTitle) {
         setNoteTitle(`${templateTitle} - ${new Date().toLocaleDateString("fr-FR")}`);
-      } else if (metadata.type) {
-        const typeLabel = metadata.type.charAt(0).toUpperCase() + metadata.type.slice(1);
-        setNoteTitle(`${typeLabel} - ${new Date().toLocaleDateString("fr-FR")}`);
       }
       
       toast({

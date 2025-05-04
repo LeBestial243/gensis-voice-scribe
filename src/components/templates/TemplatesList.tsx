@@ -36,8 +36,7 @@ interface Template {
   created_at: string;
   word_file_url: string | null;
   word_file_name: string | null;
-  // Only add structure_id if it actually exists in the database
-  // structure_id: string | null;
+  structure_id: string | null;
 }
 
 interface TransformedTemplate {
@@ -47,8 +46,8 @@ interface TransformedTemplate {
   created_at: string;
   word_template_url: string | null;
   word_template_filename: string | null;
-  structure_id?: string | null;
-  structure_name?: string | null;
+  structure_id: string | null;
+  structure_name: string | null;
 }
 
 interface TemplatesListProps {
@@ -80,34 +79,49 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
             description,
             created_at,
             word_file_url,
-            word_file_name
-          `);
+            word_file_name,
+            structure_id
+          `)
+          .order('created_at', { ascending: false });
         
-        // Filter by structure if selected and if structure_id exists
-        // Commenting this out since structure_id doesn't exist in the templates table yet
-        // if (selectedStructureId) {
-        //   query = query.eq('structure_id', selectedStructureId);
-        // }
+        // Filter by structure if selected
+        if (selectedStructureId) {
+          query = query.eq('structure_id', selectedStructureId);
+        }
         
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query;
         
         if (error) throw error;
         
         if (!data) return [];
 
         // Transform each template
-        const transformedTemplates: TransformedTemplate[] = data.map((template) => {
-          // Since structure_id doesn't exist in the database yet, 
-          // we'll return the transformed template without structure-related fields
-          return {
-            id: template.id,
-            title: template.title,
-            description: template.description,
-            created_at: template.created_at,
-            word_template_url: template.word_file_url,
-            word_template_filename: template.word_file_name,
-          };
-        });
+        const transformedTemplates: TransformedTemplate[] = await Promise.all(
+          data.map(async (template: Template) => {
+            let structureName = null;
+            
+            if (template.structure_id) {
+              try {
+                // Find structure in the fetched structures
+                const structure = structures.find(s => s.id === template.structure_id);
+                structureName = structure ? structure.name : null;
+              } catch (error) {
+                console.error('Error fetching structure:', error);
+              }
+            }
+            
+            return {
+              id: template.id,
+              title: template.title,
+              description: template.description,
+              created_at: template.created_at,
+              word_template_url: template.word_file_url,
+              word_template_filename: template.word_file_name,
+              structure_id: template.structure_id,
+              structure_name: structureName,
+            };
+          })
+        );
         
         return transformedTemplates;
       } catch (error) {
