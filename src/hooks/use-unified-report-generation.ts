@@ -124,7 +124,7 @@ export function useReportGeneration({
       metadata?: ReportMetadata;
     }) => {
       // Determine which table to save to based on report type
-      let tableName = '';
+      let tableName: 'activity_reports' | 'notes' = 'notes';
       let reportData: any = {};
       
       switch(reportType) {

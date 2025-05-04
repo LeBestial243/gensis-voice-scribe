@@ -8,7 +8,7 @@
 
 // Updated line (fixes reportType, startDate, endDate property issues):
 saveReport.mutate({ 
-  title, 
+  title: reportTitle, // Ensure reportTitle is defined in your component
   reportType: reportData.reportType || 'evaluation', 
   startDate: reportData.startDate || new Date().toISOString(), 
   endDate: reportData.endDate || new Date().toISOString(), 
