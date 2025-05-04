@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardDescription
 } from "@/components/ui/card";
-import { FileDisplay } from '@/components/FileDisplay'; // Importez le nouveau composant
+import { FileDisplay } from '@/components/FileDisplay';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -30,8 +30,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface FolderDisplayProps {
   profileId: string;
   searchQuery?: string;
-  activeFolderId?: string | null; // Accepte le dossier actif passé en prop
-  onFolderSelect?: (folderId: string | null) => void; // Accepte une fonction de callback
+  activeFolderId?: string | null;
+  onFolderSelect?: (folderId: string | null) => void;
 }
 
 export function FolderDisplay({ 

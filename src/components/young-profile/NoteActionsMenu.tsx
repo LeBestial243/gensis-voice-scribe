@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { MoreVertical, Edit, Trash, Copy, Download, ExternalLink } from "lucide-react";
+import { MoreVertical, Edit, Trash, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -76,9 +76,9 @@ export function NoteActionsMenu({ note, onEdit, onDelete }: NoteActionsMenuProps
   };
 
   const confirmDelete = () => {
+    setDeleteDialogOpen(false);
     if (onDelete) {
       onDelete(note.id);
-      setDeleteDialogOpen(false);
     }
   };
 

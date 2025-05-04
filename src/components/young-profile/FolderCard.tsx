@@ -45,8 +45,7 @@ export function FolderCard({
   onUploadClick,
   onDeleteFolder
 }: FolderCardProps) {
-  // Debug logs
-  console.log(`FolderCard rendering: folder=${folder.id}, isActive=${isActive}, fileCount=${fileCount}`);
+  // Debug log removed
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 

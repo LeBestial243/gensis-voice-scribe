@@ -6,10 +6,14 @@ import {
   EducationalProject, 
   ProjectObjective, 
   ProjectNote, 
+  ProjectEventLog,
   ProjectStatus,
-  ObjectiveStatus
+  ObjectiveStatus,
+  ProjectEventType,
+  ConfidentialityLevel 
 } from "@/types/casf";
 import { useToast } from "@/hooks/use-toast";
+import { aiService } from "@/services/aiService"; // Updated import path from 'ai-service' to 'aiService'
 
 // Properly type the hook parameters
 interface UseEducationalProjectProps {

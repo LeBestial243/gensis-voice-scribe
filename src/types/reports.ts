@@ -26,25 +26,39 @@ export interface ReportSection {
   data?: any;
 }
 
-export interface Template {
+export interface OfficialReport {
   id: string;
+  profileId: string;
+  profile_id?: string;
   title: string;
-  description: string;
-  created_at: string;
-  word_template_url?: string;
-  word_template_filename?: string;
-  structure_id?: string;
-  is_default?: boolean;
-  // Add the structure_name property that's being used in the component
-  structure_name?: string;
+  reportType?: string;
+  report_type?: string;
+  periodStart?: string;
+  period_start?: string;
+  periodEnd?: string;
+  period_end?: string;
+  createdAt?: string;
+  created_at?: string;
+  sections?: ReportSection[];
+  templateId?: string;
+  template_id?: string;
+  institution?: string;
+  status?: "draft" | "final";
+  updatedAt?: string;
+  updated_at?: string;
+  createdBy?: string;
+  created_by?: string;
 }
 
-export interface ReportTemplate {
+export interface OfficialReportTemplate {
   id: string;
-  title: string;
+  name: string;
   description: string;
-  sections: ReportSection[];
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
+  structure: {
+    sections: {
+      title: string;
+      type: string;
+      placeholder?: string;
+    }[];
+  };
 }

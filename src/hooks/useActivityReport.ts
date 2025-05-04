@@ -7,15 +7,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface UseActivityReportProps {
-  reportId?: string;
   filters?: {
     report_type?: string;
     start_date?: string;
     end_date?: string;
   };
+  reportId?: string;
 }
 
-export function useActivityReport({ reportId, filters }: UseActivityReportProps = {}) {
+export function useActivityReport({ filters, reportId }: UseActivityReportProps = {}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
@@ -25,13 +25,13 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Fetch all reports with optional filters
+  // Fetch reports with optional filters
   const {
     data: reports = [],
     isLoading: isLoadingReports,
     refetch: refetchReports
   } = useQuery({
-    queryKey: ['activity-reports', filters],
+    queryKey: ['activity_reports', filters],
     queryFn: () => activityReportService.getReports(filters),
   });
   
@@ -41,7 +41,7 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
     isLoading: isLoadingReport,
     refetch: refetchReport
   } = useQuery({
-    queryKey: ['activity-report', reportId],
+    queryKey: ['activity_report', reportId],
     queryFn: () => activityReportService.getReportById(reportId || ''),
     enabled: !!reportId,
   });
@@ -54,22 +54,22 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
     },
     onSuccess: (data) => {
       toast({
-        title: "Rapport créé",
-        description: "Le rapport a été créé avec succès"
+        title: "Rapport d'activité créé",
+        description: "Le rapport d'activité a été créé avec succès"
       });
       
-      logAction('create', 'activity_report', data.id, { title: data.title });
-      queryClient.invalidateQueries({ queryKey: ['activity-reports'] });
+      logAction('create', 'report', data.id, { title: data.title });
       
+      queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
       return data;
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la création du rapport",
+        description: "Une erreur est survenue lors de la création du rapport d'activité",
         variant: "destructive"
       });
-      console.error("Error creating report:", error);
+      console.error("Error creating activity report:", error);
     },
     onSettled: () => {
       setIsCreating(false);
@@ -87,23 +87,23 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
     },
     onSuccess: (data) => {
       toast({
-        title: "Rapport mis à jour",
-        description: "Le rapport a été mis à jour avec succès"
+        title: "Rapport d'activité mis à jour",
+        description: "Le rapport d'activité a été mis à jour avec succès"
       });
       
-      logAction('update', 'activity_report', data.id, { title: data.title });
-      queryClient.invalidateQueries({ queryKey: ['activity-report', data.id] });
-      queryClient.invalidateQueries({ queryKey: ['activity-reports'] });
+      logAction('update', 'report', data.id, { title: data.title });
       
+      queryClient.invalidateQueries({ queryKey: ['activity_report', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
       return data;
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour du rapport",
+        description: "Une erreur est survenue lors de la mise à jour du rapport d'activité",
         variant: "destructive"
       });
-      console.error("Error updating report:", error);
+      console.error("Error updating activity report:", error);
     },
     onSettled: () => {
       setIsUpdating(false);
@@ -118,20 +118,21 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
     },
     onSuccess: (_, deletedReportId) => {
       toast({
-        title: "Rapport supprimé",
-        description: "Le rapport a été supprimé avec succès"
+        title: "Rapport d'activité supprimé",
+        description: "Le rapport d'activité a été supprimé avec succès"
       });
       
-      logAction('delete', 'activity_report', deletedReportId);
-      queryClient.invalidateQueries({ queryKey: ['activity-reports'] });
+      logAction('delete', 'report', deletedReportId);
+      
+      queryClient.invalidateQueries({ queryKey: ['activity_reports'] });
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression du rapport",
+        description: "Une erreur est survenue lors de la suppression du rapport d'activité",
         variant: "destructive"
       });
-      console.error("Error deleting report:", error);
+      console.error("Error deleting activity report:", error);
     },
     onSettled: () => {
       setIsDeleting(false);
@@ -170,6 +171,11 @@ export function useActivityReport({ reportId, filters }: UseActivityReportProps 
     // Report operations
     createReport,
     updateReport,
-    deleteReport
+    deleteReport,
+    
+    // Activity metrics
+    getActivityMetrics: (period_start: string, period_end: string, category?: string) => {
+      return activityReportService.getMetrics(period_start, period_end, category);
+    }
   };
 }

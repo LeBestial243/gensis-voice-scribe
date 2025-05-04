@@ -43,10 +43,32 @@ export interface FileWithContent {
   content: string;
 }
 
-// Adding a simple TemplateData interface to avoid circular references
-export interface TemplateData {
+// Interface updated to match the one in reports.ts
+export interface OfficialReportType {
   id: string;
+  profileId: string;
+  profile_id?: string;
   title: string;
-  description?: string;
-  sections?: Section[];
+  reportType?: string;
+  report_type?: string;
+  startDate?: string;
+  period_start?: string;
+  periodStart?: string;
+  endDate?: string;
+  period_end?: string;
+  periodEnd?: string;
+  createdAt?: string;
+  created_at?: string;
+  sections?: {
+    title: string;
+    content: string | string[] | Record<string, any>;
+  }[];
+  templateId?: string;
+  template_id?: string;
+  institution?: string;
+  status?: "draft" | "final";
+  updatedAt?: string;
+  updated_at?: string;
+  createdBy?: string;
+  created_by?: string;
 }

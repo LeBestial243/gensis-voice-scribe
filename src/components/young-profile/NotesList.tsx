@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { FileText, Edit, Trash, Copy, Download } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -28,9 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { CustomPagination } from "@/components/CustomPagination";
-import { usePagination } from "@/hooks/usePagination";
 import { notesService } from "@/services/notesService";
-import { PaginationParams } from "@/types";
 
 interface NotesListProps {
   profileId: string;
@@ -101,44 +99,6 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
     }
   };
 
-  const handleCopy = (content: string | null) => {
-    if (!content) return;
-    
-    navigator.clipboard.writeText(content)
-      .then(() => {
-        toast({
-          title: "Copié !",
-          description: "Le contenu a été copié dans le presse-papier."
-        });
-      })
-      .catch(() => {
-        toast({
-          title: "Erreur",
-          description: "Impossible de copier le contenu.",
-          variant: "destructive"
-        });
-      });
-  };
-
-  const handleExport = (note: any) => {
-    if (!note.content) return;
-    
-    const blob = new Blob([note.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${note.title.replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Exporté !",
-      description: "La note a été exportée en fichier texte."
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -178,7 +138,10 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
                       })}
                     </CardDescription>
                   </div>
-                  <NoteActionsMenu note={note} />
+                  <NoteActionsMenu 
+                    note={note} 
+                    onDelete={(id) => confirmDelete(id)}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
@@ -196,41 +159,6 @@ export function NotesList({ profileId, searchQuery }: NotesListProps) {
                   </Button>
                 )}
               </CardContent>
-              <CardFooter className="border-t bg-muted/30 py-2 px-6">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-8"
-                    onClick={() => handleCopy(note.content)}
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copier
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-8"
-                    onClick={() => handleExport(note)}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Exporter
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8">
-                    <Edit className="h-3 w-3 mr-1" />
-                    Modifier
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-8 text-destructive"
-                    onClick={() => confirmDelete(note.id)}
-                  >
-                    <Trash className="h-3 w-3 mr-1" />
-                    Supprimer
-                  </Button>
-                </div>
-              </CardFooter>
             </Card>
           ))}
         </div>
