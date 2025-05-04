@@ -1,27 +1,28 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { File, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Define template types explicitly without circular references
+// Define explicit interface types without circular references
+interface Template {
+  id: string;
+  title: string;
+  description?: string;
+  report_type?: string;
+  created_at: string;
+}
+
 interface TemplateSection {
   id: string;
   title: string;
   instructions?: string;
   template_id: string;
   order_index: number;
-}
-
-interface ReportTemplate {
-  id: string;
-  title: string;
-  description?: string;
-  type?: string;
-  created_at: string;
 }
 
 interface TemplateSelectorProps {
@@ -33,27 +34,29 @@ interface TemplateSelectorProps {
 export function TemplateSelector({ 
   selectedTemplateId, 
   onTemplateSelect,
-  reportType 
+  reportType = "note"
 }: TemplateSelectorProps) {
-  // Fetch templates 
-  const { data: templates = [] } = useQuery({
+  const { data: templates = [], isLoading } = useQuery({
     queryKey: ['templates', reportType],
     queryFn: async () => {
-      let query = supabase.from('templates').select('*');
+      let query = supabase
+        .from('templates')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      // Filter by report type if specified
-      if (reportType) {
-        query = query.eq('type', reportType);
+      // Filtrer par type de rapport si spécifié
+      if (reportType && reportType !== "note") {
+        query = query.eq('report_type', reportType);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query;
       
       if (error) throw error;
-      return data as Array<ReportTemplate>;
+      return data as Template[] || [];
     },
   });
 
-  // Fetch template sections for selected template
+  // Récupérer les sections du template sélectionné
   const { data: templateSections = [] } = useQuery({
     queryKey: ['template_sections', selectedTemplateId],
     queryFn: async () => {
@@ -66,47 +69,132 @@ export function TemplateSelector({
         .order('order_index');
       
       if (error) throw error;
-      return data as Array<TemplateSection>;
+      return data as TemplateSection[] || [];
     },
     enabled: !!selectedTemplateId,
   });
 
+  const getReportTypeLabel = (type: string) => {
+    switch (type) {
+      case "activity":
+        return "Rapport d'activité";
+      case "standardized":
+        return "Rapport standardisé";
+      case "evaluation":
+        return "Rapport d'évaluation";
+      case "incident":
+        return "Rapport d'incident";
+      case "visit":
+        return "Visite à domicile";
+      case "interview":
+        return "Entretien";
+      case "note":
+      default:
+        return "Note de synthèse";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="p-4">
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (templates.length === 0) {
+    return (
+      <Card className="p-4">
+        <div className="text-center text-gray-500 py-6">
+          <File className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+          <p>Aucun modèle disponible</p>
+          <p className="text-sm mt-1">Créez des modèles pour générer des rapports structurés</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Sélectionner un template</Label>
-        <Select value={selectedTemplateId} onValueChange={onTemplateSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choisir un template" />
-          </SelectTrigger>
-          <SelectContent>
-            {templates.map((template) => (
-              <SelectItem key={template.id} value={template.id}>
-                {template.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-medium text-sm">Modèles disponibles</h3>
+        {selectedTemplateId && (
+          <Badge variant="secondary">
+            1 modèle sélectionné
+          </Badge>
+        )}
       </div>
-
+      <p className="text-sm text-gray-500 mb-4">
+        Sélectionnez un modèle pour structurer automatiquement votre rapport
+      </p>
+      <div className="space-y-3 pr-2">
+        <ScrollArea className="h-[350px]">
+          <div className="space-y-3 pr-4">
+            {templates.map((template) => {
+              const isSelected = template.id === selectedTemplateId;
+              
+              return (
+                <Card 
+                  key={template.id} 
+                  className={cn(
+                    "transition-all duration-200 cursor-pointer",
+                    isSelected
+                      ? "border-purple-500 bg-purple-50/50 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                  )}
+                  onClick={() => onTemplateSelect(template.id)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox 
+                        checked={isSelected}
+                        className="mt-1"
+                        onCheckedChange={() => onTemplateSelect(template.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <File className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="font-medium text-sm truncate">{template.title}</span>
+                          {template.report_type && (
+                            <Badge variant="outline" className="ml-auto">
+                              {getReportTypeLabel(template.report_type)}
+                            </Badge>
+                          )}
+                        </div>
+                        {template.description && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{template.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </div>
+      
       {selectedTemplateId && templateSections.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Aperçu des sections</CardTitle>
-            <CardDescription>
-              Structure de la note qui sera générée
+        <Card className="mt-4">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm">Structure du template</CardTitle>
+            <CardDescription className="text-xs">
+              Sections qui seront incluses dans votre rapport
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-4">
-                {templateSections.map((section) => (
-                  <div key={section.id} className="space-y-1">
-                    <h4 className="font-medium">{section.title}</h4>
+          <CardContent className="py-0 px-4 pb-3">
+            <ScrollArea className="h-[150px]">
+              <div className="space-y-2 pr-4">
+                {templateSections.map((section, index) => (
+                  <div key={section.id} className="text-sm py-1 border-b last:border-b-0">
+                    <div className="font-medium">{index + 1}. {section.title}</div>
                     {section.instructions && (
-                      <p className="text-sm text-muted-foreground">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {section.instructions}
-                      </p>
+                      </div>
                     )}
                   </div>
                 ))}
