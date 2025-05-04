@@ -13,7 +13,7 @@ import { Loader2, Save } from "lucide-react";
 
 interface EducationalProjectFormProps {
   project?: Partial<EducationalProject>;
-  onSubmit: () => void;
+  onSubmit: (project: Partial<EducationalProject>) => void | Promise<any>;
   onChange: (project: Partial<EducationalProject>) => void;
   isSubmitting: boolean;
 }
@@ -33,7 +33,7 @@ export function EducationalProjectForm({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    onSubmit(project || {});
   };
   
   return (

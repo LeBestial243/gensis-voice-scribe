@@ -158,7 +158,7 @@ export function useReportGeneration({
       }
       
       const { data, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .insert(reportData)
         .select()
         .single();
