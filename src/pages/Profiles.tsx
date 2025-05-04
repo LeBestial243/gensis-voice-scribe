@@ -1,22 +1,27 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GradientButton } from '@/components/ui/GradientButton';
-import { Plus, Search, AlertTriangle, Edit } from 'lucide-react';
+import { Plus, Search, Mic, Edit, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { CreateProfileForm } from '@/components/CreateProfileForm';
+import { ProfileList } from '@/components/ProfileList';
 import { EnhancedProfilesList } from '@/components/EnhancedProfilesList';
 import { MobileNav } from '@/components/MobileNav';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TranscriptionDialog } from '@/components/TranscriptionDialog';
+import { FileUploadDialog } from '@/components/FileUploadDialog';
+import { FileList } from '@/components/FileList';
+import { FolderDialog } from '@/components/FolderDialog';
+import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 import { FolderDisplay } from '@/components/FolderDisplay';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { useQueryCache } from '@/hooks/useQueryCache';
 import { FloatingActions } from '@/components/young-profile/FloatingActions';
 import { useNavigate } from 'react-router-dom';
-import { GenerateNoteDialog } from '@/components/young-profile/generate-note/GenerateNoteDialog';
 
 export default function Profiles() {
   const [openCreateProfile, setOpenCreateProfile] = useState(false);
@@ -135,10 +140,7 @@ export default function Profiles() {
             </Dialog>
           </div>
         </div>
-        {/* Enlèvement du composant EnhancedProfilesList avec son propre en-tête pour éviter la duplication */}
-        <div className="py-4">
-          <EnhancedProfilesList onSelectProfile={setSelectedProfileId} />
-        </div>
+        <EnhancedProfilesList onSelectProfile={setSelectedProfileId} />
         <MobileNav />
       </div>
     );

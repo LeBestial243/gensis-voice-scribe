@@ -23,6 +23,7 @@ export function FolderList({
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {folders.map((folder) => {
         const isActive = folder.id === activeFolderId;
+        console.log(`Rendering folder ${folder.id} with isActive=${isActive}`);
         return (
           <FolderCard
             key={folder.id}

@@ -43,32 +43,22 @@ export interface FileWithContent {
   content: string;
 }
 
-// Interface updated to match the one in reports.ts
+// Add type definition for the OfficialReport interface to fix build errors
 export interface OfficialReportType {
   id: string;
   profileId: string;
-  profile_id?: string;
   title: string;
-  reportType?: string;
-  report_type?: string;
-  startDate?: string;
-  period_start?: string;
-  periodStart?: string;
-  endDate?: string;
-  period_end?: string;
-  periodEnd?: string;
-  createdAt?: string;
-  created_at?: string;
-  sections?: {
+  report_type: string;
+  period_start: string;
+  period_end: string;
+  createdAt: string;
+  sections: {
     title: string;
     content: string | string[] | Record<string, any>;
   }[];
   templateId?: string;
-  template_id?: string;
   institution?: string;
   status?: "draft" | "final";
   updatedAt?: string;
-  updated_at?: string;
   createdBy?: string;
-  created_by?: string;
 }
