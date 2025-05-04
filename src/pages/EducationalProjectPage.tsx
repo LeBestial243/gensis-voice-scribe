@@ -12,7 +12,7 @@ import { ProjectTimeline } from '@/components/casf/projects/ProjectTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
 import { ArrowLeft, Loader2, Clock, FileText, Calendar, Check } from 'lucide-react';
-import { ProjectStatus, ObjectiveStatus } from '@/types/casf';
+import { ProjectStatus, ObjectiveStatus, EducationalProject } from '@/types/casf';
 
 export default function EducationalProjectPage() {
   const { id: profileId, projectId } = useParams<{ id?: string; projectId?: string }>();
@@ -115,6 +115,21 @@ export default function EducationalProjectPage() {
     profile_id: profileId || ""
   });
 
+  // Create an adapter function to handle the form state changes
+  const handleProjectFormChange = (project: Partial<EducationalProject>) => {
+    setProjectFormData(prevState => ({
+      ...prevState,
+      ...project,
+      // Ensure required fields are always present
+      title: project.title || prevState.title,
+      objectives: project.objectives || prevState.objectives || "",
+      status: project.status || prevState.status,
+      start_date: project.start_date || prevState.start_date,
+      end_date: project.end_date || prevState.end_date,
+      profile_id: project.profile_id || prevState.profile_id
+    }));
+  };
+
   if (isLoadingProject || isLoadingProjects) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -195,7 +210,7 @@ export default function EducationalProjectPage() {
                 <FileText className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-medium mb-2">Aucun projet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
+              <p className="text-sm text-muted-foreground text-center mb-6 max-w-md">
                 Il n'y a pas encore de projets éducatifs pour ce profil. 
                 Créez un nouveau projet pour commencer.
               </p>
@@ -223,7 +238,7 @@ export default function EducationalProjectPage() {
           <CardContent className="pt-6">
             <EducationalProjectForm
               project={projectFormData}
-              onChange={setProjectFormData}
+              onChange={handleProjectFormChange}
               onSubmit={async (data) => {
                 // Fix: Cast status to ProjectStatus to satisfy TypeScript
                 const completeData = {
@@ -420,9 +435,7 @@ export default function EducationalProjectPage() {
                 ...project,
                 objectives: typeof project.objectives === 'string' ? project.objectives : ''
               }}
-              onChange={(updatedProject) => {
-                // Update local state if needed
-              }}
+              onChange={handleProjectFormChange}
               onSubmit={async (data) => {
                 // Fix: Cast status to ProjectStatus
                 const typedData = {

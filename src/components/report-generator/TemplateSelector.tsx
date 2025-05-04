@@ -6,12 +6,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { StandardizedReportType, ReportTemplate } from '@/types/reports';
+
+// Define template types explicitly without circular references
+interface TemplateSection {
+  id: string;
+  title: string;
+  instructions?: string;
+  template_id: string;
+  order_index: number;
+}
+
+interface ReportTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  type?: string;
+  created_at: string;
+}
 
 interface TemplateSelectorProps {
   selectedTemplateId: string;
   onTemplateSelect: (templateId: string) => void;
-  reportType?: StandardizedReportType;
+  reportType?: string;
 }
 
 export function TemplateSelector({ 
@@ -50,7 +66,7 @@ export function TemplateSelector({
         .order('order_index');
       
       if (error) throw error;
-      return data;
+      return data as Array<TemplateSection>;
     },
     enabled: !!selectedTemplateId,
   });

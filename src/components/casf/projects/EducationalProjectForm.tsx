@@ -13,12 +13,11 @@ import { Loader2, Save } from "lucide-react";
 
 interface EducationalProjectFormProps {
   project?: Partial<EducationalProject>;
-  initialData?: Partial<EducationalProject>; // Add initialData prop
+  initialData?: Partial<EducationalProject>; 
   onSubmit: (project: Partial<EducationalProject>) => void | Promise<any>;
   onChange: (project: Partial<EducationalProject>) => void;
-  isSubmitting: boolean;
-  profileId?: string; // Add profileId prop
-  isLoading?: boolean; // Add isLoading prop
+  isSubmitting?: boolean;
+  isLoading?: boolean;
 }
 
 export function EducationalProjectForm({
@@ -26,12 +25,11 @@ export function EducationalProjectForm({
   initialData,
   onSubmit,
   onChange,
-  isSubmitting,
-  profileId,
-  isLoading
+  isSubmitting = false,
+  isLoading = false
 }: EducationalProjectFormProps) {
   // If initialData is provided, use it instead of project
-  const projectData = initialData || project;
+  const projectData = initialData || project || {};
   
   const handleChange = (field: keyof EducationalProject, value: any) => {
     onChange({
@@ -42,7 +40,7 @@ export function EducationalProjectForm({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(projectData || {});
+    onSubmit(projectData);
   };
   
   return (
@@ -104,7 +102,7 @@ export function EducationalProjectForm({
             <div className="space-y-2">
               <Label htmlFor="status">Statut du projet</Label>
               <Select
-                value={projectData?.status || "draft"}
+                value={projectData?.status || "planned"}
                 onValueChange={(value) => handleChange("status", value)}
               >
                 <SelectTrigger id="status">
