@@ -13,27 +13,36 @@ import { Loader2, Save } from "lucide-react";
 
 interface EducationalProjectFormProps {
   project?: Partial<EducationalProject>;
+  initialData?: Partial<EducationalProject>; // Add initialData prop
   onSubmit: (project: Partial<EducationalProject>) => void | Promise<any>;
   onChange: (project: Partial<EducationalProject>) => void;
   isSubmitting: boolean;
+  profileId?: string; // Add profileId prop
+  isLoading?: boolean; // Add isLoading prop
 }
 
 export function EducationalProjectForm({
   project,
+  initialData,
   onSubmit,
   onChange,
-  isSubmitting
+  isSubmitting,
+  profileId,
+  isLoading
 }: EducationalProjectFormProps) {
+  // If initialData is provided, use it instead of project
+  const projectData = initialData || project;
+  
   const handleChange = (field: keyof EducationalProject, value: any) => {
     onChange({
-      ...project,
+      ...projectData,
       [field]: value
     });
   };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(project || {});
+    onSubmit(projectData || {});
   };
   
   return (
@@ -41,7 +50,7 @@ export function EducationalProjectForm({
       <Card>
         <CardHeader>
           <CardTitle>
-            {project?.id ? "Modifier le projet éducatif" : "Nouveau projet éducatif"}
+            {projectData?.id ? "Modifier le projet éducatif" : "Nouveau projet éducatif"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -49,7 +58,7 @@ export function EducationalProjectForm({
             <Label htmlFor="title">Titre du projet</Label>
             <Input
               id="title"
-              value={project?.title || ""}
+              value={projectData?.title || ""}
               onChange={(e) => handleChange("title", e.target.value)}
               placeholder="Ex: Projet d'autonomisation et insertion sociale"
               required
@@ -60,7 +69,7 @@ export function EducationalProjectForm({
             <Label htmlFor="objectives">Objectifs généraux</Label>
             <Textarea
               id="objectives"
-              value={project?.objectives || ""}
+              value={projectData?.objectives || ""}
               onChange={(e) => handleChange("objectives", e.target.value)}
               placeholder="Décrivez les objectifs généraux de ce projet éducatif..."
               rows={4}
@@ -73,7 +82,7 @@ export function EducationalProjectForm({
               <Label htmlFor="start_date">Date de début</Label>
               <DatePicker
                 id="start_date"
-                date={project?.start_date ? new Date(project.start_date) : new Date()}
+                date={projectData?.start_date ? new Date(projectData.start_date) : new Date()}
                 setDate={(date) => 
                   handleChange("start_date", date ? date.toISOString() : new Date().toISOString())
                 }
@@ -83,7 +92,7 @@ export function EducationalProjectForm({
               <Label htmlFor="end_date">Date de fin prévue</Label>
               <DatePicker
                 id="end_date"
-                date={project?.end_date ? new Date(project.end_date) : undefined}
+                date={projectData?.end_date ? new Date(projectData.end_date) : undefined}
                 setDate={(date) => 
                   handleChange("end_date", date ? date.toISOString() : "")
                 }
@@ -95,7 +104,7 @@ export function EducationalProjectForm({
             <div className="space-y-2">
               <Label htmlFor="status">Statut du projet</Label>
               <Select
-                value={project?.status || "draft"}
+                value={projectData?.status || "draft"}
                 onValueChange={(value) => handleChange("status", value)}
               >
                 <SelectTrigger id="status">
@@ -113,16 +122,16 @@ export function EducationalProjectForm({
             <div className="space-y-2">
               <Label htmlFor="confidentiality">Niveau de confidentialité</Label>
               <Select
-                value={project?.confidentiality_level || "restricted"}
+                value={projectData?.confidentiality_level || "restricted"}
                 onValueChange={(value) => 
                   handleChange("confidentiality_level", value as ConfidentialityLevel)
                 }
               >
                 <SelectTrigger id="confidentiality">
                   <SelectValue placeholder="Choisir un niveau">
-                    {project?.confidentiality_level && (
+                    {projectData?.confidentiality_level && (
                       <div className="flex items-center gap-2">
-                        <AccessLevelBadge level={project.confidentiality_level as any} />
+                        <AccessLevelBadge level={projectData.confidentiality_level as any} />
                       </div>
                     )}
                   </SelectValue>
@@ -158,13 +167,13 @@ export function EducationalProjectForm({
           </div>
           
           <div className="flex justify-end pt-4 border-t mt-4">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button type="submit" disabled={isSubmitting || isLoading}>
+              {isSubmitting || isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              {project?.id ? "Mettre à jour" : "Créer le projet"}
+              {projectData?.id ? "Mettre à jour" : "Créer le projet"}
             </Button>
           </div>
         </CardContent>

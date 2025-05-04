@@ -105,6 +105,16 @@ export default function EducationalProjectPage() {
     return Math.round((completedObjectives / totalObjectives) * 100);
   };
 
+  // State to hold the project form data
+  const [projectFormData, setProjectFormData] = useState({
+    title: "",
+    objectives: "",
+    status: "planned" as ProjectStatus,
+    start_date: new Date().toISOString(),
+    end_date: new Date().toISOString(),
+    profile_id: profileId || ""
+  });
+
   if (isLoadingProject || isLoadingProjects) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -212,6 +222,8 @@ export default function EducationalProjectPage() {
         <Card>
           <CardContent className="pt-6">
             <EducationalProjectForm
+              project={projectFormData}
+              onChange={setProjectFormData}
               onSubmit={async (data) => {
                 // Fix: Cast status to ProjectStatus to satisfy TypeScript
                 const completeData = {
@@ -230,8 +242,7 @@ export default function EducationalProjectPage() {
                     return newProject;
                   });
               }}
-              profileId={profileId || ''}
-              isLoading={isCreating}
+              isSubmitting={isCreating}
             />
           </CardContent>
         </Card>
@@ -405,13 +416,12 @@ export default function EducationalProjectPage() {
           </DialogHeader>
           {project && (
             <EducationalProjectForm
-              initialData={{
-                title: project.title,
-                objectives: typeof project.objectives === 'string' ? project.objectives : '',
-                status: project.status,
-                start_date: project.start_date,
-                end_date: project.end_date,
-                profile_id: project.profile_id
+              project={{
+                ...project,
+                objectives: typeof project.objectives === 'string' ? project.objectives : ''
+              }}
+              onChange={(updatedProject) => {
+                // Update local state if needed
               }}
               onSubmit={async (data) => {
                 // Fix: Cast status to ProjectStatus
@@ -423,8 +433,7 @@ export default function EducationalProjectPage() {
                   setIsEditProjectOpen(false);
                 });
               }}
-              profileId={project.profile_id}
-              isLoading={isUpdating}
+              isSubmitting={isUpdating}
             />
           )}
         </DialogContent>

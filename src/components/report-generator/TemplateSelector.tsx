@@ -33,7 +33,7 @@ export function TemplateSelector({
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as ReportTemplate[];
+      return data as Array<ReportTemplate>;
     },
   });
 
