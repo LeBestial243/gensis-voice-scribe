@@ -21,34 +21,43 @@ export function TemplateSelector({
   const { data: templates = [] } = useQuery({
     queryKey: ['templates', reportType],
     queryFn: async () => {
-      let query = supabase
-        .from('templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Filter by report type if specified
-      if (reportType) {
-        query = query.eq('report_type', reportType);
+      try {
+        let query = supabase.from('templates').select('*');
+        
+        // Filter by report type if specified
+        if (reportType) {
+          query = query.eq('report_type', reportType);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching templates:", error);
+        return [];
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data || [];
     },
   });
 
   const { data: templateSections = [] } = useQuery({
     queryKey: ['template_sections', selectedTemplateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('template_sections')
-        .select('*')
-        .eq('template_id', selectedTemplateId)
-        .order('order_index');
+      if (!selectedTemplateId) return [];
       
-      if (error) throw error;
-      return data || [];
+      try {
+        const { data, error } = await supabase
+          .from('template_sections')
+          .select('*')
+          .eq('template_id', selectedTemplateId)
+          .order('order_index');
+        
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching template sections:", error);
+        return [];
+      }
     },
     enabled: !!selectedTemplateId,
   });

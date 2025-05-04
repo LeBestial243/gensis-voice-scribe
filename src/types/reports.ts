@@ -27,14 +27,14 @@ export interface ReportSection {
   data?: any;
 }
 
-// Updated to match the expected property names in components
+// Updated to match the property names used in OfficialReportGenerator.tsx
 export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  report_type: string;
-  period_start: string;
-  period_end: string;
+  reportType: string;
+  startDate: string;
+  endDate: string;
   createdAt: string;
   sections: {
     title: string;

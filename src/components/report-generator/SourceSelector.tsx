@@ -51,21 +51,23 @@ export function SourceSelector({
     enabled: !!profileId,
   });
   
-  // Fetch folder counts
+  // Fetch folder counts - fixing the deep type instantiation error
   const { data: folderCounts = {} } = useQuery({
     queryKey: ['folder_counts', profileId],
     queryFn: async () => {
+      // Direct SQL query approach to avoid deep type instantiation issue
       const { data, error } = await supabase
-        .from('files')
-        .select('folder_id, count(*)')
-        .eq('profile_id', profileId)
-        .group('folder_id');
+        .rpc('get_folder_file_counts', { profile_id_param: profileId });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching folder counts:', error);
+        return {};
+      }
       
-      return data?.reduce((acc: Record<string, number>, curr) => {
-        if (curr.folder_id) {
-          acc[curr.folder_id] = parseInt(curr.count as string);
+      // Convert the result to a more usable format
+      return data?.reduce((acc: Record<string, number>, item: any) => {
+        if (item.folder_id) {
+          acc[item.folder_id] = parseInt(item.count);
         }
         return acc;
       }, {}) || {};
