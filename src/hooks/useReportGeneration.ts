@@ -238,6 +238,16 @@ ${fileContents && fileContents.length > 0
     setReportData({});
   };
 
+  const handleDialogClose = (isOpen: boolean) => {
+    if (!isOpen && (generatedContent || selectedFolders.length > 0 || selectedFiles.length > 0)) {
+      if (confirm("Êtes-vous sûr de vouloir fermer ? Toutes les modifications seront perdues.")) {
+        return false;
+      }
+      return true;
+    }
+    return isOpen;
+  };
+
   const parseSectionsFromContent = (content: string) => {
     try {
       const sectionRegex = /^# (.+)$([\s\S]*?)(?=^# |$)/gm;
@@ -338,6 +348,7 @@ ${fileContents && fileContents.length > 0
     generateReport,
     handleReset,
     saveReport,
-    parseSectionsFromContent
+    parseSectionsFromContent,
+    handleDialogClose
   };
 }

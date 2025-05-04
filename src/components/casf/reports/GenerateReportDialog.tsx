@@ -17,7 +17,7 @@ import { FolderSelector } from "@/components/young-profile/generate-note/FolderS
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ActivityReport, ReportSection, Template } from "@/types/reports";
+import { ActivityReport, ReportSection, Template, ReportTemplate } from "@/types/reports";
 import { StandardizedReport } from "@/types/casf";
 
 interface GenerateReportDialogProps {
@@ -28,6 +28,7 @@ interface GenerateReportDialogProps {
   onSubmit: (data: any) => Promise<any>;
   initialData?: Partial<ActivityReport | StandardizedReport>;
   isLoading: boolean;
+  templates?: ReportTemplate[];
 }
 
 export function GenerateReportDialog({
@@ -38,6 +39,7 @@ export function GenerateReportDialog({
   onSubmit,
   initialData,
   isLoading,
+  templates = [],
 }: GenerateReportDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("selection");
@@ -280,6 +282,7 @@ export function GenerateReportDialog({
                   <TemplateSelector
                     selectedTemplateId={selectedTemplateId}
                     onTemplateSelect={setSelectedTemplateId}
+                    templates={templates as unknown as Template[]}
                   />
                 </div>
                 <div className="space-y-4">

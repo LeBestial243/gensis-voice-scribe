@@ -38,3 +38,13 @@ export interface Template {
   // Add the structure_name property that's being used in the component
   structure_name?: string;
 }
+
+export interface ReportTemplate {
+  id: string;
+  title: string;
+  description: string;
+  sections: ReportSection[];
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
