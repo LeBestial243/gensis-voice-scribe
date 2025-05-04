@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +46,7 @@ export function useReportGeneration({
       try {
         // For activity reports only - standardized reports would use a different implementation
         if (reportType === "activity") {
-          const activityReportData: Partial<ActivityReport> = {
+          const activityReportData = {
             title: data.title,
             report_type: (data as Partial<ActivityReport>).report_type || 'monthly',
             period_start: (data as Partial<ActivityReport>).period_start || new Date().toISOString(),
@@ -263,7 +262,6 @@ ${fileContents && fileContents.length > 0
     }
   };
 
-  // Add a simplified version for direct generation without template/files selection
   const generateReport = async (params: GenerateReportParams) => {
     setIsGenerating(true);
     
