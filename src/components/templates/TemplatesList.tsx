@@ -1,187 +1,255 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
-import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { StructureSelector } from './StructureSelector';
+import { Template } from '@/types/reports';
 
 interface TemplatesListProps {
-  onEditTemplate: (templateId: string) => void;
+  onSelect: (templateId: string) => void;
+  onEdit?: (template: Template) => void;
+  onDelete?: (templateId: string) => void;
+  onCreate?: () => void;
+  showStructureFilter?: boolean;
 }
 
-export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
+export function TemplatesList({
+  onSelect,
+  onEdit,
+  onDelete,
+  onCreate,
+  showStructureFilter = false,
+}: TemplatesListProps) {
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStructureId, setSelectedStructureId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
-  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
-  const { data: templates = [], isLoading, refetch } = useQuery({
-    queryKey: ['templates'],
-    queryFn: async () => {
+  // Load templates
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  // Apply filters
+  useEffect(() => {
+    let filtered = [...templates];
+    
+    // Filter by structure if selected
+    if (selectedStructureId) {
+      filtered = filtered.filter(template => template.structure_id === selectedStructureId);
+    }
+    
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(template => 
+        template.title.toLowerCase().includes(query) || 
+        template.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredTemplates(filtered);
+  }, [templates, searchQuery, selectedStructureId]);
+
+  const fetchTemplates = async () => {
+    setIsLoading(true);
+    try {
       const { data, error } = await supabase
         .from('templates')
-        .select(`
-          id, 
-          title, 
-          description,
-          created_at,
-          template_sections:template_sections(count)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
 
-      return data.map(template => ({
-        ...template,
-        sectionCount: template.template_sections[0]?.count || 0
+      // Process templates to include structure names
+      const processedTemplates = await Promise.all(data.map(async (template: Template) => {
+        if (template.structure_id) {
+          try {
+            const { data: structureData } = await supabase
+              .from('structures')
+              .select('name')
+              .eq('id', template.structure_id)
+              .single();
+            
+            return { 
+              ...template, 
+              structure_name: structureData?.name || 'Unknown' 
+            };
+          } catch (e) {
+            return {
+              ...template,
+              structure_name: 'Unknown'
+            };
+          }
+        }
+        return { ...template, structure_name: 'Global' };
       }));
-    },
-  });
 
-  const handleDeleteTemplate = async () => {
-    if (!deleteTemplateId) return;
-
-    try {
-      // First delete sections
-      const { error: sectionsError } = await supabase
-        .from('template_sections')
-        .delete()
-        .eq('template_id', deleteTemplateId);
-
-      if (sectionsError) throw sectionsError;
-
-      // Then delete the template
-      const { error: templateError } = await supabase
-        .from('templates')
-        .delete()
-        .eq('id', deleteTemplateId);
-
-      if (templateError) throw templateError;
-
-      toast({
-        title: "Template supprimé",
-        description: "Le template a été supprimé avec succès"
-      });
-
-      refetch();
+      setTemplates(processedTemplates);
+      setFilteredTemplates(processedTemplates);
     } catch (error) {
+      console.error('Error fetching templates:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le template",
-        variant: "destructive"
+        title: 'Erreur',
+        description: 'Impossible de charger les templates',
+        variant: 'destructive',
       });
-      console.error('Delete error:', error);
     } finally {
-      setDeleteTemplateId(null);
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('templates')
+        .delete()
+        .eq('id', id);
 
-  if (templates.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Vous n'avez pas encore créé de template.</p>
-          <p className="mt-2">Utilisez le formulaire ci-dessus pour créer votre premier template.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Template supprimé avec succès',
+      });
+
+      // Refresh templates list
+      fetchTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de supprimer le template',
+        variant: 'destructive',
+      });
+    } finally {
+      setConfirmDeleteId(null);
+    }
+  };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Templates existants</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.map((template) => (
-              <Card key={template.id} className="overflow-hidden">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-lg">{template.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {template.sectionCount} {template.sectionCount > 1 ? 'sections' : 'section'}
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setPreviewTemplateId(template.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Aperçu
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => onEditTemplate(template.id)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Modifier
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setDeleteTemplateId(template.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Supprimer
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex-1">
+          <Label htmlFor="search-templates">Rechercher</Label>
+          <Input
+            id="search-templates"
+            placeholder="Rechercher un template..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        {showStructureFilter && (
+          <div className="w-full md:w-1/3">
+            <Label>Structure</Label>
+            <StructureSelector
+              value={selectedStructureId}
+              onChange={setSelectedStructureId}
+              includeAllOption
+            />
           </div>
-        </CardContent>
-      </Card>
+        )}
+        
+        {onCreate && (
+          <Button className="shrink-0" onClick={onCreate}>
+            Créer un nouveau template
+          </Button>
+        )}
+      </div>
 
-      {previewTemplateId && (
-        <TemplatePreviewDialog
-          templateId={previewTemplateId}
-          open={!!previewTemplateId}
-          onOpenChange={(open) => !open && setPreviewTemplateId(null)}
-        />
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Aucun template trouvé</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTemplates.map((template) => (
+            <Card key={template.id} className="flex flex-col">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex justify-between items-start">
+                  <span className="text-lg truncate">{template.title}</span>
+                  {template.is_default && (
+                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                      Par défaut
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {template.structure_name && (
+                    <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded">
+                      {template.structure_name}
+                    </span>
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-2">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {template.description || "Pas de description"}
+                </p>
+              </CardContent>
+              <div className="p-4 pt-0 mt-auto flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => onSelect(template.id)}>
+                  Sélectionner
+                </Button>
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(template)}
+                  >
+                    Éditer
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setConfirmDeleteId(template.id)}
+                  >
+                    Supprimer
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
-
-      <AlertDialog open={!!deleteTemplateId} onOpenChange={(open) => !open && setDeleteTemplateId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. Le template et toutes ses sections seront définitivement supprimés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTemplate} className="bg-destructive text-destructive-foreground">
+      
+      {/* Confirmation dialog */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p>Êtes-vous sûr de vouloir supprimer ce template ? Cette action est irréversible.</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDeleteId && handleDeleteTemplate(confirmDeleteId)}
+            >
               Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

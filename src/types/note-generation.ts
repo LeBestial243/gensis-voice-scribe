@@ -42,3 +42,11 @@ export interface FileWithContent {
   folder_id?: string;
   content: string;
 }
+
+// Adding a simple TemplateData interface to avoid circular references
+export interface TemplateData {
+  id: string;
+  title: string;
+  description?: string;
+  sections?: Section[];
+}

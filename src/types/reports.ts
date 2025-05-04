@@ -1,5 +1,4 @@
 
-
 import { Json } from "@/integrations/supabase/types";
 import { AuditableEntity } from "./index";
 
@@ -25,4 +24,16 @@ export interface ReportSection {
   content: string;
   type?: 'text' | 'metrics' | 'chart' | 'table';
   data?: any;
+}
+
+// Add a new Template interface to fix circular references
+export interface Template {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  word_template_url?: string;
+  word_template_filename?: string;
+  structure_id?: string;
+  is_default?: boolean;
 }
