@@ -103,7 +103,6 @@ export function ResultEditor({
               date={periodStart}
               setDate={onPeriodStartChange}
               placeholder="Date de début"
-              className="w-full mt-1"
             />
           </div>
           <div>
@@ -113,7 +112,6 @@ export function ResultEditor({
               date={periodEnd}
               setDate={onPeriodEndChange}
               placeholder="Date de fin"
-              className="w-full mt-1"
             />
           </div>
         </div>

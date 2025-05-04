@@ -81,15 +81,14 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
             word_file_url,
             word_file_name,
             structure_id
-          `)
-          .order('created_at', { ascending: false });
+          `);
         
         // Filter by structure if selected
         if (selectedStructureId) {
           query = query.eq('structure_id', selectedStructureId);
         }
         
-        const { data, error } = await query;
+        const { data, error } = await query.order('created_at', { ascending: false });
         
         if (error) throw error;
         
@@ -97,7 +96,7 @@ export function TemplatesList({ onEditTemplate }: TemplatesListProps) {
 
         // Transform each template
         const transformedTemplates: TransformedTemplate[] = await Promise.all(
-          data.map(async (template: Template) => {
+          data.map(async (template) => {
             let structureName = null;
             
             if (template.structure_id) {

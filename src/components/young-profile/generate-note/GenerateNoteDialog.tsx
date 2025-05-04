@@ -202,7 +202,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
                         date={periodStart}
                         setDate={setPeriodStart}
                         placeholder="Date de début"
-                        className="w-full mt-1"
                       />
                     </div>
                     <div>
@@ -212,7 +211,6 @@ export function GenerateNoteDialog({ open, onOpenChange, profileId }: GenerateNo
                         date={periodEnd}
                         setDate={setPeriodEnd}
                         placeholder="Date de fin"
-                        className="w-full mt-1"
                       />
                     </div>
                   </div>
