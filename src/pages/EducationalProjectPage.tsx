@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEducationalProject } from '@/hooks/useEducationalProject';
@@ -13,7 +14,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AuditLogViewer } from '@/components/casf/confidentiality/AuditLogViewer';
 import { ArrowLeft, Loader2, Clock, FileText, Calendar, Check } from 'lucide-react';
 import { ProjectStatus, ObjectiveStatus } from '@/types/casf';
-import { ProjectGeneratorCTA } from '@/components/casf/projects/ProjectGeneratorCTA';
 
 export default function EducationalProjectPage() {
   const { id: profileId, projectId } = useParams<{ id?: string; projectId?: string }>();
@@ -144,10 +144,6 @@ export default function EducationalProjectPage() {
           <Button onClick={() => navigate(`/young_profiles/${profileId}/projects/new`)}>
             Créer un nouveau projet
           </Button>
-        </div>
-
-        <div className="mb-8">
-          <ProjectGeneratorCTA profileId={profileId || ''} />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

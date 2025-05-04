@@ -42,23 +42,3 @@ export interface FileWithContent {
   folder_id?: string;
   content: string;
 }
-
-// Add type definition for the OfficialReport interface to fix build errors
-export interface OfficialReportType {
-  id: string;
-  profileId: string;
-  title: string;
-  report_type: string;
-  period_start: string;
-  period_end: string;
-  createdAt: string;
-  sections: {
-    title: string;
-    content: string | string[] | Record<string, any>;
-  }[];
-  templateId?: string;
-  institution?: string;
-  status?: "draft" | "final";
-  updatedAt?: string;
-  createdBy?: string;
-}

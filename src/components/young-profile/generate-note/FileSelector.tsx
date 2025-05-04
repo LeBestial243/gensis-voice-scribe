@@ -27,6 +27,8 @@ export interface FileWithContent {
 }
 
 export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSelectorProps) {
+  console.log('FileSelector: profileId =', profileId);
+
   // D'abord, récupérer tous les dossiers du profil
   const { data: folders = [], isLoading: foldersLoading } = useQuery({
     queryKey: ['folders', profileId],
@@ -40,6 +42,7 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
         console.error('Error fetching folders:', error);
         throw error;
       }
+      console.log('Folders found:', data);
       return data || [];
     },
     enabled: !!profileId,
@@ -52,6 +55,7 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
       if (folders.length === 0) return [];
 
       const folderIds = folders.map(folder => folder.id);
+      console.log('Fetching files for folders:', folderIds);
 
       const { data, error } = await supabase
         .from('files')
@@ -63,6 +67,7 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
         console.error('Error fetching files:', error);
         throw error;
       }
+      console.log('Files found:', data);
       return data || [];
     },
     enabled: folders.length > 0,
@@ -75,6 +80,8 @@ export function FileSelector({ profileId, selectedFiles, onFileSelect }: FileSel
     file.type === 'text/plain' ||
     file.name.toLowerCase().includes('transcription')
   );
+
+  console.log('Transcription files:', transcriptionFiles);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B';

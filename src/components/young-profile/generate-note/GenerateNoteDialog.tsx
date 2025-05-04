@@ -16,7 +16,6 @@ import { useNoteGeneration } from "@/hooks/use-note-generation";
 import { Loader2, FileText, Pencil, Save, Copy, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNoteGenerationReducer } from "@/hooks/useNoteGenerationReducer";
 
 interface GenerateNoteDialogProps {
   open: boolean;
@@ -32,49 +31,43 @@ export function GenerateNoteDialog({
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("selection");
   
-  // Use the reducer instead of multiple useState calls
-  const { state, dispatch } = useNoteGenerationReducer();
-  
   const {
-    handleGenerate: generateNote,
-    handleReset: resetNote,
+    selectedTemplateId,
+    setSelectedTemplateId,
+    selectedFolders,
+    setSelectedFolders,
+    selectedFiles,
+    setSelectedFiles,
+    generatedContent,
+    setGeneratedContent,
+    noteTitle,
+    setNoteTitle,
+    isGenerating,
+    handleGenerate,
+    handleReset,
     saveNote,
   } = useNoteGeneration({ 
     profileId, 
-    onSuccess: () => onOpenChange(false),
-    // Pass state from reducer
-    selectedTemplateId: state.selectedTemplateId,
-    selectedFolders: state.selectedFolders,
-    selectedFiles: state.selectedFiles,
-    generatedContent: state.generatedContent,
-    noteTitle: state.noteTitle,
-    isGenerating: state.isGenerating,
-    // Pass dispatch functions
-    setSelectedTemplateId: (id) => dispatch({ type: "SET_TEMPLATE", id }),
-    setSelectedFolders: (folders) => folders.forEach(folderId => dispatch({ type: "SET_FOLDER", folderId })),
-    setSelectedFiles: (files) => files.forEach(fileId => dispatch({ type: "SET_FILE", fileId })),
-    setGeneratedContent: (content) => dispatch({ type: "SET_CONTENT", content }),
-    setNoteTitle: (title) => dispatch({ type: "SET_TITLE", title }),
-    setIsGenerating: (isGenerating) => dispatch({ type: "SET_GENERATING", isGenerating }),
+    onSuccess: () => onOpenChange(false)
   });
 
   // Reset state when dialog is closed
   useEffect(() => {
     if (!open) {
-      dispatch({ type: "RESET" });
+      handleReset();
       setActiveTab("selection");
     }
-  }, [open]);
+  }, [open, handleReset]);
 
   // Switch to editing tab when content is generated
   useEffect(() => {
-    if (state.generatedContent && activeTab === "selection") {
+    if (generatedContent && activeTab === "selection") {
       setActiveTab("editing");
     }
-  }, [state.generatedContent, activeTab]);
+  }, [generatedContent, activeTab]);
 
   const handleDialogClose = (isOpen: boolean) => {
-    if (!isOpen && (state.generatedContent || state.selectedFolders.length > 0 || state.selectedFiles.length > 0)) {
+    if (!isOpen && (generatedContent || selectedFolders.length > 0 || selectedFiles.length > 0)) {
       if (confirm("Êtes-vous sûr de vouloir fermer ? Toutes les modifications seront perdues.")) {
         onOpenChange(false);
       }
@@ -84,15 +77,23 @@ export function GenerateNoteDialog({
   };
 
   const handleFolderSelect = (folderId: string) => {
-    dispatch({ type: "SET_FOLDER", folderId });
+    setSelectedFolders(prev => 
+      prev.includes(folderId) 
+        ? prev.filter(id => id !== folderId)
+        : [...prev, folderId]
+    );
   };
 
   const handleFileSelect = (fileId: string) => {
-    dispatch({ type: "SET_FILE", fileId });
+    setSelectedFiles(prev => 
+      prev.includes(fileId) 
+        ? prev.filter(id => id !== fileId)
+        : [...prev, fileId]
+    );
   };
 
   const handleSaveNote = async () => {
-    if (!state.generatedContent) {
+    if (!generatedContent) {
       toast({
         title: "Contenu manquant",
         description: "Veuillez d'abord générer du contenu",
@@ -102,13 +103,13 @@ export function GenerateNoteDialog({
     }
 
     saveNote.mutate({ 
-      title: state.noteTitle, 
-      content: state.generatedContent 
+      title: noteTitle, 
+      content: generatedContent 
     });
   };
 
   const handleCopyContent = () => {
-    navigator.clipboard.writeText(state.generatedContent);
+    navigator.clipboard.writeText(generatedContent);
     toast({
       title: "Copié !",
       description: "Le contenu a été copié dans le presse-papier"
@@ -117,28 +118,33 @@ export function GenerateNoteDialog({
 
   const handleExportContent = () => {
     const element = document.createElement("a");
-    const file = new Blob([state.generatedContent], {type: 'text/plain'});
+    const file = new Blob([generatedContent], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = `${state.noteTitle}.txt`;
+    element.download = `${noteTitle}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
     toast({
       title: "Exporté !",
-      description: `Le fichier "${state.noteTitle}.txt" a été téléchargé`
+      description: `Le fichier "${noteTitle}.txt" a été téléchargé`
     });
   };
 
   const handleResetGeneration = () => {
     if (confirm("Êtes-vous sûr de vouloir recommencer ? Le contenu généré sera perdu.")) {
-      dispatch({ type: "SET_CONTENT", content: "" });
+      setGeneratedContent("");
       setActiveTab("selection");
     }
   };
 
-  const handleGenerate = () => {
-    generateNote();
-  };
+  console.log("Dialog state:", { 
+    activeTab, 
+    selectedTemplateId, 
+    selectedFoldersCount: selectedFolders.length,
+    selectedFilesCount: selectedFiles.length,
+    hasGeneratedContent: !!generatedContent,
+    isGenerating
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
@@ -155,24 +161,24 @@ export function GenerateNoteDialog({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="selection" disabled={state.isGenerating}>
+            <TabsTrigger value="selection" disabled={isGenerating}>
               Sélection
-              {(state.selectedFolders.length > 0 || state.selectedFiles.length > 0) && (
+              {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
                 <div className="flex gap-2 ml-2">
-                  {state.selectedFolders.length > 0 && (
+                  {selectedFolders.length > 0 && (
                     <Badge variant="secondary">
-                      {state.selectedFolders.length} dossier(s)
+                      {selectedFolders.length} dossier(s)
                     </Badge>
                   )}
-                  {state.selectedFiles.length > 0 && (
+                  {selectedFiles.length > 0 && (
                     <Badge variant="secondary">
-                      {state.selectedFiles.length} fichier(s)
+                      {selectedFiles.length} fichier(s)
                     </Badge>
                   )}
                 </div>
               )}
             </TabsTrigger>
-            <TabsTrigger value="editing" disabled={!state.generatedContent || state.isGenerating}>
+            <TabsTrigger value="editing" disabled={!generatedContent || isGenerating}>
               Édition
               <Pencil className="ml-2 h-3 w-3" />
             </TabsTrigger>
@@ -183,16 +189,16 @@ export function GenerateNoteDialog({
               <div className="grid md:grid-cols-2 gap-6 overflow-hidden">
                 <div className="space-y-4">
                   <TemplateSelector
-                    selectedTemplateId={state.selectedTemplateId}
-                    onTemplateSelect={(id) => dispatch({ type: "SET_TEMPLATE", id })}
+                    selectedTemplateId={selectedTemplateId}
+                    onTemplateSelect={setSelectedTemplateId}
                   />
                 </div>
                 <div className="space-y-4">
                   <FolderSelector
                     profileId={profileId}
-                    selectedFolders={state.selectedFolders}
+                    selectedFolders={selectedFolders}
                     onFolderSelect={handleFolderSelect}
-                    selectedFiles={state.selectedFiles}
+                    selectedFiles={selectedFiles}
                     onFileSelect={handleFileSelect}
                   />
                 </div>
@@ -200,12 +206,12 @@ export function GenerateNoteDialog({
             </TabsContent>
             
             <TabsContent value="editing" className="h-full">
-              {state.generatedContent && (
+              {generatedContent && (
                 <ResultEditor
-                  noteTitle={state.noteTitle}
-                  onTitleChange={(title) => dispatch({ type: "SET_TITLE", title })}
-                  generatedContent={state.generatedContent}
-                  onContentChange={(content) => dispatch({ type: "SET_CONTENT", content })}
+                  noteTitle={noteTitle}
+                  onTitleChange={setNoteTitle}
+                  generatedContent={generatedContent}
+                  onContentChange={setGeneratedContent}
                 />
               )}
             </TabsContent>
@@ -220,10 +226,10 @@ export function GenerateNoteDialog({
               </Button>
               <Button 
                 onClick={handleGenerate} 
-                disabled={!state.selectedTemplateId || (state.selectedFolders.length === 0 && state.selectedFiles.length === 0) || state.isGenerating}
+                disabled={!selectedTemplateId || (selectedFolders.length === 0 && selectedFiles.length === 0) || isGenerating}
                 className="bg-gradient-to-r from-purple-500 to-indigo-600"
               >
-                {state.isGenerating ? (
+                {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Génération en cours...
@@ -231,9 +237,9 @@ export function GenerateNoteDialog({
                 ) : (
                   <>
                     Générer une note
-                    {state.selectedFiles.length > 0 && (
+                    {selectedFiles.length > 0 && (
                       <Badge variant="outline" className="ml-2 bg-white text-purple-600">
-                        {state.selectedFiles.length} fichier(s)
+                        {selectedFiles.length} fichier(s)
                       </Badge>
                     )}
                   </>

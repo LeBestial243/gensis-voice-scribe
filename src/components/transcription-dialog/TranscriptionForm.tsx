@@ -8,7 +8,6 @@ import { fr } from "date-fns/locale";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { InconsistenciesAlert } from "@/components/InconsistenciesAlert";
-import { InconsistencyCheck } from "@/types/inconsistency";
 
 interface Folder {
   id: string;
@@ -59,8 +58,8 @@ export function TranscriptionForm({
           inconsistencies={inconsistencies?.map(msg => ({
             type: 'other',
             message: msg,
-            severity: 'medium' // Changed from 'warning' to 'medium'
-          } as InconsistencyCheck))} 
+            severity: 'warning'
+          }))} 
         />
       )}
       

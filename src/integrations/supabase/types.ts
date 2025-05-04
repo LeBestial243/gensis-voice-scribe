@@ -444,8 +444,6 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
-          word_file_name: string | null
-          word_file_url: string | null
         }
         Insert: {
           created_at?: string
@@ -454,8 +452,6 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
-          word_file_name?: string | null
-          word_file_url?: string | null
         }
         Update: {
           created_at?: string
@@ -464,8 +460,6 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
-          word_file_name?: string | null
-          word_file_url?: string | null
         }
         Relationships: []
       }
