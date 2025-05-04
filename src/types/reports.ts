@@ -26,7 +26,6 @@ export interface ReportSection {
   data?: any;
 }
 
-// Add a new Template interface to fix circular references
 export interface Template {
   id: string;
   title: string;
@@ -36,4 +35,6 @@ export interface Template {
   word_template_filename?: string;
   structure_id?: string;
   is_default?: boolean;
+  // Add the structure_name property that's being used in the component
+  structure_name?: string;
 }

@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Structure {
   id: string;
@@ -32,7 +31,8 @@ export function StructureSelector({
     const fetchStructures = async () => {
       setIsLoading(true);
       try {
-        // Mock implementation for now - replace with actual implementation once the structures table is created
+        // Mock implementation since the structures table doesn't exist in Supabase types
+        // In a real implementation, you would fetch this from an API or Supabase
         setStructures([
           { id: '1', name: 'Centre A' },
           { id: '2', name: 'Centre B' },

@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/lib/auth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Template } from "@/types/reports";
 
 export default function TemplatesPage() {
   const { loading } = useRequireAuth();
@@ -22,6 +23,15 @@ export default function TemplatesPage() {
       </div>
     );
   }
+
+  const handleEditTemplate = (templateId: string) => {
+    setEditingTemplateId(templateId);
+  };
+
+  const handleSelectTemplate = (templateId: string) => {
+    // Handle template selection if needed
+    console.log("Selected template:", templateId);
+  };
 
   return (
     <SidebarProvider>
@@ -46,7 +56,9 @@ export default function TemplatesPage() {
             </Card>
 
             <TemplatesList 
-              onEditTemplate={(templateId) => setEditingTemplateId(templateId)} 
+              onSelect={handleSelectTemplate}
+              onEdit={(template: Template) => handleEditTemplate(template.id)} 
+              showStructureFilter
             />
           </main>
           {isMobile && <MobileNav className="animate-slide-up" />}
