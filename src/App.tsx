@@ -20,6 +20,7 @@ import EducationalProjectPage from "./pages/EducationalProjectPage";
 import EducationalProjectGeneratorPage from "./pages/EducationalProjectGeneratorPage";
 import EmotionalAnalysisPage from "./pages/EmotionalAnalysisPage";
 import OfficialReportGeneratorPage from "./pages/OfficialReportGeneratorPage";
+import UnifiedReportPage from "./pages/UnifiedReportPage";
 
 export default function App() {
   return (
@@ -42,6 +43,8 @@ export default function App() {
             <Route path="/educational-project-generator/:profileId" element={<EducationalProjectGeneratorPage />} />
             <Route path="/emotional-analysis/:profileId" element={<EmotionalAnalysisPage />} />
             <Route path="/official-report/:profileId" element={<OfficialReportGeneratorPage />} />
+            <Route path="/unified-report" element={<UnifiedReportPage />} />
+            <Route path="/unified-report/:profileId" element={<UnifiedReportPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />

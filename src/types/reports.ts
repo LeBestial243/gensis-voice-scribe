@@ -3,6 +3,7 @@ import { Json } from "@/integrations/supabase/types";
 import { AuditableEntity } from "./index";
 
 export type ReportType = 'monthly' | 'quarterly' | 'yearly' | 'custom';
+export type ReportResourceType = "activity" | "standardized" | "note" | "evaluation";
 
 export interface ActivityReport extends Omit<AuditableEntity, 'updated_at' | 'created_by' | 'updated_by'> {
   id: string;
@@ -31,9 +32,9 @@ export interface OfficialReport {
   id: string;
   profileId: string;
   title: string;
-  report_type: string; // Changed from reportType
-  period_start: string; // Changed from startDate
-  period_end: string; // Changed from endDate
+  report_type: string;
+  period_start: string;
+  period_end: string;
   createdAt: string;
   sections: {
     title: string;
@@ -57,4 +58,36 @@ export interface OfficialReportTemplate {
       placeholder?: string;
     }[];
   };
+}
+
+export interface ReportMetadata {
+  periodStart?: string;
+  periodEnd?: string;
+  institution?: string;
+  author?: string;
+  status?: "draft" | "final";
+  reportType?: ReportType | string;
+  [key: string]: any;
+}
+
+export interface ReportTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  structure?: {
+    sections: {
+      title: string;
+      type?: string;
+      placeholder?: string;
+    }[];
+  };
+}
+
+export interface SourceFile {
+  id: string;
+  name: string;
+  type: string;
+  content?: string;
+  folderId?: string;
+  folderName?: string;
 }
