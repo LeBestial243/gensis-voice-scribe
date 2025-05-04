@@ -1,10 +1,16 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { reportService } from '@/services/reportService';
-import { ReportType } from '@/types/reports';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from './useAuditLog';
+import { StandardizedReport, ActivityReport, ReportType } from '@/types/casf';
+
+interface UseReportGenerationProps {
+  profileId?: string;
+  reportType: "activity" | "standardized";
+  onSuccess?: () => void;
+}
 
 export interface GenerateReportParams {
   title: string;
@@ -15,16 +21,240 @@ export interface GenerateReportParams {
   userId: string;
 }
 
-export function useReportGeneration() {
-  const [isGenerating, setIsGenerating] = useState(false);
+export function useReportGeneration({
+  profileId,
+  reportType,
+  onSuccess
+}: UseReportGenerationProps = { reportType: "activity" }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
-  
-  const reportMutation = useMutation({
-    mutationFn: (params: GenerateReportParams) => {
-      setIsGenerating(true);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<string>("");
+  const [reportTitle, setReportTitle] = useState<string>("Nouveau rapport");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [reportData, setReportData] = useState<Partial<ActivityReport | StandardizedReport>>({});
+
+  const saveReport = useMutation({
+    mutationFn: async (data: Partial<ActivityReport | StandardizedReport>) => {
+      // Vérifier les champs requis
+      if (!data.title) {
+        throw new Error("Le titre est requis");
+      }
+
+      try {
+        const table = reportType === "activity" ? "activity_reports" : "standardized_reports";
+        
+        // Si un ID existe, mettre à jour le rapport existant
+        if (data.id) {
+          const { data: updatedData, error } = await supabase
+            .from(table)
+            .update(data)
+            .eq("id", data.id)
+            .select()
+            .single();
+            
+          if (error) throw error;
+          return updatedData;
+        } 
+        // Sinon, créer un nouveau rapport
+        else {
+          const { data: newData, error } = await supabase
+            .from(table)
+            .insert({
+              ...data,
+              profile_id: reportType === "standardized" ? profileId : undefined,
+              // Ajouter des valeurs par défaut selon le type de rapport
+              report_type: data.report_type || (reportType === "activity" ? "monthly" : "evaluation"),
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+            
+          if (error) throw error;
+          return newData;
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'enregistrement du rapport:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Rapport enregistré",
+        description: "Votre rapport a été enregistré avec succès"
+      });
       
+      // Log audit event
+      logAction('create', reportType === "activity" ? 'activity_report' : 'standardized_report', data.id, { title: data.title });
+      
+      // Invalidate reports query to refresh the list
+      queryClient.invalidateQueries({ queryKey: [reportType === "activity" ? 'activity-reports' : 'standardized-reports'] });
+      
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: `Une erreur est survenue lors de l'enregistrement: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleGenerate = async () => {
+    if (!selectedTemplateId || (selectedFolders.length === 0 && selectedFiles.length === 0)) {
+      toast({
+        title: "Sélection incomplète",
+        description: "Veuillez sélectionner un template et au moins un dossier ou fichier",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      // Récupérer le contenu des fichiers sélectionnés
+      const { data: templateData, error: templateError } = await supabase
+        .from("templates")
+        .select("*")
+        .eq("id", selectedTemplateId)
+        .single();
+        
+      if (templateError) throw templateError;
+
+      // Récupérer les sections du template
+      const { data: sectionData, error: sectionError } = await supabase
+        .from("template_sections")
+        .select("*")
+        .eq("template_id", selectedTemplateId)
+        .order("order_index");
+        
+      if (sectionError) throw sectionError;
+
+      // Récupérer le contenu des fichiers sélectionnés
+      const { data: fileContents, error: fileError } = await supabase
+        .from("files")
+        .select("id, name, content")
+        .in("id", selectedFiles);
+        
+      if (fileError) throw fileError;
+
+      // Simuler un délai pour l'IA
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Créer des sections basées sur le template
+      let sections = [];
+      
+      if (sectionData && sectionData.length > 0) {
+        sections = sectionData.map(section => ({
+          title: section.title,
+          content: `Contenu généré par IA pour la section "${section.title}" basé sur ${selectedFiles.length} document(s) sélectionné(s).
+
+${fileContents && fileContents.length > 0 
+  ? 'Documents analysés: ' + fileContents.map(f => f.name).join(', ')
+  : 'Aucun contenu de document disponible.'}`,
+          type: "text"
+        }));
+      } else {
+        // Section par défaut
+        sections = [
+          { 
+            title: "Résumé", 
+            content: `Résumé généré par IA basé sur ${selectedFiles.length} document(s) sélectionné(s).`,
+            type: "text" 
+          }
+        ];
+      }
+
+      // Préparer les données du rapport
+      const newReportData: Partial<ActivityReport | StandardizedReport> = {
+        title: templateData?.title || "Nouveau rapport",
+        report_type: reportType === "activity" ? "monthly" : "evaluation",
+        content: {
+          sections,
+          ...(reportType === "activity" 
+            ? { metrics: [] } 
+            : { template_id: selectedTemplateId })
+        }
+      };
+
+      // Ajouter les champs spécifiques selon le type de rapport
+      if (reportType === "activity") {
+        (newReportData as Partial<ActivityReport>).period_start = new Date().toISOString();
+        (newReportData as Partial<ActivityReport>).period_end = new Date().toISOString();
+      } else if (reportType === "standardized") {
+        (newReportData as Partial<StandardizedReport>).profile_id = profileId;
+        (newReportData as Partial<StandardizedReport>).confidentiality_level = "restricted";
+      }
+
+      setReportData(newReportData);
+      setReportTitle(newReportData.title || "Nouveau rapport");
+
+      // Convertir les sections en texte pour l'éditeur
+      const contentText = sections.map(section => 
+        `# ${section.title}\n\n${section.content}\n\n`
+      ).join('');
+
+      setGeneratedContent(contentText);
+
+      toast({
+        title: "Génération réussie",
+        description: "Le contenu a été généré avec succès"
+      });
+    } catch (error) {
+      console.error("Erreur lors de la génération:", error);
+      toast({
+        title: "Erreur de génération",
+        description: `Une erreur est survenue: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedTemplateId("");
+    setSelectedFolders([]);
+    setSelectedFiles([]);
+    setGeneratedContent("");
+    setReportTitle("Nouveau rapport");
+    setReportData({});
+  };
+
+  const parseSectionsFromContent = (content: string) => {
+    try {
+      const sectionRegex = /^# (.+)$([\s\S]*?)(?=^# |$)/gm;
+      const sections = [];
+      let match;
+      
+      while ((match = sectionRegex.exec(content + '\n# '))) {
+        const title = match[1].trim();
+        const sectionContent = match[2].trim();
+        
+        sections.push({
+          title,
+          content: sectionContent,
+          type: "text"
+        });
+      }
+      
+      return sections;
+    } catch (e) {
+      console.error("Erreur lors du parsing du contenu:", e);
+      return [];
+    }
+  };
+
+  // Add a simplified version for direct generation without template/files selection
+  const generateReport = async (params: GenerateReportParams) => {
+    setIsGenerating(true);
+    
+    try {
       const reportData = {
         title: params.title,
         report_type: params.reportType,
@@ -46,40 +276,57 @@ export function useReportGeneration() {
         }
       };
       
-      return reportService.createReport(reportData);
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Rapport généré",
-        description: "Le rapport a été généré avec succès."
-      });
+      const { data, error } = await supabase
+        .from('activity_reports')
+        .insert(reportData)
+        .select()
+        .single();
+        
+      if (error) throw error;
       
       // Log audit event
       logAction('create', 'report', data.id, { title: data.title });
       
-      // Invalidate reports query to refresh the list
+      // Invalidate reports query
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-    },
-    onError: (error) => {
+      
+      toast({
+        title: "Rapport généré",
+        description: "Le rapport a été généré avec succès"
+      });
+      
+      return data;
+    } catch (error) {
       console.error("Error generating report:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la génération du rapport.",
+        description: "Une erreur est survenue lors de la génération du rapport",
         variant: "destructive"
       });
-    },
-    onSettled: () => {
+      throw error;
+    } finally {
       setIsGenerating(false);
     }
-  });
-  
-  const generateReport = (params: GenerateReportParams) => {
-    return reportMutation.mutateAsync(params);
   };
-  
+
   return {
-    generateReport,
+    selectedTemplateId,
+    setSelectedTemplateId,
+    selectedFolders,
+    setSelectedFolders,
+    selectedFiles,
+    setSelectedFiles,
+    generatedContent,
+    setGeneratedContent,
+    reportTitle,
+    setReportTitle,
+    reportData,
+    setReportData,
     isGenerating,
-    error: reportMutation.error
+    handleGenerate,
+    generateReport,
+    handleReset,
+    saveReport,
+    parseSectionsFromContent
   };
 }
